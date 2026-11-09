@@ -32,7 +32,13 @@ export function CacheForm() {
     <Paper withBorder>
       <Stack gap={0}>
         {names.map((name, i) => (
-          <Group key={name} justify="space-between" px="md" py="xs" style={i ? { borderTop: '1px solid var(--mantine-color-default-border)' } : undefined}>
+          <Group
+            key={name}
+            justify="space-between"
+            px="md"
+            py="xs"
+            style={i ? { borderTop: '1px solid var(--mantine-color-default-border)' } : undefined}
+          >
             <Group gap="sm">
               <Icon icon="database" color="var(--mantine-color-gray-6)" />
               <Text size="sm" ff="monospace">

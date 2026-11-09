@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { b64ToUtf8, businessDays, durationBetween, generatePassword, howMany, PASSWORD_CHARSETS, utf8ToB64 } from './logic';
+import {
+  b64ToUtf8,
+  businessDays,
+  durationBetween,
+  generatePassword,
+  howMany,
+  PASSWORD_CHARSETS,
+  utf8ToB64,
+} from './logic';
 
 describe('business days', () => {
   it('counts week days, both dates included', () => {
@@ -37,7 +45,13 @@ describe('base64', () => {
 
 describe('password generator', () => {
   it('generates a password of the requested length', () => {
-    const pwd = generatePassword({ length: 20, simpleSpecial: false, complexSpecial: false, accented: false, emoji: false });
+    const pwd = generatePassword({
+      length: 20,
+      simpleSpecial: false,
+      complexSpecial: false,
+      accented: false,
+      emoji: false,
+    });
     expect(pwd).toHaveLength(20);
     expect([...pwd].every((c) => PASSWORD_CHARSETS.alphaNum.includes(c))).toBe(true);
   });
@@ -45,7 +59,10 @@ describe('password generator', () => {
   it('contains at least one special character when enabled', () => {
     // deterministic "random" values always picking the first alpha numeric character
     const zeros = (n: number) => new Uint32Array(n);
-    const pwd = generatePassword({ length: 8, simpleSpecial: true, complexSpecial: false, accented: false, emoji: false }, zeros);
+    const pwd = generatePassword(
+      { length: 8, simpleSpecial: true, complexSpecial: false, accented: false, emoji: false },
+      zeros,
+    );
     expect([...pwd].some((c) => PASSWORD_CHARSETS.simple.includes(c))).toBe(true);
   });
 

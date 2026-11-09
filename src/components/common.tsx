@@ -63,7 +63,17 @@ export function Blur({ active, children }: { active?: boolean; children: ReactNo
 }
 
 /** loads an authenticated image (upload id) */
-export function AuthImage({ id, alt = '', width, className }: { id?: string; alt?: string; width?: number | string; className?: string }) {
+export function AuthImage({
+  id,
+  alt = '',
+  width,
+  className,
+}: {
+  id?: string;
+  alt?: string;
+  width?: number | string;
+  className?: string;
+}) {
   const [src, setSrc] = useState<string>();
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -106,13 +116,26 @@ export function ThumbnailPreview({ thumbnailId, children }: { thumbnailId?: stri
       color="white"
       withArrow
       openDelay={200}
-      styles={{ tooltip: { boxShadow: 'var(--mantine-shadow-md)', border: '1px solid var(--mantine-color-default-border)', padding: 4 } }}
+      styles={{
+        tooltip: {
+          boxShadow: 'var(--mantine-shadow-md)',
+          border: '1px solid var(--mantine-color-default-border)',
+          padding: 4,
+        },
+      }}
       events={{ hover: true, focus: false, touch: true }}
     >
       {children ? (
         <span>{children}</span>
       ) : (
-        <ActionIcon variant="subtle" color="gray" size="sm" disabled={!thumbnailId} onClick={(e) => e.stopPropagation()} aria-label="preview">
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          size="sm"
+          disabled={!thumbnailId}
+          onClick={(e) => e.stopPropagation()}
+          aria-label="preview"
+        >
           <Icon icon="eye" />
         </ActionIcon>
       )}

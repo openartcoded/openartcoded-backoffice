@@ -1,5 +1,21 @@
 import { useNavigate } from 'react-router';
-import { ActionIcon, Alert, Button, Group, Loader, NumberInput, Paper, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text, TextInput, Textarea } from '@mantine/core';
+import {
+  ActionIcon,
+  Alert,
+  Button,
+  Group,
+  Loader,
+  NumberInput,
+  Paper,
+  SegmentedControl,
+  Select,
+  SimpleGrid,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Textarea,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -72,7 +88,9 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
     initialValues: {
       dateOfInvoice: toInputDate(invoice.dateOfInvoice ?? new Date()),
       taxRate: invoice.taxRate ?? ('' as number | string),
-      freemarkerTemplateId: templates.some((t) => t.id === invoice.freemarkerTemplateId) ? (invoice.freemarkerTemplateId ?? null) : null,
+      freemarkerTemplateId: templates.some((t) => t.id === invoice.freemarkerTemplateId)
+        ? (invoice.freemarkerTemplateId ?? null)
+        : null,
       specialNote: invoice.specialNote ?? '',
       uploadedManually: !!invoice.uploadedManually,
       skipPeppol: !!invoice.skipPeppol,
@@ -191,7 +209,9 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
           {invoice.locked && <StatusBadge value="LOCKED" label="Locked" color="gray" />}
           {invoice.archived && <StatusBadge value="PROCESSED" label="Processed" color="green" />}
           {invoice.logicalDelete && <StatusBadge value="DELETED" label="Deleted" color="red" />}
-          {invoice.peppolStatus && invoice.peppolStatus !== 'OLD' && <StatusBadge value={invoice.peppolStatus} label={`Peppol: ${humanize(invoice.peppolStatus)}`} />}
+          {invoice.peppolStatus && invoice.peppolStatus !== 'OLD' && (
+            <StatusBadge value={invoice.peppolStatus} label={`Peppol: ${humanize(invoice.peppolStatus)}`} />
+          )}
         </Group>
         {views.length > 1 && <SegmentedControl size="xs" data={views} value={view} onChange={setView} />}
       </Group>
@@ -215,8 +235,17 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
             <TextInput label={`${label} number`} value={invoice.newInvoiceNumber ?? ''} readOnly variant="filled" />
             <TextInput label="Reference" value={invoice.invoiceNumber ?? ''} readOnly variant="filled" />
-            {invoice.creditNoteInvoiceReference && <TextInput label="Credited invoice" value={invoice.creditNoteInvoiceReference} readOnly variant="filled" />}
-            {invoice.structuredReference && <TextInput label="Bank reference" value={invoice.structuredReference} readOnly variant="filled" />}
+            {invoice.creditNoteInvoiceReference && (
+              <TextInput
+                label="Credited invoice"
+                value={invoice.creditNoteInvoiceReference}
+                readOnly
+                variant="filled"
+              />
+            )}
+            {invoice.structuredReference && (
+              <TextInput label="Bank reference" value={invoice.structuredReference} readOnly variant="filled" />
+            )}
             <TextInput type="date" label="Date" disabled={readOnly} {...form.getInputProps('dateOfInvoice')} />
             <NumberInput label="VAT rate" suffix="%" disabled={readOnly} {...form.getInputProps('taxRate')} />
             {!!templates.length && (
@@ -229,13 +258,33 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
               />
             )}
           </SimpleGrid>
-          <Textarea label="Note" placeholder="Printed on the invoice" autosize minRows={2} disabled={readOnly} {...form.getInputProps('specialNote')} />
+          <Textarea
+            label="Note"
+            placeholder="Printed on the invoice"
+            autosize
+            minRows={2}
+            disabled={readOnly}
+            {...form.getInputProps('specialNote')}
+          />
           <Group gap="lg">
-            <Switch label="Upload the PDF manually" disabled={readOnly} {...form.getInputProps('uploadedManually', { type: 'checkbox' })} />
-            <Switch label="Don't send to Peppol" disabled={readOnly} {...form.getInputProps('skipPeppol', { type: 'checkbox' })} />
+            <Switch
+              label="Upload the PDF manually"
+              disabled={readOnly}
+              {...form.getInputProps('uploadedManually', { type: 'checkbox' })}
+            />
+            <Switch
+              label="Don't send to Peppol"
+              disabled={readOnly}
+              {...form.getInputProps('skipPeppol', { type: 'checkbox' })}
+            />
           </Group>
           {v.uploadedManually && !invoice.locked && !invoice.logicalDelete && (
-            <FilePicker onFiles={(f) => isAdmin && setFile(f[0])} accept={['application/pdf']} files={file ? [file] : []} label="Drop the invoice PDF here" />
+            <FilePicker
+              onFiles={(f) => isAdmin && setFile(f[0])}
+              accept={['application/pdf']}
+              files={file ? [file] : []}
+              label="Drop the invoice PDF here"
+            />
           )}
         </FormSection>
 
@@ -265,7 +314,12 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
           title="Lines"
           actions={
             !readOnly && (
-              <Button size="xs" variant="default" leftSection={<Icon icon="plus" />} onClick={() => form.insertListItem('rows', nextRow(v.rows))}>
+              <Button
+                size="xs"
+                variant="default"
+                leftSection={<Icon icon="plus" />}
+                onClick={() => form.insertListItem('rows', nextRow(v.rows))}
+              >
                 Add line
               </Button>
             )
@@ -278,7 +332,12 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
                   Line {i + 1}
                 </Text>
                 {!readOnly && v.rows.length > 1 && (
-                  <ActionIcon variant="subtle" color="red" onClick={() => form.removeListItem('rows', i)} aria-label="remove line">
+                  <ActionIcon
+                    variant="subtle"
+                    color="red"
+                    onClick={() => form.removeListItem('rows', i)}
+                    aria-label="remove line"
+                  >
                     <Icon icon="trash" />
                   </ActionIcon>
                 )}
@@ -286,11 +345,19 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
               <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }}>
                 <TextInput label="Project" disabled={readOnly} {...form.getInputProps(`rows.${i}.projectName`)} />
                 <TextInput label="Nature" disabled={readOnly} {...form.getInputProps(`rows.${i}.nature`)} />
-                <TextInput type="month" label="Period" disabled={readOnly} {...form.getInputProps(`rows.${i}.period`)} />
+                <TextInput
+                  type="month"
+                  label="Period"
+                  disabled={readOnly}
+                  {...form.getInputProps(`rows.${i}.period`)}
+                />
                 {!!rates.length ? (
                   <Select
                     label="Client rate"
-                    data={[{ value: '', label: 'Custom' }, ...rates.map((r, k) => ({ value: r.id ?? '', label: rateOptionLabel(r, k) }))]}
+                    data={[
+                      { value: '', label: 'Custom' },
+                      ...rates.map((r, k) => ({ value: r.id ?? '', label: rateOptionLabel(r, k) })),
+                    ]}
                     value={row.rateId ?? ''}
                     onChange={(id) => selectRowRate(i, id || null)}
                     disabled={readOnly}
@@ -300,7 +367,13 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
                   <div />
                 )}
                 <NumberInput label="Quantity" disabled={readOnly} {...form.getInputProps(`rows.${i}.amount`)} />
-                <Select label="Unit" data={RATE_TYPE_OPTIONS} allowDeselect={false} disabled={readOnly} {...form.getInputProps(`rows.${i}.amountType`)} />
+                <Select
+                  label="Unit"
+                  data={RATE_TYPE_OPTIONS}
+                  allowDeselect={false}
+                  disabled={readOnly}
+                  {...form.getInputProps(`rows.${i}.amountType`)}
+                />
                 <NumberInput
                   label="Rate"
                   decimalScale={2}
@@ -332,7 +405,12 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
 
       <StickyFooter>
         <Group gap="xs">
-          <Button variant="default" leftSection={<Icon icon="download" />} disabled={!invoice.invoiceUploadId} onClick={() => invoice.invoiceUploadId && downloadUpload(invoice.invoiceUploadId)}>
+          <Button
+            variant="default"
+            leftSection={<Icon icon="download" />}
+            disabled={!invoice.invoiceUploadId}
+            onClick={() => invoice.invoiceUploadId && downloadUpload(invoice.invoiceUploadId)}
+          >
             Download
           </Button>
           {isAdmin && (
@@ -341,7 +419,11 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
             </Button>
           )}
           {isAdmin && invoice.timesheetId && (
-            <Button variant="default" leftSection={<Icon icon="clock" />} onClick={() => navigate(`/timesheets/timesheet/${invoice.timesheetId}`)}>
+            <Button
+              variant="default"
+              leftSection={<Icon icon="clock" />}
+              onClick={() => navigate(`/timesheets/timesheet/${invoice.timesheetId}`)}
+            >
               Timesheet
             </Button>
           )}
@@ -370,12 +452,24 @@ export function InvoiceTitle({ invoice }: { invoice: Invoice }) {
   );
 }
 
-function InvoiceDetailLoader({ invoice, onSave, ongoingOnly }: { invoice: Invoice; onSave?: Props['onSave']; ongoingOnly?: boolean }) {
+function InvoiceDetailLoader({
+  invoice,
+  onSave,
+  ongoingOnly,
+}: {
+  invoice: Invoice;
+  onSave?: Props['onSave'];
+  ongoingOnly?: boolean;
+}) {
   const { data: clients } = useQuery({
     queryKey: ['clients', ongoingOnly ? 'ongoing' : 'all'],
     queryFn: () => (ongoingOnly ? clientsApi.findByContractStatus('ONGOING') : clientsApi.findAll()),
   });
-  const { data: templates } = useQuery({ queryKey: ['invoice-templates'], queryFn: invoicesApi.listTemplates, enabled: !!onSave });
+  const { data: templates } = useQuery({
+    queryKey: ['invoice-templates'],
+    queryFn: invoicesApi.listTemplates,
+    enabled: !!onSave,
+  });
   if (!clients || (onSave && !templates)) return <Loader />;
   return (
     <InvoiceDetail

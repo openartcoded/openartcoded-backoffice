@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { formatValue, searchErrorMessage, skippedFiles, snippet, SNIPPET_LENGTH, toDisplayHit, uploadIdFromFileName } from './fileSearch';
+import {
+  formatValue,
+  searchErrorMessage,
+  skippedFiles,
+  snippet,
+  SNIPPET_LENGTH,
+  toDisplayHit,
+  uploadIdFromFileName,
+} from './fileSearch';
 
 describe('file search', () => {
   it('formats tantivy values', () => {
@@ -9,7 +17,9 @@ describe('file search', () => {
   });
 
   it('maps a hit', () => {
-    expect(toDisplayHit({ file_name: [{ Str: 'x.xlsx' }], sheet_name: ['S1'], cell_position: ['A1'], cell_value: ['42'] })).toMatchObject({
+    expect(
+      toDisplayHit({ file_name: [{ Str: 'x.xlsx' }], sheet_name: ['S1'], cell_position: ['A1'], cell_value: ['42'] }),
+    ).toMatchObject({
       fileName: 'x.xlsx',
       sheet: 'S1',
       position: 'A1',
@@ -20,7 +30,9 @@ describe('file search', () => {
   });
 
   it('only resolves uuid file names', () => {
-    expect(uploadIdFromFileName('0c1d2e3f-1234-4abc-8def-0123456789ab.xlsx')).toBe('0c1d2e3f-1234-4abc-8def-0123456789ab');
+    expect(uploadIdFromFileName('0c1d2e3f-1234-4abc-8def-0123456789ab.xlsx')).toBe(
+      '0c1d2e3f-1234-4abc-8def-0123456789ab',
+    );
     expect(uploadIdFromFileName('report.xlsx')).toBeNull();
     expect(uploadIdFromFileName('0c1d2e3f-1234-4abc-8def-0123456789ab.tar/x')).toBeNull();
   });
@@ -39,7 +51,10 @@ describe('file search', () => {
         indexed: 1,
         skipped: 1,
         pending: 0,
-        files: { 'a.pdf': { digest: 'x', status: 'skipped', reason: null }, 'b.xlsx': { digest: 'y', status: 'indexed', reason: null } },
+        files: {
+          'a.pdf': { digest: 'x', status: 'skipped', reason: null },
+          'b.xlsx': { digest: 'y', status: 'indexed', reason: null },
+        },
       }),
     ).toEqual([{ name: 'a.pdf', reason: 'No reason provided' }]);
   });

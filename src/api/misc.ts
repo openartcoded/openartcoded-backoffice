@@ -114,7 +114,8 @@ export const tasksApi = {
     get<Page<ActionResult>>(`${rt}/action-results`, { key, page, size }),
   save: (t: ReminderTask) => post<void>(`${rt}/save`, t),
   delete: (id: string) => del<void>(rt, { id }),
-  validateCron: (cronExpression: string) => get<{ valid: boolean }>(`${rt}/validate-cron-expression`, { cronExpression }),
+  validateCron: (cronExpression: string) =>
+    get<{ valid: boolean }>(`${rt}/validate-cron-expression`, { cronExpression }),
 };
 
 const ts = '/api/timesheet';
@@ -149,7 +150,8 @@ export const reportApi = {
   },
   toggleProcessAttachment: (id: string, attachmentId: string) =>
     post<Post>(`${rep}/toggle-process-attachment`, {}, { id, attachmentId }),
-  removeAttachment: (id: string, attachmentId: string) => post<Post>(`${rep}/remove-attachment`, {}, { id, attachmentId }),
+  removeAttachment: (id: string, attachmentId: string) =>
+    post<Post>(`${rep}/remove-attachment`, {}, { id, attachmentId }),
   /** page is zero based */
   search: (criteria: PostSearchCriteria, page: number, size: number) =>
     post<Page<Post>>(`${rep}/admin-search`, criteria, { page, size, sort: 'updatedDate,DESC' }),

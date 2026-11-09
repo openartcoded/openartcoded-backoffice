@@ -41,7 +41,9 @@ export function toDisplayHit(hit: FileSearchHit): DisplayHit {
  * are resolved through the upload api, a file name is never assumed to be an id otherwise.
  */
 export function uploadIdFromFileName(fileName: string): string | null {
-  const match = /^([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?:\.[^./]+)?$/i.exec(fileName);
+  const match = /^([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?:\.[^./]+)?$/i.exec(
+    fileName,
+  );
   return match ? match[1] : null;
 }
 

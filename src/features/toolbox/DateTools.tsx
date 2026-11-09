@@ -32,7 +32,13 @@ export function BusinessDays() {
         This tool doesn't take holidays into consideration
       </Alert>
       <TextInput type="date" label="Start" value={start} onChange={(e) => setStart(e.currentTarget.value)} />
-      <TextInput type="date" label="End" value={end} onChange={(e) => setEnd(e.currentTarget.value)} error={invalid && end ? 'End must be after start' : null} />
+      <TextInput
+        type="date"
+        label="End"
+        value={end}
+        onChange={(e) => setEnd(e.currentTarget.value)}
+        error={invalid && end ? 'End must be after start' : null}
+      />
       <Group justify="flex-end">
         <Button disabled={invalid} onClick={() => setResult(businessDays(start, end))}>
           Submit
@@ -57,7 +63,13 @@ export function DateBetween() {
     });
   return (
     <Stack gap="sm">
-      <Select label="Type" data={unitOptions} value={unit} onChange={(v) => v && setUnit(v as DurationUnit)} allowDeselect={false} />
+      <Select
+        label="Type"
+        data={unitOptions}
+        value={unit}
+        onChange={(v) => v && setUnit(v as DurationUnit)}
+        allowDeselect={false}
+      />
       <TextInput type="date" label="Start" value={start} onChange={(e) => setStart(e.currentTarget.value)} />
       <TextInput type="date" label="End" value={end} onChange={(e) => setEnd(e.currentTarget.value)} />
       <Group justify="flex-end">
@@ -80,7 +92,13 @@ export function HowMany({ before = false }: { before?: boolean }) {
     setResult({ value: howMany(date, unit, before), label: `${unit} ${before ? 'before' : 'since'} ${fmtDate(date)}` });
   return (
     <Stack gap="sm">
-      <Select label="Type" data={unitOptions} value={unit} onChange={(v) => v && setUnit(v as DurationUnit)} allowDeselect={false} />
+      <Select
+        label="Type"
+        data={unitOptions}
+        value={unit}
+        onChange={(v) => v && setUnit(v as DurationUnit)}
+        allowDeselect={false}
+      />
       <TextInput
         type="date"
         label="Date"

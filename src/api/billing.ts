@@ -40,16 +40,27 @@ export const clientsApi = {
 const inv = '/api/invoice';
 export const invoicesApi = {
   /** page is zero based */
-  search: (opts: { archived?: boolean; logical?: boolean; bookmarked?: boolean; page: number; size: number; sort: SortCriteria }) =>
+  search: (opts: {
+    archived?: boolean;
+    logical?: boolean;
+    bookmarked?: boolean;
+    page: number;
+    size: number;
+    sort: SortCriteria;
+  }) =>
     opts.bookmarked
       ? get<Page<Invoice>>(`${inv}/bookmarked`, { page: opts.page, size: opts.size, sort: sortParam(opts.sort) })
-      : post<Page<Invoice>>(`${inv}/page`, {}, {
-          archived: !!opts.archived,
-          logical: !!opts.logical,
-          page: opts.page,
-          size: opts.size,
-          sort: sortParam(opts.sort),
-        }),
+      : post<Page<Invoice>>(
+          `${inv}/page`,
+          {},
+          {
+            archived: !!opts.archived,
+            logical: !!opts.logical,
+            page: opts.page,
+            size: opts.size,
+            sort: sortParam(opts.sort),
+          },
+        ),
   findAllSummaries: () => post<BackendInvoiceSummary[]>(`${inv}/find-all-summaries`),
   findById: (id: string) => post<Invoice>(`${inv}/find-by-id`, {}, { id }),
   findByIds: async (ids: string[]) => (ids.length ? post<Invoice[]>(`${inv}/find-by-ids`, {}, { id: ids }) : []),

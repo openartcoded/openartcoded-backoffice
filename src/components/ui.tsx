@@ -1,6 +1,23 @@
 import { Fragment, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-import { ActionIcon, Anchor, Badge, Box, Group, Menu, Paper, Stack, Table, Text, ThemeIcon, Title, Tooltip, type MantineColor, type MantineSpacing, type TableTdProps } from '@mantine/core';
+import {
+  ActionIcon,
+  Anchor,
+  Badge,
+  Box,
+  Group,
+  Menu,
+  Paper,
+  Stack,
+  Table,
+  Text,
+  ThemeIcon,
+  Title,
+  Tooltip,
+  type MantineColor,
+  type MantineSpacing,
+  type TableTdProps,
+} from '@mantine/core';
 import { Icon } from './Icon';
 import { fmtCurrency } from '@/lib/format';
 
@@ -57,7 +74,17 @@ export function PageHeader({
 }
 
 /** neutral empty state, used in tables and lists */
-export function EmptyState({ title = 'Nothing here yet', description, icon = 'folder-open', action }: { title?: string; description?: ReactNode; icon?: string; action?: ReactNode }) {
+export function EmptyState({
+  title = 'Nothing here yet',
+  description,
+  icon = 'folder-open',
+  action,
+}: {
+  title?: string;
+  description?: ReactNode;
+  icon?: string;
+  action?: ReactNode;
+}) {
   return (
     <Stack align="center" gap={6} py="xl">
       <ThemeIcon variant="light" color="gray" size="xl" radius="xl">
@@ -110,10 +137,19 @@ const STATUS_COLORS: Record<string, MantineColor> = {
   URGENT: 'red',
 };
 
-export const humanize = (value?: string | null) => (value ? (value.charAt(0) + value.slice(1).toLowerCase()).replace(/_/g, ' ') : '');
+export const humanize = (value?: string | null) =>
+  value ? (value.charAt(0) + value.slice(1).toLowerCase()).replace(/_/g, ' ') : '';
 
 /** backend enums (NOT_SENT, ONGOING...) shown as a readable, colored badge */
-export function StatusBadge({ value, label, color }: { value?: string | null; label?: ReactNode; color?: MantineColor }) {
+export function StatusBadge({
+  value,
+  label,
+  color,
+}: {
+  value?: string | null;
+  label?: ReactNode;
+  color?: MantineColor;
+}) {
   if (!value) return null;
   return (
     <Badge variant="light" color={color ?? STATUS_COLORS[value] ?? 'gray'} radius="sm" tt="none" fw={500}>
@@ -125,7 +161,12 @@ export function StatusBadge({ value, label, color }: { value?: string | null; la
 /** amount right aligned with tabular figures, so columns of numbers line up */
 export function MoneyCell({ value, strong, ...props }: { value?: number | null; strong?: boolean } & TableTdProps) {
   return (
-    <Table.Td ta="right" style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }} fw={strong ? 600 : undefined} {...props}>
+    <Table.Td
+      ta="right"
+      style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}
+      fw={strong ? 600 : undefined}
+      {...props}
+    >
       {fmtCurrency(value)}
     </Table.Td>
   );
@@ -152,7 +193,13 @@ export function RowActions({ inline = [], groups = [] }: { inline?: RowAction[];
         .filter((a) => !a.hidden)
         .map((a) => (
           <Tooltip key={a.label} label={a.label} openDelay={300}>
-            <ActionIcon variant="subtle" color={a.color ?? 'gray'} disabled={a.disabled} onClick={a.onClick} aria-label={a.label}>
+            <ActionIcon
+              variant="subtle"
+              color={a.color ?? 'gray'}
+              disabled={a.disabled}
+              onClick={a.onClick}
+              aria-label={a.label}
+            >
               <Icon icon={a.icon} />
             </ActionIcon>
           </Tooltip>
@@ -169,7 +216,13 @@ export function RowActions({ inline = [], groups = [] }: { inline?: RowAction[];
               <Fragment key={i}>
                 {i > 0 && <Menu.Divider />}
                 {group.map((a) => (
-                  <Menu.Item key={a.label} leftSection={<Icon icon={a.icon} />} color={a.color} disabled={a.disabled} onClick={a.onClick}>
+                  <Menu.Item
+                    key={a.label}
+                    leftSection={<Icon icon={a.icon} />}
+                    color={a.color}
+                    disabled={a.disabled}
+                    onClick={a.onClick}
+                  >
                     {a.label}
                   </Menu.Item>
                 ))}
@@ -183,7 +236,17 @@ export function RowActions({ inline = [], groups = [] }: { inline?: RowAction[];
 }
 
 /** titled block of a form (details, bill to, lines...) */
-export function FormSection({ title, description, actions, children }: { title: string; description?: ReactNode; actions?: ReactNode; children: ReactNode }) {
+export function FormSection({
+  title,
+  description,
+  actions,
+  children,
+}: {
+  title: string;
+  description?: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <Stack gap="sm">
       <Group justify="space-between" align="flex-end" gap="xs">
@@ -226,7 +289,19 @@ export function StickyFooter({ children }: { children: ReactNode }) {
 }
 
 /** key figure of the dashboard */
-export function KpiCard({ label, value, hint, icon, onClick }: { label: string; value: ReactNode; hint?: ReactNode; icon: string; onClick?: () => void }) {
+export function KpiCard({
+  label,
+  value,
+  hint,
+  icon,
+  onClick,
+}: {
+  label: string;
+  value: ReactNode;
+  hint?: ReactNode;
+  icon: string;
+  onClick?: () => void;
+}) {
   return (
     <Paper withBorder p="md" className={onClick ? 'kpi-card clickable' : 'kpi-card'} onClick={onClick}>
       <Group justify="space-between" align="flex-start" wrap="nowrap">
@@ -252,7 +327,17 @@ export function KpiCard({ label, value, hint, icon, onClick }: { label: string; 
 }
 
 /** card with a title, used for the dashboard widgets */
-export function Panel({ title, actions, children, p = 'md' }: { title: ReactNode; actions?: ReactNode; children: ReactNode; p?: string | number }) {
+export function Panel({
+  title,
+  actions,
+  children,
+  p = 'md',
+}: {
+  title: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+  p?: string | number;
+}) {
   return (
     <Paper withBorder>
       <Group justify="space-between" px="md" py="sm" className="border-bottom" gap="xs">

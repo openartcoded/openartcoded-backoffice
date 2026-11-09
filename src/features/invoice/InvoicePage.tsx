@@ -27,13 +27,26 @@ const DEFAULT_SORT: SortCriteria = { property: 'dateCreation', direction: 'DESC'
 
 type Mode = { bookmarked?: boolean; archived?: boolean; logical?: boolean };
 
-function SortHeader({ label, property, sort, onSort }: { label: string; property: string; sort: SortCriteria; onSort: (p: string) => void }) {
+function SortHeader({
+  label,
+  property,
+  sort,
+  onSort,
+}: {
+  label: string;
+  property: string;
+  sort: SortCriteria;
+  onSort: (p: string) => void;
+}) {
   const active = sort.property === property;
   return (
     <UnstyledButton onClick={() => onSort(property)} fw={700} fz="sm">
       <Group gap={4} wrap="nowrap">
         {label}
-        <Icon icon={!active ? 'arrows-up-down' : sort.direction === 'ASC' ? 'arrow-up' : 'arrow-down'} color={active ? undefined : 'gray'} />
+        <Icon
+          icon={!active ? 'arrows-up-down' : sort.direction === 'ASC' ? 'arrow-up' : 'arrow-down'}
+          color={active ? undefined : 'gray'}
+        />
       </Group>
     </UnstyledButton>
   );
@@ -52,7 +65,9 @@ export function InvoiceTable({ mode, onSave }: { mode: Mode; onSave: (r: Invoice
     queryFn: () => invoicesApi.search({ ...mode, page: page - 1, size: PAGE_SIZE, sort }),
   });
   const { data: activeDossier } = useQuery({ queryKey: ['active-dossier'], queryFn: dossiersApi.activeDossier });
-  const { data: uploads = [] } = useUploads(invoices?.content.map((i) => i.invoiceUploadId).filter((id): id is string => !!id));
+  const { data: uploads = [] } = useUploads(
+    invoices?.content.map((i) => i.invoiceUploadId).filter((id): id is string => !!id),
+  );
   const thumbnailOf = (i: Invoice) => uploads.find((u) => u.id === i.invoiceUploadId)?.thumbnailId;
 
   useNotificationListener([RegisteredEvent.NEW_INVOICE], () => refetch());
@@ -70,7 +85,13 @@ export function InvoiceTable({ mode, onSave }: { mode: Mode; onSave: (r: Invoice
   };
 
   const remove = async (invoice: Invoice) => {
-    if (await confirm(mode.logical ? 'Delete this invoice permanently? This cannot be undone.' : 'Move this invoice to the deleted invoices?')) {
+    if (
+      await confirm(
+        mode.logical
+          ? 'Delete this invoice permanently? This cannot be undone.'
+          : 'Move this invoice to the deleted invoices?',
+      )
+    ) {
       await invoicesApi.delete(invoice.id!, !mode.logical);
       refetch();
     }
@@ -94,13 +115,18 @@ export function InvoiceTable({ mode, onSave }: { mode: Mode; onSave: (r: Invoice
 
   const process = async (invoice: Invoice) => {
     if (!(await confirm('Process this invoice?', { danger: false }))) return;
-    if (invoice.peppolStatus === 'NOT_SENT' && !(await confirm("This invoice wasn't sent to Peppol. Process it anyway?"))) return;
+    if (
+      invoice.peppolStatus === 'NOT_SENT' &&
+      !(await confirm("This invoice wasn't sent to Peppol. Process it anyway?"))
+    )
+      return;
     await dossiersApi.processInvoice(invoice.id!);
     refetch();
     client.invalidateQueries({ queryKey: ['active-dossier'] });
   };
 
-  const toggleSort = (property: string) => setSort((s) => ({ property, direction: s.direction === 'ASC' ? 'DESC' : 'ASC' }));
+  const toggleSort = (property: string) =>
+    setSort((s) => ({ property, direction: s.direction === 'ASC' ? 'DESC' : 'ASC' }));
   const number = (i: Invoice) => i.newInvoiceNumber || i.invoiceNumber;
 
   const sendMail = (invoice: Invoice) =>
@@ -116,19 +142,62 @@ export function InvoiceTable({ mode, onSave }: { mode: Mode; onSave: (r: Invoice
   const actions = (invoice: Invoice) => (
     <RowActions
       inline={[
-        { label: 'View PDF', icon: 'file-pdf', disabled: !invoice.invoiceUploadId, onClick: () => withUpload(invoice.invoiceUploadId, openFileViewer) },
-        { label: 'Download', icon: 'download', disabled: !invoice.invoiceUploadId, onClick: () => downloadUpload(invoice.invoiceUploadId!) },
+        {
+          label: 'View PDF',
+          icon: 'file-pdf',
+          disabled: !invoice.invoiceUploadId,
+          onClick: () => withUpload(invoice.invoiceUploadId, openFileViewer),
+        },
+        {
+          label: 'Download',
+          icon: 'download',
+          disabled: !invoice.invoiceUploadId,
+          onClick: () => downloadUpload(invoice.invoiceUploadId!),
+        },
       ]}
       groups={[
         [
-          { label: 'Send by email', icon: 'envelope', hidden: !isAdmin, disabled: !invoice.invoiceUploadId, onClick: () => sendMail(invoice) },
-          { label: 'Send to Peppol', icon: 'paper-plane', hidden: !isAdmin || !invoice.peppolStatus, disabled: invoice.peppolStatus !== 'NOT_SENT', onClick: () => sendToPeppol(invoice) },
-          { label: 'View Peppol XML', icon: 'file-code', disabled: !invoice.invoiceUBLId, onClick: () => withUpload(invoice.invoiceUBLId, openFileViewer) },
+          {
+            label: 'Send by email',
+            icon: 'envelope',
+            hidden: !isAdmin,
+            disabled: !invoice.invoiceUploadId,
+            onClick: () => sendMail(invoice),
+          },
+          {
+            label: 'Send to Peppol',
+            icon: 'paper-plane',
+            hidden: !isAdmin || !invoice.peppolStatus,
+            disabled: invoice.peppolStatus !== 'NOT_SENT',
+            onClick: () => sendToPeppol(invoice),
+          },
+          {
+            label: 'View Peppol XML',
+            icon: 'file-code',
+            disabled: !invoice.invoiceUBLId,
+            onClick: () => withUpload(invoice.invoiceUBLId, openFileViewer),
+          },
         ],
         [
-          { label: 'Process', icon: 'check', hidden: !isAdmin || !activeDossier || !!invoice.archived || !!invoice.logicalDelete, onClick: () => process(invoice) },
-          { label: 'Open timesheet', icon: 'clock', hidden: !isAdmin, disabled: !invoice.timesheetId, onClick: () => navigate(`/timesheets/timesheet/${invoice.timesheetId}`) },
-          { label: 'New from this invoice', icon: 'copy', hidden: !isAdmin, onClick: async () => open(await invoicesApi.fromTemplate(invoice.id!)) },
+          {
+            label: 'Process',
+            icon: 'check',
+            hidden: !isAdmin || !activeDossier || !!invoice.archived || !!invoice.logicalDelete,
+            onClick: () => process(invoice),
+          },
+          {
+            label: 'Open timesheet',
+            icon: 'clock',
+            hidden: !isAdmin,
+            disabled: !invoice.timesheetId,
+            onClick: () => navigate(`/timesheets/timesheet/${invoice.timesheetId}`),
+          },
+          {
+            label: 'New from this invoice',
+            icon: 'copy',
+            hidden: !isAdmin,
+            onClick: async () => open(await invoicesApi.fromTemplate(invoice.id!)),
+          },
           {
             label: 'Make credit note',
             icon: 'receipt',
@@ -140,8 +209,19 @@ export function InvoiceTable({ mode, onSave }: { mode: Mode; onSave: (r: Invoice
           },
         ],
         [
-          { label: 'Restore', icon: 'trash-restore', hidden: !isAdmin || !invoice.logicalDelete, onClick: () => restore(invoice) },
-          { label: mode.logical ? 'Delete permanently' : 'Delete', icon: 'trash', color: 'red', hidden: !isAdmin || !!invoice.archived || invoices?.content.length !== 1, onClick: () => remove(invoice) },
+          {
+            label: 'Restore',
+            icon: 'trash-restore',
+            hidden: !isAdmin || !invoice.logicalDelete,
+            onClick: () => restore(invoice),
+          },
+          {
+            label: mode.logical ? 'Delete permanently' : 'Delete',
+            icon: 'trash',
+            color: 'red',
+            hidden: !isAdmin || !!invoice.archived || invoices?.content.length !== 1,
+            onClick: () => remove(invoice),
+          },
         ],
       ]}
     />
@@ -153,64 +233,71 @@ export function InvoiceTable({ mode, onSave }: { mode: Mode; onSave: (r: Invoice
     <div className="fill-column">
       <div className="scroll-body">
         <Table.ScrollContainer minWidth={760}>
-        <Table className="clickable-rows">
-          <Table.Thead>
-            <Table.Tr>
-              {isAdmin && <Table.Th w={40} />}
-              <Table.Th>Number</Table.Th>
-              <Table.Th>
-                <SortHeader label="Client" property="billTo.clientName" sort={sort} onSort={toggleSort} />
-              </Table.Th>
-              <Table.Th>
-                <SortHeader label="Date" property="dateOfInvoice" sort={sort} onSort={toggleSort} />
-              </Table.Th>
-              <Table.Th visibleFrom="md">Due</Table.Th>
-              <Table.Th visibleFrom="md" ta="right">
-                Subtotal
-              </Table.Th>
-              <Table.Th visibleFrom="md" ta="right">
-                VAT
-              </Table.Th>
-              <Table.Th ta="right">Total</Table.Th>
-              <Table.Th visibleFrom="md">Peppol</Table.Th>
-              <Table.Th w={110} />
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody className={demoMode ? 'blur' : undefined}>
-            {!invoices.content.length && <EmptyRow colSpan={10} icon="file-invoice-dollar" title="No invoices" description={emptyDescription(mode)} />}
-            {invoices.content.map((invoice) => (
-              <Table.Tr key={invoice.id} onClick={() => open(invoice)}>
-                {isAdmin && (
-                  <Table.Td>
-                    <BookmarkButton bookmarked={invoice.bookmarked} onToggle={() => toggleBookmark(invoice)} />
-                  </Table.Td>
-                )}
-                <Table.Td>
-                  <Group gap={6} wrap="nowrap">
-                    <ThumbnailPreview thumbnailId={thumbnailOf(invoice)}>
-                      <Text size="sm" fw={500}>
-                        {number(invoice)}
-                      </Text>
-                    </ThumbnailPreview>
-                    {invoice.creditNote && <StatusBadge value="CREDIT_NOTE" label="Credit note" color="orange" />}
-                    <ImportedInfo imported={invoice.imported} date={invoice.importedDate} />
-                  </Group>
-                </Table.Td>
-                <Table.Td>{invoice.billTo?.clientName}</Table.Td>
-                <Table.Td>{fmtDate(invoice.dateOfInvoice)}</Table.Td>
-                <Table.Td visibleFrom="md">{fmtDate(invoice.dueDate)}</Table.Td>
-                <MoneyCell value={invoice.subTotal} visibleFrom="md" />
-                <MoneyCell value={invoice.taxes} visibleFrom="md" />
-                <MoneyCell value={invoice.total} strong />
-                <Table.Td visibleFrom="md">
-                  <StatusBadge value={invoice.peppolStatus} />
-                </Table.Td>
-                <Table.Td>{actions(invoice)}</Table.Td>
+          <Table className="clickable-rows">
+            <Table.Thead>
+              <Table.Tr>
+                {isAdmin && <Table.Th w={40} />}
+                <Table.Th>Number</Table.Th>
+                <Table.Th>
+                  <SortHeader label="Client" property="billTo.clientName" sort={sort} onSort={toggleSort} />
+                </Table.Th>
+                <Table.Th>
+                  <SortHeader label="Date" property="dateOfInvoice" sort={sort} onSort={toggleSort} />
+                </Table.Th>
+                <Table.Th visibleFrom="md">Due</Table.Th>
+                <Table.Th visibleFrom="md" ta="right">
+                  Subtotal
+                </Table.Th>
+                <Table.Th visibleFrom="md" ta="right">
+                  VAT
+                </Table.Th>
+                <Table.Th ta="right">Total</Table.Th>
+                <Table.Th visibleFrom="md">Peppol</Table.Th>
+                <Table.Th w={110} />
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </Table.ScrollContainer>
+            </Table.Thead>
+            <Table.Tbody className={demoMode ? 'blur' : undefined}>
+              {!invoices.content.length && (
+                <EmptyRow
+                  colSpan={10}
+                  icon="file-invoice-dollar"
+                  title="No invoices"
+                  description={emptyDescription(mode)}
+                />
+              )}
+              {invoices.content.map((invoice) => (
+                <Table.Tr key={invoice.id} onClick={() => open(invoice)}>
+                  {isAdmin && (
+                    <Table.Td>
+                      <BookmarkButton bookmarked={invoice.bookmarked} onToggle={() => toggleBookmark(invoice)} />
+                    </Table.Td>
+                  )}
+                  <Table.Td>
+                    <Group gap={6} wrap="nowrap">
+                      <ThumbnailPreview thumbnailId={thumbnailOf(invoice)}>
+                        <Text size="sm" fw={500}>
+                          {number(invoice)}
+                        </Text>
+                      </ThumbnailPreview>
+                      {invoice.creditNote && <StatusBadge value="CREDIT_NOTE" label="Credit note" color="orange" />}
+                      <ImportedInfo imported={invoice.imported} date={invoice.importedDate} />
+                    </Group>
+                  </Table.Td>
+                  <Table.Td>{invoice.billTo?.clientName}</Table.Td>
+                  <Table.Td>{fmtDate(invoice.dateOfInvoice)}</Table.Td>
+                  <Table.Td visibleFrom="md">{fmtDate(invoice.dueDate)}</Table.Td>
+                  <MoneyCell value={invoice.subTotal} visibleFrom="md" />
+                  <MoneyCell value={invoice.taxes} visibleFrom="md" />
+                  <MoneyCell value={invoice.total} strong />
+                  <Table.Td visibleFrom="md">
+                    <StatusBadge value={invoice.peppolStatus} />
+                  </Table.Td>
+                  <Table.Td>{actions(invoice)}</Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
       </div>
       {invoices.page.totalPages > 1 && (
         <Group justify="flex-end" mt="sm">
@@ -255,7 +342,8 @@ export function InvoicePage() {
   const save = async ({ invoice, manualUploadFile }: InvoiceFormResult) => {
     try {
       const saved = await invoicesApi.save(invoice);
-      if (saved.uploadedManually && manualUploadFile && saved.id) await invoicesApi.manualUpload(saved.id, manualUploadFile);
+      if (saved.uploadedManually && manualUploadFile && saved.id)
+        await invoicesApi.manualUpload(saved.id, manualUploadFile);
       toast.success('Invoice created. Will be generated soon');
       client.invalidateQueries({ queryKey: ['invoices'] });
     } catch (e) {
@@ -311,7 +399,11 @@ export function InvoicePage() {
       <Tabs className="page-tabs" value={tab} onChange={(v) => v && navigate(`/invoice/${v}`)} keepMounted={false}>
         <Tabs.List mb="md">
           {TABS.filter((t) => !t.admin || isAdmin).map((t) => (
-            <Tabs.Tab key={t.value} value={t.value} leftSection={t.value === 'bookmarked' ? <Icon icon="star" /> : undefined}>
+            <Tabs.Tab
+              key={t.value}
+              value={t.value}
+              leftSection={t.value === 'bookmarked' ? <Icon icon="star" /> : undefined}
+            >
               {t.label}
             </Tabs.Tab>
           ))}

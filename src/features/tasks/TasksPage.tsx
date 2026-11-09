@@ -43,7 +43,13 @@ function TaskSchedule({ onResults }: { onResults: (actionKey: string) => void })
   return (
     <div className="fill-column">
       <Group gap="sm" mb="md" align="center">
-        <TextInput w={260} placeholder="Search" leftSection={<Icon icon="search" />} value={search} onChange={(e) => setSearch(e.currentTarget.value)} />
+        <TextInput
+          w={260}
+          placeholder="Search"
+          leftSection={<Icon icon="search" />}
+          value={search}
+          onChange={(e) => setSearch(e.currentTarget.value)}
+        />
         <Select
           w={180}
           aria-label="Day"
@@ -54,59 +60,74 @@ function TaskSchedule({ onResults }: { onResults: (actionKey: string) => void })
           disabled={!!search.trim()}
         />
         <Switch label="Show actions" checked={showActions} onChange={(e) => setShowActions(e.currentTarget.checked)} />
-        <Switch label="Hide disabled" checked={hideDisabled} onChange={(e) => setHideDisabled(e.currentTarget.checked)} />
+        <Switch
+          label="Hide disabled"
+          checked={hideDisabled}
+          onChange={(e) => setHideDisabled(e.currentTarget.checked)}
+        />
         <Text size="sm" c="dimmed" ml="auto">
           {filtered.length} task(s)
         </Text>
       </Group>
       <div className="scroll-body">
         <Table.ScrollContainer minWidth={600}>
-        <Table className={`clickable-rows ${demoMode ? 'blur' : ''}`}>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Title</Table.Th>
-              <Table.Th>Next run</Table.Th>
-              <Table.Th visibleFrom="md">Last run</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th w={60} />
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {!filtered.length && <EmptyRow colSpan={5} icon="tasks" title="No task" description={search ? 'No task matches your search.' : 'Nothing planned for this day.'} />}
-            {filtered.map((t) => (
-              <Table.Tr key={t.id} onClick={() => open(t)}>
-                <Table.Td>
-                  <Text size="sm" fw={500}>
-                    {t.customActionName || t.title}
-                  </Text>
-                  {t.actionKey && (
-                    <Text size="xs" c="dimmed">
-                      Action {t.actionKey}
-                    </Text>
-                  )}
-                </Table.Td>
-                <Table.Td>{fmtDateTime(t.nextDate)}</Table.Td>
-                <Table.Td visibleFrom="md">{fmtDateTime(t.lastExecutionDate)}</Table.Td>
-                <Table.Td>
-                  <StatusBadge value={t.disabled ? 'DISABLED' : 'ENABLED'} label={t.disabled ? 'Disabled' : 'Enabled'} color={t.disabled ? 'gray' : 'green'} />
-                </Table.Td>
-                <Table.Td>
-                  <RowActions
-                    inline={[
-                      {
-                        label: 'Results',
-                        icon: 'list',
-                        hidden: !t.actionKey,
-                        onClick: () => onResults(t.actionKey!),
-                      },
-                    ]}
-                  />
-                </Table.Td>
+          <Table className={`clickable-rows ${demoMode ? 'blur' : ''}`}>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Title</Table.Th>
+                <Table.Th>Next run</Table.Th>
+                <Table.Th visibleFrom="md">Last run</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.Th w={60} />
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </Table.ScrollContainer>
+            </Table.Thead>
+            <Table.Tbody>
+              {!filtered.length && (
+                <EmptyRow
+                  colSpan={5}
+                  icon="tasks"
+                  title="No task"
+                  description={search ? 'No task matches your search.' : 'Nothing planned for this day.'}
+                />
+              )}
+              {filtered.map((t) => (
+                <Table.Tr key={t.id} onClick={() => open(t)}>
+                  <Table.Td>
+                    <Text size="sm" fw={500}>
+                      {t.customActionName || t.title}
+                    </Text>
+                    {t.actionKey && (
+                      <Text size="xs" c="dimmed">
+                        Action {t.actionKey}
+                      </Text>
+                    )}
+                  </Table.Td>
+                  <Table.Td>{fmtDateTime(t.nextDate)}</Table.Td>
+                  <Table.Td visibleFrom="md">{fmtDateTime(t.lastExecutionDate)}</Table.Td>
+                  <Table.Td>
+                    <StatusBadge
+                      value={t.disabled ? 'DISABLED' : 'ENABLED'}
+                      label={t.disabled ? 'Disabled' : 'Enabled'}
+                      color={t.disabled ? 'gray' : 'green'}
+                    />
+                  </Table.Td>
+                  <Table.Td>
+                    <RowActions
+                      inline={[
+                        {
+                          label: 'Results',
+                          icon: 'list',
+                          hidden: !t.actionKey,
+                          onClick: () => onResults(t.actionKey!),
+                        },
+                      ]}
+                    />
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
       </div>
     </div>
   );
@@ -137,7 +158,12 @@ export function TasksPage() {
           </Tooltip>
         }
       />
-      <Tabs className="page-tabs" value={tab} onChange={(v) => v && setParams(v === 'schedule' ? {} : { tab: v })} keepMounted={false}>
+      <Tabs
+        className="page-tabs"
+        value={tab}
+        onChange={(v) => v && setParams(v === 'schedule' ? {} : { tab: v })}
+        keepMounted={false}
+      >
         <Tabs.List mb="md">
           <Tabs.Tab value="schedule">Schedule</Tabs.Tab>
           <Tabs.Tab value="results">Action results</Tabs.Tab>
@@ -158,7 +184,10 @@ export function TasksPage() {
           <TaskSchedule onResults={(action) => setParams({ tab: 'results', action })} />
         </Tabs.Panel>
         <Tabs.Panel value="results">
-          <ActionResultsTab actionKey={params.get('action')} onActionChange={(action) => setParams(action ? { tab: 'results', action } : { tab: 'results' })} />
+          <ActionResultsTab
+            actionKey={params.get('action')}
+            onActionChange={(action) => setParams(action ? { tab: 'results', action } : { tab: 'results' })}
+          />
         </Tabs.Panel>
         <Tabs.Panel value="notifications">
           <NotificationsTab />

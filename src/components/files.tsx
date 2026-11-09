@@ -51,7 +51,15 @@ function useUploadContent(file: FileUpload, version: number) {
 }
 
 /** preview of a pdf, image or xml upload */
-export function FileViewer({ file, showRotate = true, blur }: { file: FileUpload; showRotate?: boolean; blur?: boolean }) {
+export function FileViewer({
+  file,
+  showRotate = true,
+  blur,
+}: {
+  file: FileUpload;
+  showRotate?: boolean;
+  blur?: boolean;
+}) {
   const isAdmin = useIsAdmin();
   const [version, setVersion] = useState(0);
   const { content, error } = useUploadContent(file, version);
@@ -79,11 +87,24 @@ export function FileViewer({ file, showRotate = true, blur }: { file: FileUpload
           </>
         )}
         {content?.url && (
-          <ActionIcon variant="subtle" color="dark" component="a" href={content.url} target="_blank" rel="noreferrer" aria-label="open in a new tab">
+          <ActionIcon
+            variant="subtle"
+            color="dark"
+            component="a"
+            href={content.url}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="open in a new tab"
+          >
             <Icon icon="external-link-alt" />
           </ActionIcon>
         )}
-        <ActionIcon variant="subtle" color="dark" onClick={() => downloadUpload(file.id, file.originalFilename)} aria-label="download">
+        <ActionIcon
+          variant="subtle"
+          color="dark"
+          onClick={() => downloadUpload(file.id, file.originalFilename)}
+          aria-label="download"
+        >
           <Icon icon="download" />
         </ActionIcon>
       </Group>
@@ -164,15 +185,17 @@ export function AttachmentList({
       {files.map((f) => (
         <Group key={f.id} justify="space-between" wrap="nowrap" px="sm" py={6}>
           <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
-            <Button variant="subtle" size="compact-sm" onClick={() => downloadUpload(f.id, f.originalFilename)} className="text-break">
+            <Button
+              variant="subtle"
+              size="compact-sm"
+              onClick={() => downloadUpload(f.id, f.originalFilename)}
+              className="text-break"
+            >
               {fileLabel(f)}
             </Button>
             {badge?.(f)}
           </Group>
-          <FileActions
-            file={f}
-            onRemove={onRemove && (canRemove?.(f) ?? true) ? () => onRemove(f) : undefined}
-          />
+          <FileActions file={f} onRemove={onRemove && (canRemove?.(f) ?? true) ? () => onRemove(f) : undefined} />
         </Group>
       ))}
     </Stack>
@@ -223,7 +246,9 @@ export function FileMenuItems({ file }: { file: FileUpload }) {
       </Menu.Item>
       {canPreview(file) && (
         <Menu.Item
-          leftSection={<Icon icon={isPdf(file.contentType) ? 'file-pdf' : isXml(file.contentType) ? 'file-code' : 'file-image'} />}
+          leftSection={
+            <Icon icon={isPdf(file.contentType) ? 'file-pdf' : isXml(file.contentType) ? 'file-code' : 'file-image'} />
+          }
           onClick={() => openFileViewer(file)}
         >
           Open

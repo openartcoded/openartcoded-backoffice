@@ -14,7 +14,15 @@ import type { MailJob } from '@/types';
 
 const PAGE_SIZE = 10;
 
-export function MailDetail({ mail, onUpdate, onRetry }: { mail: MailJob; onUpdate: (m: MailJob) => void; onRetry: (m: MailJob) => void }) {
+export function MailDetail({
+  mail,
+  onUpdate,
+  onRetry,
+}: {
+  mail: MailJob;
+  onUpdate: (m: MailJob) => void;
+  onRetry: (m: MailJob) => void;
+}) {
   const demoMode = useDemoMode();
   const [subject, setSubject] = useState(mail.subject);
   const [body, setBody] = useState(mail.body);
@@ -24,7 +32,13 @@ export function MailDetail({ mail, onUpdate, onRetry }: { mail: MailJob; onUpdat
     <Stack gap="xl" className={demoMode ? 'blur' : undefined}>
       <Stack gap={6}>
         <Group gap="xs">
-          {mail.sent ? <StatusBadge value="SUCCESS" label="Sent" /> : mail.markedFailed ? <StatusBadge value="FAILURE" label="Failed" /> : <StatusBadge value="PENDING" label="Scheduled" />}
+          {mail.sent ? (
+            <StatusBadge value="SUCCESS" label="Sent" />
+          ) : mail.markedFailed ? (
+            <StatusBadge value="FAILURE" label="Failed" />
+          ) : (
+            <StatusBadge value="PENDING" label="Scheduled" />
+          )}
         </Group>
         <Text size="xs" c="dimmed">
           Created {fmtDateTime(mail.createdDate)} · updated {fmtDateTime(mail.updatedDate)}
@@ -40,15 +54,32 @@ export function MailDetail({ mail, onUpdate, onRetry }: { mail: MailJob; onUpdat
       )}
       <FormSection title="Message">
         <TagsInput label="To" value={to} onChange={setTo} disabled={mail.sent} splitChars={[',']} />
-        <TextInput label="Subject" value={subject} onChange={(e) => setSubject(e.currentTarget.value)} disabled={mail.sent} />
-        <Textarea label="Body" autosize minRows={4} value={body} onChange={(e) => setBody(e.currentTarget.value)} disabled={mail.sent} />
+        <TextInput
+          label="Subject"
+          value={subject}
+          onChange={(e) => setSubject(e.currentTarget.value)}
+          disabled={mail.sent}
+        />
+        <Textarea
+          label="Body"
+          autosize
+          minRows={4}
+          value={body}
+          onChange={(e) => setBody(e.currentTarget.value)}
+          disabled={mail.sent}
+        />
       </FormSection>
       <FormSection title={`Attachments (${mail.uploadIds?.length ?? 0})`}>
         <AttachmentList files={uploads} />
       </FormSection>
       {!mail.sent && (
         <StickyFooter>
-          <Button variant="default" leftSection={<Icon icon="sync" />} disabled={!mail.markedFailed} onClick={() => onRetry(mail)}>
+          <Button
+            variant="default"
+            leftSection={<Icon icon="sync" />}
+            disabled={!mail.markedFailed}
+            onClick={() => onRetry(mail)}
+          >
             Retry
           </Button>
           <Button onClick={() => onUpdate({ ...mail, subject, body, to })}>Save</Button>
@@ -61,7 +92,10 @@ export function MailDetail({ mail, onUpdate, onRetry }: { mail: MailJob; onUpdat
 export function MailsPage() {
   const demoMode = useDemoMode();
   const [page, setPage] = useState(1);
-  const { data: mails, refetch } = useQuery({ queryKey: ['mails', page], queryFn: () => mailApi.findAll(page - 1, PAGE_SIZE) });
+  const { data: mails, refetch } = useQuery({
+    queryKey: ['mails', page],
+    queryFn: () => mailApi.findAll(page - 1, PAGE_SIZE),
+  });
 
   const open = (mail: MailJob) =>
     openDrawer({
@@ -130,7 +164,19 @@ export function MailsPage() {
                     <Table.Td>{fmtDate(m.sendingDate)}</Table.Td>
                     <Table.Td>{status(m)}</Table.Td>
                     <Table.Td>
-                      <RowActions groups={[[{ label: 'Delete', icon: 'trash', color: 'red', hidden: !!m.sent, onClick: () => remove(m) }]]} />
+                      <RowActions
+                        groups={[
+                          [
+                            {
+                              label: 'Delete',
+                              icon: 'trash',
+                              color: 'red',
+                              hidden: !!m.sent,
+                              onClick: () => remove(m),
+                            },
+                          ],
+                        ]}
+                      />
                     </Table.Td>
                   </Table.Tr>
                 ))}

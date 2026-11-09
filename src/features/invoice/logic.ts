@@ -25,12 +25,19 @@ export function rateOptionLabel(r: ClientRate, index: number): string {
 }
 
 /** the client rate matching a rate + rate type typed by hand */
-export function matchRate(rates: ClientRate[], row: { rate?: number | string; rateType?: string }): ClientRate | undefined {
+export function matchRate(
+  rates: ClientRate[],
+  row: { rate?: number | string; rateType?: string },
+): ClientRate | undefined {
   return rates.find((r) => Number(r.rate) === Number(row.rate) && String(r.rateType) === String(row.rateType));
 }
 
 /** replaces the label of the previously applied rate by the label of the new rate in the description (nature) */
-export function withRateLabel(nature: string | undefined, previousLabel?: string | null, label?: string | null): string {
+export function withRateLabel(
+  nature: string | undefined,
+  previousLabel?: string | null,
+  label?: string | null,
+): string {
   let base = nature ?? '';
   if (previousLabel) {
     if (base.endsWith(` - ${previousLabel}`)) base = base.slice(0, -(previousLabel.length + 3));
@@ -54,7 +61,10 @@ export function applyRate(row: RowForm, rate?: ClientRate, baseNature?: string):
   };
 }
 
-export function toRowForm(row: Partial<InvoiceRow> & { rateId?: string | null; appliedLabel?: string | null }, rates: ClientRate[]): RowForm {
+export function toRowForm(
+  row: Partial<InvoiceRow> & { rateId?: string | null; appliedLabel?: string | null },
+  rates: ClientRate[],
+): RowForm {
   const matched = matchRate(rates, row);
   return {
     projectName: row.projectName ?? '',

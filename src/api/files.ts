@@ -29,7 +29,8 @@ export const filesApi = {
   downloadBulk: (ids: string[]) => download(`${base}/download-bulk`, { method: 'POST', data: ids }),
   objectUrl: (id: string, contentType?: string) => fetchObjectUrl(`${base}/download`, { id }, contentType),
   blob: (id: string, contentType?: string) => fetchBlob(`${base}/download`, { id }, contentType),
-  text: async (id: string) => (await http.get<string>(`${base}/download`, { params: { id }, responseType: 'text' })).data,
+  text: async (id: string) =>
+    (await http.get<string>(`${base}/download`, { params: { id }, responseType: 'text' })).data,
   /** public (unauthenticated) url, used for visible gallery images */
   publicUrl: (id: string) => `${http.defaults.baseURL ?? ''}${base}/public/download/${id}`,
 };

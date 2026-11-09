@@ -1,5 +1,19 @@
 import { useState } from 'react';
-import { ActionIcon, Anchor, Button, Group, Loader, NumberInput, Paper, SimpleGrid, Stack, Tabs, Text, TextInput, Textarea } from '@mantine/core';
+import {
+  ActionIcon,
+  Anchor,
+  Button,
+  Group,
+  Loader,
+  NumberInput,
+  Paper,
+  SimpleGrid,
+  Stack,
+  Tabs,
+  Text,
+  TextInput,
+  Textarea,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
@@ -43,7 +57,14 @@ interface Props {
   onRemoveDocument: (d: AdministrativeDocument) => void;
 }
 
-export function DossierForm({ dossier, recallForModification = false, onSubmit, onRemoveFee, onRemoveInvoice, onRemoveDocument }: Props) {
+export function DossierForm({
+  dossier,
+  recallForModification = false,
+  onSubmit,
+  onRemoveFee,
+  onRemoveInvoice,
+  onRemoveDocument,
+}: Props) {
   const isAdmin = useIsAdmin();
   const demoMode = useDemoMode();
   const [search, setSearch] = useState('');
@@ -51,17 +72,29 @@ export function DossierForm({ dossier, recallForModification = false, onSubmit, 
   const invoiceIds = dossier.invoiceIds ?? [];
   const documentIds = dossier.documentIds ?? [];
   const { data: labels = [] } = useQuery({ queryKey: ['labels'], queryFn: labelsApi.findAll });
-  const { data: size } = useQuery({ queryKey: ['dossier-size', dossier.id], queryFn: () => dossiersApi.size(dossier.id!), enabled: !!dossier.id });
+  const { data: size } = useQuery({
+    queryKey: ['dossier-size', dossier.id],
+    queryFn: () => dossiersApi.size(dossier.id!),
+    enabled: !!dossier.id,
+  });
   const fees = useQuery({
     queryKey: ['dossier-fees', feeIds.join()],
-    queryFn: async () => (await feesApi.findByIds(feeIds)).sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime()),
+    queryFn: async () =>
+      (await feesApi.findByIds(feeIds)).sort(
+        (a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime(),
+      ),
   });
   const invoices = useQuery({
     queryKey: ['dossier-invoices', invoiceIds.join()],
     queryFn: async () =>
-      (await invoicesApi.findByIds(invoiceIds)).sort((a, b) => new Date(b.dateOfInvoice ?? 0).getTime() - new Date(a.dateOfInvoice ?? 0).getTime()),
+      (await invoicesApi.findByIds(invoiceIds)).sort(
+        (a, b) => new Date(b.dateOfInvoice ?? 0).getTime() - new Date(a.dateOfInvoice ?? 0).getTime(),
+      ),
   });
-  const documents = useQuery({ queryKey: ['dossier-documents', documentIds.join()], queryFn: () => documentsApi.findByIds(documentIds) });
+  const documents = useQuery({
+    queryKey: ['dossier-documents', documentIds.join()],
+    queryFn: () => documentsApi.findByIds(documentIds),
+  });
 
   const editable = !dossier.closed || recallForModification;
   const disabled = !isAdmin || !editable;
@@ -71,7 +104,10 @@ export function DossierForm({ dossier, recallForModification = false, onSubmit, 
       description: dossier.description ?? '',
       tvaDue: dossier.tvaDue ?? ('' as number | string),
       comment: dossier.comment ?? '',
-      advancePayments: (dossier.advancePayments ?? []).map((p) => ({ datePaid: toInputDate(p.datePaid ?? new Date()), advance: p.advance ?? ('' as number | string) })),
+      advancePayments: (dossier.advancePayments ?? []).map((p) => ({
+        datePaid: toInputDate(p.datePaid ?? new Date()),
+        advance: p.advance ?? ('' as number | string),
+      })),
     },
     validate: {
       name: (v) => (v.length < 5 || v.length > 20 ? 'between 5 and 20 characters' : null),
@@ -99,7 +135,8 @@ export function DossierForm({ dossier, recallForModification = false, onSubmit, 
   });
 
   const totals = computeTotals(fees.data ?? [], invoices.data ?? []);
-  const totalAttachments = (fees.data ?? []).reduce((s, f) => s + (f.attachmentIds?.length ?? 0), 0) + invoiceIds.length;
+  const totalAttachments =
+    (fees.data ?? []).reduce((s, f) => s + (f.attachmentIds?.length ?? 0), 0) + invoiceIds.length;
   const filtered = filterExpenses(fees.data ?? [], search);
 
   const removeButton = (onClick: () => void) =>
@@ -125,16 +162,35 @@ export function DossierForm({ dossier, recallForModification = false, onSubmit, 
         <Tabs.Panel value="metadata" pt="sm">
           <Stack gap="sm">
             <TextInput label="Id" value={dossier.id ?? ''} disabled />
-            <TextInput label="Name" placeholder="Name (Minimum 5 characters)" data-autofocus disabled={!isAdmin || !!dossier.closed} {...form.getInputProps('name')} />
-            <Textarea label="Description" autosize disabled={!isAdmin || !!dossier.closed} {...form.getInputProps('description')} />
-            <NumberInput label="VAT Due" placeholder="VAT Due (in €)" decimalScale={2} disabled={disabled} {...form.getInputProps('tvaDue')} />
+            <TextInput
+              label="Name"
+              placeholder="Name (Minimum 5 characters)"
+              data-autofocus
+              disabled={!isAdmin || !!dossier.closed}
+              {...form.getInputProps('name')}
+            />
+            <Textarea
+              label="Description"
+              autosize
+              disabled={!isAdmin || !!dossier.closed}
+              {...form.getInputProps('description')}
+            />
+            <NumberInput
+              label="VAT Due"
+              placeholder="VAT Due (in €)"
+              decimalScale={2}
+              disabled={disabled}
+              {...form.getInputProps('tvaDue')}
+            />
             <SimpleGrid cols={{ base: 1, md: 2 }}>
               {size !== undefined && <TextInput label="Size" value={bytesToHuman(size)} disabled />}
               <TextInput label="Total Attachments" value={String(totalAttachments)} disabled />
               <TextInput label="Creation Date" value={fmtDateTime(dossier.creationDate)} disabled />
               <TextInput label="Updated Date" value={fmtDateTime(dossier.updatedDate)} disabled />
               {dossier.closedDate && <TextInput label="Closed Date" value={fmtDateTime(dossier.closedDate)} disabled />}
-              {dossier.recalledForModificationDate && <TextInput label="Recalled Date" value={fmtDateTime(dossier.recalledForModificationDate)} disabled />}
+              {dossier.recalledForModificationDate && (
+                <TextInput label="Recalled Date" value={fmtDateTime(dossier.recalledForModificationDate)} disabled />
+              )}
             </SimpleGrid>
             <Group justify="flex-end">
               <Button
@@ -157,12 +213,19 @@ export function DossierForm({ dossier, recallForModification = false, onSubmit, 
           <Stack gap="sm">
             {!!totals.vatTotal && !!totals.feeTotalVat && (
               <Text>
-                Estimated VAT: ({fmtCurrency(totals.vatTotal)} - {fmtCurrency(totals.feeTotalVat)}) = {fmtCurrency(totals.vatTotal - totals.feeTotalVat)}
+                Estimated VAT: ({fmtCurrency(totals.vatTotal)} - {fmtCurrency(totals.feeTotalVat)}) ={' '}
+                {fmtCurrency(totals.vatTotal - totals.feeTotalVat)}
               </Text>
             )}
             {isAdmin && editable && (
               <Group justify="flex-end">
-                <Button variant="outline" leftSection={<Icon icon="plus" />} onClick={() => form.insertListItem('advancePayments', { datePaid: toInputDate(new Date()), advance: '' })}>
+                <Button
+                  variant="outline"
+                  leftSection={<Icon icon="plus" />}
+                  onClick={() =>
+                    form.insertListItem('advancePayments', { datePaid: toInputDate(new Date()), advance: '' })
+                  }
+                >
                   Add
                 </Button>
               </Group>
@@ -171,10 +234,26 @@ export function DossierForm({ dossier, recallForModification = false, onSubmit, 
             {form.values.advancePayments.map((_, i) => (
               <Paper key={i} bg="gray.0" p="sm">
                 <Group align="flex-end">
-                  <TextInput type="date" label="Date Paid" disabled={disabled} {...form.getInputProps(`advancePayments.${i}.datePaid`)} />
-                  <NumberInput label="Advance" placeholder="Advance (in €)" decimalScale={2} disabled={disabled} {...form.getInputProps(`advancePayments.${i}.advance`)} />
+                  <TextInput
+                    type="date"
+                    label="Date Paid"
+                    disabled={disabled}
+                    {...form.getInputProps(`advancePayments.${i}.datePaid`)}
+                  />
+                  <NumberInput
+                    label="Advance"
+                    placeholder="Advance (in €)"
+                    decimalScale={2}
+                    disabled={disabled}
+                    {...form.getInputProps(`advancePayments.${i}.advance`)}
+                  />
                   {isAdmin && editable && (
-                    <ActionIcon variant="subtle" color="red" onClick={() => form.removeListItem('advancePayments', i)} aria-label="remove payment">
+                    <ActionIcon
+                      variant="subtle"
+                      color="red"
+                      onClick={() => form.removeListItem('advancePayments', i)}
+                      aria-label="remove payment"
+                    >
                       <Icon icon="trash" />
                     </ActionIcon>
                   )}
@@ -201,7 +280,9 @@ export function DossierForm({ dossier, recallForModification = false, onSubmit, 
                   Total: {fmtCurrency(totals.feeTotalExclVat)}, VAT: {fmtCurrency(totals.feeTotalVat)}
                 </Text>
               )}
-              {!!fees.data?.length && <TextInput placeholder="Search" value={search} onChange={(e) => setSearch(e.currentTarget.value)} />}
+              {!!fees.data?.length && (
+                <TextInput placeholder="Search" value={search} onChange={(e) => setSearch(e.currentTarget.value)} />
+              )}
               {!filtered.length && <NoContent />}
               <Stack gap={0} className="bordered-list">
                 {filtered.map((f) => (
@@ -257,7 +338,14 @@ export function DossierForm({ dossier, recallForModification = false, onSubmit, 
 
         <Tabs.Panel value="comment" pt="sm">
           <Stack gap="sm">
-            <Textarea label="Comments" placeholder="Comment" autosize minRows={10} disabled={!isAdmin || !!dossier.closed} {...form.getInputProps('comment')} />
+            <Textarea
+              label="Comments"
+              placeholder="Comment"
+              autosize
+              minRows={10}
+              disabled={!isAdmin || !!dossier.closed}
+              {...form.getInputProps('comment')}
+            />
             {isAdmin && (
               <Group justify="flex-end">
                 <Button type="submit" disabled={!form.isValid() || (!!dossier.closed && !recallForModification)}>

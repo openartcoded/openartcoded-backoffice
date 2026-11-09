@@ -8,9 +8,20 @@ vi.mock('@/auth/session', () => sessionMock(adminUser));
 vi.mock('@/api/misc', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/misc')>()),
   timesheetApi: {
-    estimateThisMonth: vi.fn(async () => (4800)),
+    estimateThisMonth: vi.fn(async () => 4800),
     findAllGrouped: vi.fn(async () => ({
-      2025: { ACME: [{ id: 'a', name: 'December 2025', month: 12, numberOfWorkingDays: 15, numberOfMinutesWorked: 7200, closed: true }] },
+      2025: {
+        ACME: [
+          {
+            id: 'a',
+            name: 'December 2025',
+            month: 12,
+            numberOfWorkingDays: 15,
+            numberOfMinutesWorked: 7200,
+            closed: true,
+          },
+        ],
+      },
       [new Date().getFullYear()]: {
         ACME: [
           { id: 'b', name: 'January', month: 1, numberOfWorkingDays: 20, numberOfMinutesWorked: 9600, closed: true },

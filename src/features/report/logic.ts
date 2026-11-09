@@ -30,8 +30,14 @@ export function dueDateStatus(status?: PostStatus, due?: DateLike | null, today:
 }
 
 /** sum of the unread messages of the user for the posts of a status */
-export function unreadForStatus(counters: UnreadMessagesCounter[] | undefined, status: PostStatus, email?: string): number {
-  return (counters ?? []).filter((c) => c.status === status && c.subscriber === email).reduce((s, c) => s + c.counter, 0);
+export function unreadForStatus(
+  counters: UnreadMessagesCounter[] | undefined,
+  status: PostStatus,
+  email?: string,
+): number {
+  return (counters ?? [])
+    .filter((c) => c.status === status && c.subscriber === email)
+    .reduce((s, c) => s + c.counter, 0);
 }
 
 export function unreadMessages(messages: Message[] | undefined, email?: string): number {

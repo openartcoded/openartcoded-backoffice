@@ -1,5 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Checkbox, Code, Group, Image, NumberInput, Select, Stack, Tabs, Textarea, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Code,
+  Group,
+  Image,
+  NumberInput,
+  Select,
+  Stack,
+  Tabs,
+  Textarea,
+  TextInput,
+} from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { JSONPath } from 'jsonpath-plus';
 import QRCode from 'qrcode';
@@ -23,7 +36,13 @@ export function Base64Tool({ decode }: { decode?: boolean }) {
   };
   return (
     <Stack gap="sm">
-      <Textarea label={decode ? 'Text to decode' : 'Text to encode'} autosize minRows={8} value={input} onChange={(e) => setInput(e.currentTarget.value)} />
+      <Textarea
+        label={decode ? 'Text to decode' : 'Text to encode'}
+        autosize
+        minRows={8}
+        value={input}
+        onChange={(e) => setInput(e.currentTarget.value)}
+      />
       <Group justify="flex-end">
         <Button disabled={!input} onClick={submit}>
           Submit
@@ -45,7 +64,12 @@ export function ImageEncoder() {
   };
   return (
     <Stack gap="sm">
-      <FilePicker onFiles={(f) => setFile(f[0])} accept={['image/*']} files={file ? [file] : []} label="Image to convert" />
+      <FilePicker
+        onFiles={(f) => setFile(f[0])}
+        accept={['image/*']}
+        files={file ? [file] : []}
+        label="Image to convert"
+      />
       <Group justify="flex-end">
         <Button disabled={!file} onClick={convert}>
           Convert
@@ -100,12 +124,25 @@ export function PathFinder({ type }: { type: 'json' | 'xml' }) {
   return (
     <Stack gap="sm">
       <Group wrap="nowrap">
-        <TextInput style={{ flex: 1 }} placeholder="Enter JSONPath or XPath expression" value={expression} onChange={(e) => setExpression(e.currentTarget.value)} />
+        <TextInput
+          style={{ flex: 1 }}
+          placeholder="Enter JSONPath or XPath expression"
+          value={expression}
+          onChange={(e) => setExpression(e.currentTarget.value)}
+        />
         <Button onClick={run} disabled={!expression || !data}>
           Run
         </Button>
       </Group>
-      <Textarea label="Input Data" minRows={10} autosize maxRows={20} ff="monospace" value={data} onChange={(e) => setData(e.currentTarget.value)} />
+      <Textarea
+        label="Input Data"
+        minRows={10}
+        autosize
+        maxRows={20}
+        ff="monospace"
+        value={data}
+        onChange={(e) => setData(e.currentTarget.value)}
+      />
       {result !== null && (
         <Code block className="pre-wrap">
           {typeof result === 'string' ? result : JSON.stringify(result, null, 2)}
@@ -139,7 +176,8 @@ function useRdfMeta() {
 }
 
 /** accept map for the dropzone: any mime type, filtered on the allowed extensions */
-const acceptExtensions = (extensions: string[]) => (extensions.length ? { 'application/octet-stream': extensions, 'text/plain': extensions } : undefined);
+const acceptExtensions = (extensions: string[]) =>
+  extensions.length ? { 'application/octet-stream': extensions, 'text/plain': extensions } : undefined;
 
 export function RdfFileToFile() {
   const { languages, extensions } = useRdfMeta();
@@ -153,7 +191,12 @@ export function RdfFileToFile() {
   };
   return (
     <Stack gap="sm">
-      <FilePicker onFiles={(f) => setFile(f[0])} accept={acceptExtensions(extensions)} files={file ? [file] : []} label="Drop rdf File" />
+      <FilePicker
+        onFiles={(f) => setFile(f[0])}
+        accept={acceptExtensions(extensions)}
+        files={file ? [file] : []}
+        label="Drop rdf File"
+      />
       <Select label="Choose an output format" data={languages} value={lang} onChange={setLang} />
       <Group justify="flex-end">
         <Button disabled={!file || !lang} onClick={submit}>
@@ -182,7 +225,13 @@ export function RdfStringToLang() {
     <Stack gap="sm">
       <Select label="Choose an input format" data={languages} value={modelLang} onChange={setModelLang} />
       <Select label="Choose an output format" data={languages} value={lang} onChange={setLang} />
-      <Textarea label="Insert rdf" autosize minRows={8} value={input} onChange={(e) => setInput(e.currentTarget.value)} />
+      <Textarea
+        label="Insert rdf"
+        autosize
+        minRows={8}
+        value={input}
+        onChange={(e) => setInput(e.currentTarget.value)}
+      />
       <Group justify="flex-end">
         <Button disabled={!modelLang || !lang || !input} onClick={submit}>
           Convert
@@ -216,8 +265,18 @@ export function ShaclValidation() {
   };
   return (
     <Stack gap="sm">
-      <FilePicker onFiles={(f) => setModel(f[0])} accept={acceptExtensions(extensions)} files={model ? [model] : []} label="Model to validate" />
-      <FilePicker onFiles={(f) => setShacl(f[0])} accept={acceptExtensions(extensions)} files={shacl ? [shacl] : []} label="Shacl shapes" />
+      <FilePicker
+        onFiles={(f) => setModel(f[0])}
+        accept={acceptExtensions(extensions)}
+        files={model ? [model] : []}
+        label="Model to validate"
+      />
+      <FilePicker
+        onFiles={(f) => setShacl(f[0])}
+        accept={acceptExtensions(extensions)}
+        files={shacl ? [shacl] : []}
+        label="Shacl shapes"
+      />
       <Group justify="flex-end">
         <Button disabled={!model || !shacl} onClick={submit}>
           Validate
@@ -260,7 +319,10 @@ export function RdfTools() {
   );
 }
 
-type RdfaModule = { html_to_rdfa: (html: string, base: string, well: string) => string; rdfa_to_turtle: (s: string) => string };
+type RdfaModule = {
+  html_to_rdfa: (html: string, base: string, well: string) => string;
+  rdfa_to_turtle: (s: string) => string;
+};
 
 /** html -> rdfa -> turtle, computed in the browser with the web-rdfa wasm module */
 export function RdfaTool() {
@@ -289,7 +351,15 @@ export function RdfaTool() {
   };
   return (
     <Stack gap="sm">
-      <Textarea label="Input Data" placeholder="Paste your HTML data here" minRows={10} autosize maxRows={20} value={html} onChange={(e) => setHtml(e.currentTarget.value)} />
+      <Textarea
+        label="Input Data"
+        placeholder="Paste your HTML data here"
+        minRows={10}
+        autosize
+        maxRows={20}
+        value={html}
+        onChange={(e) => setHtml(e.currentTarget.value)}
+      />
       <Button fullWidth onClick={run} disabled={!mod}>
         Run
       </Button>
@@ -316,7 +386,14 @@ export function QrCodeTool() {
   };
   return (
     <Stack gap="sm">
-      <Textarea label="Input Data" placeholder="Enter text or URL to generate QR code" minRows={8} autosize value={data} onChange={(e) => setData(e.currentTarget.value)} />
+      <Textarea
+        label="Input Data"
+        placeholder="Enter text or URL to generate QR code"
+        minRows={8}
+        autosize
+        value={data}
+        onChange={(e) => setData(e.currentTarget.value)}
+      />
       <Button fullWidth onClick={generate}>
         Run
       </Button>

@@ -1,5 +1,21 @@
 import { useState } from 'react';
-import { ActionIcon, Badge, Button, FileInput, Group, MultiSelect, NumberInput, Paper, Select, SimpleGrid, Stack, Switch, Tabs, Text, TextInput } from '@mantine/core';
+import {
+  ActionIcon,
+  Badge,
+  Button,
+  FileInput,
+  Group,
+  MultiSelect,
+  NumberInput,
+  Paper,
+  Select,
+  SimpleGrid,
+  Stack,
+  Switch,
+  Tabs,
+  Text,
+  TextInput,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
@@ -12,7 +28,14 @@ import { RegisteredEvent } from '@/lib/notificationBus';
 import { fromInput, toInputDate } from '@/lib/format';
 import { toast } from '@/lib/ui';
 import { countryCodeValidator, required } from '@/lib/validators';
-import { CONTRACT_STATUSES, RATE_TYPES, WORKING_DAYS, type BillableClient, type ClientRate, type RateType } from '@/types';
+import {
+  CONTRACT_STATUSES,
+  RATE_TYPES,
+  WORKING_DAYS,
+  type BillableClient,
+  type ClientRate,
+  type RateType,
+} from '@/types';
 
 /** rates of the client. Clients not migrated yet only have the legacy rate/rateType, it becomes the first (default) rate */
 export function initialRates(client: BillableClient): ClientRate[] {
@@ -48,7 +71,12 @@ export function ClientDetailsForm({ client, isAdmin, onSave }: Props) {
       projectName: client.projectName ?? '',
       nature: client.nature ?? '',
       taxRate: client.taxRate ?? 21,
-      rates: initialRates(client).map((r) => ({ id: r.id ?? '', label: r.label ?? '', rate: r.rate ?? '', rateType: r.rateType ?? 'DAYS' })),
+      rates: initialRates(client).map((r) => ({
+        id: r.id ?? '',
+        label: r.label ?? '',
+        rate: r.rate ?? '',
+        rateType: r.rateType ?? 'DAYS',
+      })),
       startDate: toInputDate(client.startDate ?? new Date()),
       endDate: toInputDate(client.endDate),
       contractStatus: client.contractStatus ?? null,
@@ -144,12 +172,23 @@ export function ClientDetailsForm({ client, isAdmin, onSave }: Props) {
               {isAdmin && (
                 <Group gap="xs">
                   {i > 0 && (
-                    <Button size="xs" variant="outline" color="gray" onClick={() => form.setFieldValue('rates', makeDefault(rates, i))}>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      color="gray"
+                      onClick={() => form.setFieldValue('rates', makeDefault(rates, i))}
+                    >
                       Make default
                     </Button>
                   )}
                   {rates.length > 1 && (
-                    <Button size="xs" variant="outline" color="red" leftSection={<Icon icon="trash" />} onClick={() => form.removeListItem('rates', i)}>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      color="red"
+                      leftSection={<Icon icon="trash" />}
+                      onClick={() => form.removeListItem('rates', i)}
+                    >
                       Remove
                     </Button>
                   )}
@@ -157,9 +196,23 @@ export function ClientDetailsForm({ client, isAdmin, onSave }: Props) {
               )}
             </Group>
             <SimpleGrid cols={{ base: 1, md: 3 }}>
-              <TextInput placeholder="Label (added to the invoice description)" disabled={disabled} {...form.getInputProps(`rates.${i}.label`)} />
-              <NumberInput placeholder="Rate" decimalScale={2} disabled={disabled} {...form.getInputProps(`rates.${i}.rate`)} />
-              <Select data={RATE_TYPES} disabled={disabled} allowDeselect={false} {...form.getInputProps(`rates.${i}.rateType`)} />
+              <TextInput
+                placeholder="Label (added to the invoice description)"
+                disabled={disabled}
+                {...form.getInputProps(`rates.${i}.label`)}
+              />
+              <NumberInput
+                placeholder="Rate"
+                decimalScale={2}
+                disabled={disabled}
+                {...form.getInputProps(`rates.${i}.rate`)}
+              />
+              <Select
+                data={RATE_TYPES}
+                disabled={disabled}
+                allowDeselect={false}
+                {...form.getInputProps(`rates.${i}.rateType`)}
+              />
             </SimpleGrid>
           </Paper>
         ))}
@@ -171,7 +224,12 @@ export function ClientDetailsForm({ client, isAdmin, onSave }: Props) {
               leftSection={<Icon icon="plus" />}
               onClick={() =>
                 // a new rate has no id yet (given by the backend), the rate type of the previous one is kept
-                form.insertListItem('rates', { id: '', label: '', rate: '', rateType: rates[rates.length - 1]?.rateType ?? 'DAYS' })
+                form.insertListItem('rates', {
+                  id: '',
+                  label: '',
+                  rate: '',
+                  rateType: rates[rates.length - 1]?.rateType ?? 'DAYS',
+                })
               }
             >
               Add rate
@@ -182,7 +240,13 @@ export function ClientDetailsForm({ client, isAdmin, onSave }: Props) {
         <SimpleGrid cols={{ base: 1, md: 2 }}>
           <TextInput type="date" label="Start Date" disabled={disabled} {...form.getInputProps('startDate')} />
           <TextInput type="date" label="End Date" disabled={disabled} {...form.getInputProps('endDate')} />
-          <Select label="Status" placeholder="Select option..." data={CONTRACT_STATUSES} disabled={disabled} {...form.getInputProps('contractStatus')} />
+          <Select
+            label="Status"
+            placeholder="Select option..."
+            data={CONTRACT_STATUSES}
+            disabled={disabled}
+            {...form.getInputProps('contractStatus')}
+          />
           <MultiSelect
             label="Working days"
             data={WORKING_DAYS.map((d) => ({ value: d, label: d.toLowerCase() }))}
@@ -205,7 +269,15 @@ export function ClientDetailsForm({ client, isAdmin, onSave }: Props) {
   );
 }
 
-export function ClientDocuments({ client, isAdmin, blur }: { client: BillableClient; isAdmin: boolean; blur?: boolean }) {
+export function ClientDocuments({
+  client,
+  isAdmin,
+  blur,
+}: {
+  client: BillableClient;
+  isAdmin: boolean;
+  blur?: boolean;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const { data: documents = [], refetch } = useQuery({
     queryKey: ['client-documents', client.id],
@@ -216,7 +288,10 @@ export function ClientDocuments({ client, isAdmin, blur }: { client: BillableCli
     enabled: !!client.id,
   });
   // documents are added / removed asynchronously by the backend
-  useNotificationListener([RegisteredEvent.BILLABLE_CLIENT_UPLOAD_ADDED, RegisteredEvent.BILLABLE_CLIENT_UPLOAD_DELETED], () => refetch());
+  useNotificationListener(
+    [RegisteredEvent.BILLABLE_CLIENT_UPLOAD_ADDED, RegisteredEvent.BILLABLE_CLIENT_UPLOAD_DELETED],
+    () => refetch(),
+  );
   const upload = async () => {
     if (!file || !client.id) return;
     await clientsApi.upload(client.id, file);

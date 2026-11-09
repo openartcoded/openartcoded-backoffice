@@ -1,5 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActionIcon, Anchor, Badge, Button, Group, Menu, Paper, ScrollArea, SimpleGrid, Stack, Text, Textarea, Title, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Anchor,
+  Badge,
+  Button,
+  Group,
+  Menu,
+  Paper,
+  ScrollArea,
+  SimpleGrid,
+  Stack,
+  Text,
+  Textarea,
+  Title,
+  Tooltip,
+} from '@mantine/core';
 import { Dropzone } from '@mantine/dropzone';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
@@ -45,14 +60,24 @@ export function PostAttachments({
             <Group justify="space-between" wrap="nowrap">
               <Group gap={4} wrap="nowrap" style={{ minWidth: 0 }}>
                 <ThumbnailPreview thumbnailId={a.thumbnailId} />
-                <Anchor size="sm" title={a.originalFilename} onClick={() => filesApi.download(a.id)} className="text-break">
+                <Anchor
+                  size="sm"
+                  title={a.originalFilename}
+                  onClick={() => filesApi.download(a.id)}
+                  className="text-break"
+                >
                   {trim(a.originalFilename, 30)}
                 </Anchor>
               </Group>
               <Group gap={4} wrap="nowrap">
                 {onToggleProcessed ? (
                   <Tooltip label="Toggle processed state">
-                    <ActionIcon variant="subtle" color={processed(a) ? 'green' : 'gray'} onClick={() => onToggleProcessed(a)} aria-label="processed">
+                    <ActionIcon
+                      variant="subtle"
+                      color={processed(a) ? 'green' : 'gray'}
+                      onClick={() => onToggleProcessed(a)}
+                      aria-label="processed"
+                    >
                       <Icon icon="check-circle" />
                     </ActionIcon>
                   </Tooltip>
@@ -122,7 +147,10 @@ export function ScrumBoard({ post, height = '57vh' }: { post: Post; height?: str
     setBoard((b) => ({ ...b, [col]: b[col].map((p) => (p.id === id ? { ...p, note } : p)) }));
 
   const add = (col: PostItType) =>
-    setBoard((b) => ({ ...b, [col]: [...b[col], { id: crypto.randomUUID(), note: '', creationDate: new Date() } as PostIt] }));
+    setBoard((b) => ({
+      ...b,
+      [col]: [...b[col], { id: crypto.randomUUID(), note: '', creationDate: new Date() } as PostIt],
+    }));
 
   const remove = (col: PostItType, id: string) => {
     const next = { ...board, [col]: board[col].filter((p) => p.id !== id) };
@@ -143,7 +171,14 @@ export function ScrumBoard({ post, height = '57vh' }: { post: Post; height?: str
   return (
     <SimpleGrid cols={{ base: 1, md: 3 }}>
       {COLUMNS.map((c) => (
-        <Paper key={c.type} withBorder bg="gray.0" p="xs" onDragOver={(e) => e.preventDefault()} onDrop={() => drop(c.type)}>
+        <Paper
+          key={c.type}
+          withBorder
+          bg="gray.0"
+          p="xs"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={() => drop(c.type)}
+        >
           <Group justify="space-between" mb="xs">
             <Text fw={700}>{c.label}</Text>
             <ActionIcon variant="subtle" onClick={() => add(c.type)} aria-label={`add to ${c.label}`}>
@@ -153,8 +188,23 @@ export function ScrumBoard({ post, height = '57vh' }: { post: Post; height?: str
           <ScrollArea h={height}>
             <Stack gap="xs">
               {board[c.type].map((p) => (
-                <Paper key={p.id} withBorder p="xs" className="postit" maw="100%" draggable onDragStart={() => (dragged.current = p.id ?? null)}>
-                  <Textarea variant="unstyled" placeholder="New postIt..." autosize minRows={4} value={p.note} onChange={(e) => update(c.type, p.id!, e.currentTarget.value)} />
+                <Paper
+                  key={p.id}
+                  withBorder
+                  p="xs"
+                  className="postit"
+                  maw="100%"
+                  draggable
+                  onDragStart={() => (dragged.current = p.id ?? null)}
+                >
+                  <Textarea
+                    variant="unstyled"
+                    placeholder="New postIt..."
+                    autosize
+                    minRows={4}
+                    value={p.note}
+                    onChange={(e) => update(c.type, p.id!, e.currentTarget.value)}
+                  />
                   <Group justify="space-between">
                     <Text size="xs" c="dimmed">
                       {fmtDate(p.creationDate, 'DD/MM/YYYY HH:mm:ss')}
@@ -163,7 +213,12 @@ export function ScrumBoard({ post, height = '57vh' }: { post: Post; height?: str
                       <ActionIcon variant="subtle" color="gray" onClick={() => save()} aria-label="save">
                         <Icon icon="save" />
                       </ActionIcon>
-                      <ActionIcon variant="subtle" color="red" onClick={() => remove(c.type, p.id!)} aria-label="delete">
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        onClick={() => remove(c.type, p.id!)}
+                        aria-label="delete"
+                      >
                         <Icon icon="trash" />
                       </ActionIcon>
                     </Group>
@@ -178,7 +233,8 @@ export function ScrumBoard({ post, height = '57vh' }: { post: Post; height?: str
   );
 }
 
-const attachmentIcon = (a: FileUpload) => (isImage(a.contentType) ? 'file-image' : isPdf(a.contentType) ? 'file-pdf' : 'file');
+const attachmentIcon = (a: FileUpload) =>
+  isImage(a.contentType) ? 'file-image' : isPdf(a.contentType) ? 'file-pdf' : 'file';
 
 function MessageAttachments({ ids }: { ids?: string[] }) {
   const { data: files = [] } = useUploads(ids?.length ? ids : undefined);
@@ -219,7 +275,10 @@ export function ChannelPanel({ post, user }: { post: Post; user: User }) {
 
   useEffect(() => {
     if (!subscribed) return;
-    const timer = setTimeout(async () => client.setQueryData(['channel', post.id], await reportApi.setChannelToRead(post.id!)), 5000);
+    const timer = setTimeout(
+      async () => client.setQueryData(['channel', post.id], await reportApi.setChannelToRead(post.id!)),
+      5000,
+    );
     return () => clearTimeout(timer);
   }, [subscribed, post.id, client]);
 
@@ -305,7 +364,13 @@ export function ChannelPanel({ post, user }: { post: Post; user: User }) {
                     </Text>
                     {own && m.read && <Icon icon="check" size="xs" color="green" />}
                     {own && (
-                      <ActionIcon size="xs" variant="subtle" color="gray" onClick={() => remove(m.id)} aria-label="delete message">
+                      <ActionIcon
+                        size="xs"
+                        variant="subtle"
+                        color="gray"
+                        onClick={() => remove(m.id)}
+                        aria-label="delete message"
+                      >
                         <Icon icon="trash" size="xs" />
                       </ActionIcon>
                     )}
@@ -323,7 +388,12 @@ export function ChannelPanel({ post, user }: { post: Post; user: User }) {
               key={`${f.name}-${i}`}
               variant="light"
               rightSection={
-                <ActionIcon size="xs" variant="transparent" onClick={() => setFiles((list) => list.filter((_, j) => j !== i))} aria-label="remove file">
+                <ActionIcon
+                  size="xs"
+                  variant="transparent"
+                  onClick={() => setFiles((list) => list.filter((_, j) => j !== i))}
+                  aria-label="remove file"
+                >
                   <Icon icon="times" size="xs" />
                 </ActionIcon>
               }
@@ -334,7 +404,14 @@ export function ChannelPanel({ post, user }: { post: Post; user: User }) {
         </Group>
       )}
       <Group align="flex-end" wrap="nowrap">
-        <Dropzone onDrop={(f) => setFiles((list) => [...list, ...f])} p={6} w={42} h={42} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Attach files">
+        <Dropzone
+          onDrop={(f) => setFiles((list) => [...list, ...f])}
+          p={6}
+          w={42}
+          h={42}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          title="Attach files"
+        >
           <Icon icon="paperclip" />
         </Dropzone>
         <Textarea
@@ -351,7 +428,13 @@ export function ChannelPanel({ post, user }: { post: Post; user: User }) {
             }
           }}
         />
-        <ActionIcon size="xl" onClick={send} loading={sending} disabled={!message.trim() && !files.length} aria-label="send">
+        <ActionIcon
+          size="xl"
+          onClick={send}
+          loading={sending}
+          disabled={!message.trim() && !files.length}
+          aria-label="send"
+        >
           <Icon icon="paper-plane" />
         </ActionIcon>
       </Group>

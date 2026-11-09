@@ -23,7 +23,13 @@ export function NotificationBell() {
     <Popover opened={opened} onChange={setOpened} width={340} position="bottom-end" shadow="md">
       <Popover.Target>
         <Indicator label={unseenCount} size={16} color="red" disabled={unseenCount === 0} offset={4}>
-          <ActionIcon variant="subtle" color="gray" size="lg" onClick={() => setOpened((o) => !o)} aria-label="notifications">
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="lg"
+            onClick={() => setOpened((o) => !o)}
+            aria-label="notifications"
+          >
             <Icon icon="bell" />
           </ActionIcon>
         </Indicator>

@@ -35,7 +35,14 @@ describe('MailForm', () => {
 
   it('removes an attachment', async () => {
     const onSubmit = vi.fn();
-    renderWithProviders(<MailForm to={['a@b.be']} defaultSubject="s" attachments={[{ id: 'u1', originalFilename: 'a.pdf' }]} onSubmit={onSubmit} />);
+    renderWithProviders(
+      <MailForm
+        to={['a@b.be']}
+        defaultSubject="s"
+        attachments={[{ id: 'u1', originalFilename: 'a.pdf' }]}
+        onSubmit={onSubmit}
+      />,
+    );
     await userEvent.click(screen.getByLabelText('remove attachment'));
     expect(screen.queryByText('a.pdf')).not.toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Body'), 'hi');

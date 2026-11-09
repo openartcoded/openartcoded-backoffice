@@ -1,6 +1,20 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Anchor, Button, FileInput, Group, Loader, Pagination, Paper, SimpleGrid, Stack, Table, Tabs, Text, Tooltip } from '@mantine/core';
+import {
+  Anchor,
+  Button,
+  FileInput,
+  Group,
+  Loader,
+  Pagination,
+  Paper,
+  SimpleGrid,
+  Stack,
+  Table,
+  Tabs,
+  Text,
+  Tooltip,
+} from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
@@ -41,7 +55,15 @@ function ImportForm({ onImport }: { onImport: (file: File) => void }) {
 }
 
 /** keeps the dossier returned by the backend after each change and re-renders the form with it */
-function DossierEditor({ initial, recallForModification, onChanged }: { initial: Dossier; recallForModification: boolean; onChanged: () => void }) {
+function DossierEditor({
+  initial,
+  recallForModification,
+  onChanged,
+}: {
+  initial: Dossier;
+  recallForModification: boolean;
+  onChanged: () => void;
+}) {
   const [dossier, setDossier] = useState(initial);
   const [version, setVersion] = useState(0);
   const refresh = (saved: Dossier, message: string) => {
@@ -58,7 +80,8 @@ function DossierEditor({ initial, recallForModification, onChanged }: { initial:
       onSubmit={async (d) => {
         try {
           if (d.id && !d.closed) refresh(await dossiersApi.updateDossier(d), 'Dossier updated');
-          else if (d.id && recallForModification) refresh(await dossiersApi.recallForModification(d), 'Dossier updated');
+          else if (d.id && recallForModification)
+            refresh(await dossiersApi.recallForModification(d), 'Dossier updated');
           else if (!d.id) refresh(await dossiersApi.newDossier(d), 'Dossier created');
         } catch (e) {
           toast.error(errorMessage(e));
@@ -78,7 +101,10 @@ export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmar
   const [page, setPage] = useState(1);
   const { data: dossiers, refetch } = useQuery({
     queryKey: ['dossiers', { closed, bookmarked }, page],
-    queryFn: () => (bookmarked ? dossiersApi.bookmarked(page - 1, PAGE_SIZE, SORT) : dossiersApi.findAllPaged(!!closed, page - 1, PAGE_SIZE, SORT)),
+    queryFn: () =>
+      bookmarked
+        ? dossiersApi.bookmarked(page - 1, PAGE_SIZE, SORT)
+        : dossiersApi.findAllPaged(!!closed, page - 1, PAGE_SIZE, SORT),
   });
   const content = dossiers?.content ?? [];
   const active = !closed && !bookmarked ? content[0] : undefined;
@@ -92,7 +118,9 @@ export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmar
       title: dossier.name ? `Dossier ${dossier.name}` : 'New dossier',
       size: 1000,
       closeOnClickOutside: false,
-      render: () => <DossierEditor initial={dossier} recallForModification={recallForModification} onChanged={reload} />,
+      render: () => (
+        <DossierEditor initial={dossier} recallForModification={recallForModification} onChanged={reload} />
+      ),
     });
 
   const fromPrevious = async () => {
@@ -102,7 +130,8 @@ export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmar
   useHotkeys(!closed && !bookmarked ? [['alt+n', fromPrevious]] : []);
 
   const closeActive = async () => {
-    if (!(await confirm('Close the dossier? Its archive (zip) will be generated and downloaded.', { danger: false }))) return;
+    if (!(await confirm('Close the dossier? Its archive (zip) will be generated and downloaded.', { danger: false })))
+      return;
     toast.success('Dossier closed. Generating ZIP');
     const d = await dossiersApi.closeActiveDossier();
     if (d.dossierUploadId) await filesApi.download(d.dossierUploadId);
@@ -209,68 +238,88 @@ export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmar
     <div className="fill-column">
       <div className="scroll-body">
         <Table.ScrollContainer minWidth={600}>
-        <Table className="clickable-rows">
-          <Table.Thead>
-            <Table.Tr>
-              {isAdmin && <Table.Th w={40} />}
-              <Table.Th>Name</Table.Th>
-              <Table.Th visibleFrom="md">Description</Table.Th>
-              <Table.Th ta="center">Expenses</Table.Th>
-              <Table.Th ta="center">Invoices</Table.Th>
-              <Table.Th ta="right">VAT due</Table.Th>
-              <Table.Th visibleFrom="md">Updated</Table.Th>
-              <Table.Th w={110} />
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody className={demoMode ? 'blur' : undefined}>
-            {!content.length && (
-              <EmptyRow
-                colSpan={8}
-                icon="folder-open"
-                title={bookmarked ? 'No bookmarked dossier' : 'No closed dossier'}
-                description={bookmarked ? 'Star a dossier to find it here.' : 'Closed dossiers and their archives show up here.'}
-              />
-            )}
-            {content.map((d) => (
-              <Table.Tr key={d.id} onClick={() => open(d)}>
-                {isAdmin && (
-                  <Table.Td>
-                    <BookmarkButton bookmarked={d.bookmarked} onToggle={() => toggleBookmark(d)} />
-                  </Table.Td>
-                )}
-                <Table.Td>
-                  <Group gap={4} wrap="nowrap">
-                    <Text size="sm" fw={500}>
-                      {d.name}
-                    </Text>
-                    <ImportedInfo imported={d.imported} date={d.importedDate} />
-                  </Group>
-                </Table.Td>
-                <Table.Td visibleFrom="md" c="dimmed">
-                  <Text size="sm" lineClamp={1}>
-                    {d.description}
-                  </Text>
-                </Table.Td>
-                <Table.Td ta="center">{d.feeIds?.length ?? 0}</Table.Td>
-                <Table.Td ta="center">{d.invoiceIds?.length ?? 0}</Table.Td>
-                <MoneyCell value={d.closed ? (d.tvaDue ?? 0) : d.tvaToBePaid} />
-                <Table.Td visibleFrom="md">{fmtDate(d.updatedDate)}</Table.Td>
-                <Table.Td>
-                  <RowActions
-                    inline={[{ label: 'Download', icon: 'download', hidden: !d.closed, disabled: !d.dossierUploadId, onClick: () => downloadUpload(d.dossierUploadId!) }]}
-                    groups={[
-                      [
-                        { label: 'Send by email', icon: 'envelope', hidden: !isAdmin || !d.closed, onClick: () => sendMail(d) },
-                        { label: 'Reopen for changes', icon: 'edit', hidden: !isAdmin || !d.closed, onClick: () => modify(d) },
-                      ],
-                    ]}
-                  />
-                </Table.Td>
+          <Table className="clickable-rows">
+            <Table.Thead>
+              <Table.Tr>
+                {isAdmin && <Table.Th w={40} />}
+                <Table.Th>Name</Table.Th>
+                <Table.Th visibleFrom="md">Description</Table.Th>
+                <Table.Th ta="center">Expenses</Table.Th>
+                <Table.Th ta="center">Invoices</Table.Th>
+                <Table.Th ta="right">VAT due</Table.Th>
+                <Table.Th visibleFrom="md">Updated</Table.Th>
+                <Table.Th w={110} />
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </Table.ScrollContainer>
+            </Table.Thead>
+            <Table.Tbody className={demoMode ? 'blur' : undefined}>
+              {!content.length && (
+                <EmptyRow
+                  colSpan={8}
+                  icon="folder-open"
+                  title={bookmarked ? 'No bookmarked dossier' : 'No closed dossier'}
+                  description={
+                    bookmarked ? 'Star a dossier to find it here.' : 'Closed dossiers and their archives show up here.'
+                  }
+                />
+              )}
+              {content.map((d) => (
+                <Table.Tr key={d.id} onClick={() => open(d)}>
+                  {isAdmin && (
+                    <Table.Td>
+                      <BookmarkButton bookmarked={d.bookmarked} onToggle={() => toggleBookmark(d)} />
+                    </Table.Td>
+                  )}
+                  <Table.Td>
+                    <Group gap={4} wrap="nowrap">
+                      <Text size="sm" fw={500}>
+                        {d.name}
+                      </Text>
+                      <ImportedInfo imported={d.imported} date={d.importedDate} />
+                    </Group>
+                  </Table.Td>
+                  <Table.Td visibleFrom="md" c="dimmed">
+                    <Text size="sm" lineClamp={1}>
+                      {d.description}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td ta="center">{d.feeIds?.length ?? 0}</Table.Td>
+                  <Table.Td ta="center">{d.invoiceIds?.length ?? 0}</Table.Td>
+                  <MoneyCell value={d.closed ? (d.tvaDue ?? 0) : d.tvaToBePaid} />
+                  <Table.Td visibleFrom="md">{fmtDate(d.updatedDate)}</Table.Td>
+                  <Table.Td>
+                    <RowActions
+                      inline={[
+                        {
+                          label: 'Download',
+                          icon: 'download',
+                          hidden: !d.closed,
+                          disabled: !d.dossierUploadId,
+                          onClick: () => downloadUpload(d.dossierUploadId!),
+                        },
+                      ]}
+                      groups={[
+                        [
+                          {
+                            label: 'Send by email',
+                            icon: 'envelope',
+                            hidden: !isAdmin || !d.closed,
+                            onClick: () => sendMail(d),
+                          },
+                          {
+                            label: 'Reopen for changes',
+                            icon: 'edit',
+                            hidden: !isAdmin || !d.closed,
+                            onClick: () => modify(d),
+                          },
+                        ],
+                      ]}
+                    />
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
       </div>
       {dossiers.page.totalPages > 1 && (
         <Group justify="flex-end" mt="sm">

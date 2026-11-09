@@ -1,5 +1,20 @@
 import { useState } from 'react';
-import { Badge, Button, Checkbox, FileInput, Group, Loader, NumberInput, Paper, Select, SimpleGrid, Stack, Text, TextInput, Textarea } from '@mantine/core';
+import {
+  Badge,
+  Button,
+  Checkbox,
+  FileInput,
+  Group,
+  Loader,
+  NumberInput,
+  Paper,
+  Select,
+  SimpleGrid,
+  Stack,
+  Text,
+  TextInput,
+  Textarea,
+} from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
 import { ImportedInfo, useUploads } from '@/components/common';
@@ -13,7 +28,8 @@ import { fmtCurrency, fmtDateTime, titleCase } from '@/lib/format';
 import { toast } from '@/lib/ui';
 import type { Fee, Label } from '@/types';
 
-export const tagColor = (labels: Label[] | undefined, tag?: string) => labels?.find((l) => l.name === tag)?.colorHex ?? '#FFFFFF';
+export const tagColor = (labels: Label[] | undefined, tag?: string) =>
+  labels?.find((l) => l.name === tag)?.colorHex ?? '#FFFFFF';
 
 export function TagForm({
   tags,
@@ -42,11 +58,22 @@ export function TagForm({
       />
       {isAdmin && (
         <Group justify="flex-end">
-          <Button size="xs" variant="light" disabled={!value || disabled} onClick={() => onSubmit(tags.find((t) => t.name === value) ?? null)}>
+          <Button
+            size="xs"
+            variant="light"
+            disabled={!value || disabled}
+            onClick={() => onSubmit(tags.find((t) => t.name === value) ?? null)}
+          >
             Set tag
           </Button>
           {!hideCancel && (
-            <Button variant="outline" color="red" leftSection={<Icon icon="times" />} disabled={disabled} onClick={() => onSubmit(null)}>
+            <Button
+              variant="outline"
+              color="red"
+              leftSection={<Icon icon="times" />}
+              disabled={disabled}
+              onClick={() => onSubmit(null)}
+            >
               Cancel
             </Button>
           )}
@@ -64,7 +91,14 @@ export function UpdatePrice({ fee, onSubmit }: { fee: Fee; onSubmit: (priceHVAT:
   return (
     <Stack gap="sm">
       <SimpleGrid cols={2}>
-        <NumberInput label="Amount excl. VAT" suffix=" €" decimalScale={2} value={price} onChange={setPrice} disabled={disabled} />
+        <NumberInput
+          label="Amount excl. VAT"
+          suffix=" €"
+          decimalScale={2}
+          value={price}
+          onChange={setPrice}
+          disabled={disabled}
+        />
         <NumberInput label="VAT" suffix=" €" decimalScale={2} value={vat} onChange={setVat} disabled={disabled} />
       </SimpleGrid>
       <Group justify="space-between">
@@ -72,7 +106,12 @@ export function UpdatePrice({ fee, onSubmit }: { fee: Fee; onSubmit: (priceHVAT:
           Total incl. VAT: <b>{fmtCurrency(Number(price) + Number(vat))}</b>
         </Text>
         {isAdmin && (
-          <Button size="xs" variant="light" disabled={disabled || price === '' || vat === ''} onClick={() => onSubmit(Number(price), Number(vat))}>
+          <Button
+            size="xs"
+            variant="light"
+            disabled={disabled || price === '' || vat === ''}
+            onClick={() => onSubmit(Number(price), Number(vat))}
+          >
             Save amount
           </Button>
         )}
@@ -122,8 +161,20 @@ export function FeeEdit({ fee: initial, onUpdated }: { fee: Fee; onUpdated: (f: 
 
   return (
     <Stack gap="sm">
-      <TextInput label="Subject" value={fee.subject} disabled={!isAdmin} onChange={(e) => setFee({ ...fee, subject: e.currentTarget.value })} />
-      <Textarea label="Body" minRows={6} autosize value={fee.body} disabled={!isAdmin} onChange={(e) => setFee({ ...fee, body: e.currentTarget.value })} />
+      <TextInput
+        label="Subject"
+        value={fee.subject}
+        disabled={!isAdmin}
+        onChange={(e) => setFee({ ...fee, subject: e.currentTarget.value })}
+      />
+      <Textarea
+        label="Body"
+        minRows={6}
+        autosize
+        value={fee.body}
+        disabled={!isAdmin}
+        onChange={(e) => setFee({ ...fee, body: e.currentTarget.value })}
+      />
       <Text size="sm" fw={500}>
         Attachments
       </Text>
@@ -137,7 +188,12 @@ export function FeeEdit({ fee: initial, onUpdated }: { fee: Fee; onUpdated: (f: 
             <FileActions
               file={a}
               extra={
-                <Button size="compact-xs" variant="subtle" disabled={!isAdmin} onClick={() => setFee({ ...fee, paymentProofUploadId: a.id })}>
+                <Button
+                  size="compact-xs"
+                  variant="subtle"
+                  disabled={!isAdmin}
+                  onClick={() => setFee({ ...fee, paymentProofUploadId: a.id })}
+                >
                   {fee.paymentProofUploadId === a.id ? 'Payment proof ✓' : 'Mark as proof'}
                 </Button>
               }
@@ -147,9 +203,19 @@ export function FeeEdit({ fee: initial, onUpdated }: { fee: Fee; onUpdated: (f: 
       </Stack>
       <Stack gap="xs" p="sm" bg="gray.0" style={{ borderRadius: 'var(--mantine-radius-md)' }}>
         <FileInput label="New attachment" value={file} onChange={setFile} />
-        <Checkbox label="Mark as payment proof" checked={isPaymentProof} onChange={(e) => setIsPaymentProof(e.currentTarget.checked)} />
+        <Checkbox
+          label="Mark as payment proof"
+          checked={isPaymentProof}
+          onChange={(e) => setIsPaymentProof(e.currentTarget.checked)}
+        />
         <Group>
-          <Button variant="default" leftSection={<Icon icon="upload" />} onClick={upload} loading={busy} disabled={!file}>
+          <Button
+            variant="default"
+            leftSection={<Icon icon="upload" />}
+            onClick={upload}
+            loading={busy}
+            disabled={!file}
+          >
             Upload
           </Button>
         </Group>
@@ -178,7 +244,8 @@ export function FeeDetail({ fee: initial, onUpdated }: { fee: Fee; onUpdated?: (
 
   if (!labels) return <Loader />;
 
-  const edit = () => openModal({ title: 'Edit expense', size: 'xl', render: () => <FeeEdit fee={fee} onUpdated={updated} /> });
+  const edit = () =>
+    openModal({ title: 'Edit expense', size: 'xl', render: () => <FeeEdit fee={fee} onUpdated={updated} /> });
 
   return (
     <Stack gap="xl" className={demoMode ? 'blur' : undefined}>
@@ -234,7 +301,9 @@ export function FeeDetail({ fee: initial, onUpdated }: { fee: Fee; onUpdated?: (
       <FormSection title={`Attachments (${attachments.length})`}>
         <AttachmentList
           files={attachments}
-          badge={(a) => fee.paymentProofUploadId === a.id && <StatusBadge value="PROOF" label="Payment proof" color="teal" />}
+          badge={(a) =>
+            fee.paymentProofUploadId === a.id && <StatusBadge value="PROOF" label="Payment proof" color="teal" />
+          }
           canRemove={() => fee.attachmentIds.length > 1 && !fee.archived}
           onRemove={
             isAdmin

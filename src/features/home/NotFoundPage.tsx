@@ -7,7 +7,16 @@ export function NotFoundPage() {
   return (
     <>
       <PageHeader title="Page not found" />
-      <EmptyState icon="search" title="This page doesn't exist" description="It may have been moved, or you don't have access to it." action={<Button mt="xs" onClick={() => navigate('/')}>Back to home</Button>} />
+      <EmptyState
+        icon="search"
+        title="This page doesn't exist"
+        description="It may have been moved, or you don't have access to it."
+        action={
+          <Button mt="xs" onClick={() => navigate('/')}>
+            Back to home
+          </Button>
+        }
+      />
     </>
   );
 }

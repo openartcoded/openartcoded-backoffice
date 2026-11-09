@@ -10,7 +10,6 @@ import { fmtDateTime } from '@/lib/format';
 export function ProspectsPage() {
   const { data: contacts, refetch } = useQuery({ queryKey: ['prospects'], queryFn: contactApi.findAll });
 
-
   return (
     <>
       <PageHeader title="Prospects" description="Messages received through the contact form of the website." />

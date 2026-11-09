@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { NotificationBus, notificationRoute, RegisteredEvent, sortNotifications, titleWithCount } from './notificationBus';
+import {
+  NotificationBus,
+  notificationRoute,
+  RegisteredEvent,
+  sortNotifications,
+  titleWithCount,
+} from './notificationBus';
 import type { ArtcodedNotification } from '@/types';
 
 const n = (id: string, type: string, seen = false, receivedDate = '2026-01-01T10:00:00'): ArtcodedNotification => ({
@@ -17,7 +23,11 @@ describe('NotificationBus', () => {
     const handle = vi.fn();
     bus.subscribe({ types: [RegisteredEvent.NEW_FEE], handle, markAsSeen: false });
 
-    bus.dispatch([n('1', RegisteredEvent.NEW_FEE), n('2', RegisteredEvent.NEW_INVOICE), n('3', RegisteredEvent.NEW_FEE, true)]);
+    bus.dispatch([
+      n('1', RegisteredEvent.NEW_FEE),
+      n('2', RegisteredEvent.NEW_INVOICE),
+      n('3', RegisteredEvent.NEW_FEE, true),
+    ]);
     expect(handle).toHaveBeenCalledTimes(1);
     expect(handle.mock.calls[0][0].map((e: ArtcodedNotification) => e.id)).toEqual(['1']);
 

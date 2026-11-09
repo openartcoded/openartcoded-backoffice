@@ -110,7 +110,12 @@ export function TemplatesManager({
       </Tabs.Panel>
       <Tabs.Panel value="new" pt="sm">
         <Stack gap="sm">
-          <TextInput label="Name" placeholder="Template name" value={name} onChange={(e) => setName(e.currentTarget.value)} />
+          <TextInput
+            label="Name"
+            placeholder="Template name"
+            value={name}
+            onChange={(e) => setName(e.currentTarget.value)}
+          />
           <FilePicker
             onFiles={(f) => setFile(f[0])}
             accept={{ 'text/plain': ['.ftl'] }}

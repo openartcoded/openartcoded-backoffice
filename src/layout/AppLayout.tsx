@@ -1,6 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
-import { ActionIcon, AppShell, Burger, Group, Image, Kbd, NavLink, ScrollArea, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
+import {
+  ActionIcon,
+  AppShell,
+  Burger,
+  Group,
+  Image,
+  Kbd,
+  NavLink,
+  ScrollArea,
+  Stack,
+  Text,
+  Tooltip,
+  UnstyledButton,
+} from '@mantine/core';
 import { useDisclosure, useHotkeys, useLocalStorage } from '@mantine/hooks';
 import { Spotlight, spotlight, type SpotlightActionData } from '@mantine/spotlight';
 import { Icon } from '@/components/Icon';
@@ -60,7 +73,13 @@ export function AppLayout() {
       leftSection: <Icon icon={l.icon} />,
       onClick: () => navigate(menuPath(l)),
     })),
-    { id: 'settings', label: 'Settings', group: 'Account', leftSection: <Icon icon="cog" />, onClick: () => openSettings() },
+    {
+      id: 'settings',
+      label: 'Settings',
+      group: 'Account',
+      leftSection: <Icon icon="cog" />,
+      onClick: () => openSettings(),
+    },
     { id: 'logout', label: 'Logout', group: 'Account', leftSection: <Icon icon="sign-out-alt" />, onClick: logout },
   ];
 
@@ -70,7 +89,11 @@ export function AppLayout() {
   return (
     <AppShell
       header={{ height: 56 }}
-      navbar={{ width: { base: NAV_WIDTH, sm: collapsed ? NAV_COLLAPSED_WIDTH : NAV_WIDTH }, breakpoint: 'sm', collapsed: { mobile: !mobileOpened } }}
+      navbar={{
+        width: { base: NAV_WIDTH, sm: collapsed ? NAV_COLLAPSED_WIDTH : NAV_WIDTH },
+        breakpoint: 'sm',
+        collapsed: { mobile: !mobileOpened },
+      }}
       padding="lg"
     >
       <AppShell.Header>

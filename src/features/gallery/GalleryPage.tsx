@@ -1,5 +1,19 @@
 import { useEffect, useState } from 'react';
-import { ActionIcon, Button, Card, Paper, Checkbox, Group, Image, Pagination, SimpleGrid, Stack, Text, TextInput, Textarea } from '@mantine/core';
+import {
+  ActionIcon,
+  Button,
+  Card,
+  Paper,
+  Checkbox,
+  Group,
+  Image,
+  Pagination,
+  SimpleGrid,
+  Stack,
+  Text,
+  TextInput,
+  Textarea,
+} from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
 import { AuthImage } from '@/components/common';
@@ -63,13 +77,29 @@ export function MemzEditor({ memz, onSaved }: { memz: Memz; onSaved: () => void 
   return (
     <Stack gap="sm">
       <TextInput label="Title" value={title} onChange={(e) => setTitle(e.currentTarget.value)} />
-      <Textarea label="Description" autosize value={description} onChange={(e) => setDescription(e.currentTarget.value)} />
+      <Textarea
+        label="Description"
+        autosize
+        value={description}
+        onChange={(e) => setDescription(e.currentTarget.value)}
+      />
       <Text size="sm" fw={500}>
         Image
       </Text>
-      {preview ? <Image src={preview} alt="preview" w={100} h={100} fit="cover" /> : memz.id && <MemzImage memz={memz} />}
+      {preview ? (
+        <Image src={preview} alt="preview" w={100} h={100} fit="cover" />
+      ) : (
+        memz.id && <MemzImage memz={memz} />
+      )}
       <FilePicker onFiles={(f) => setImage(f[0])} accept={['image/*']} label="Drop an image" />
-      {!visible && <TextInput type="datetime-local" label="Date to set visible" value={dateOfVisibility} onChange={(e) => setDateOfVisibility(e.currentTarget.value)} />}
+      {!visible && (
+        <TextInput
+          type="datetime-local"
+          label="Date to set visible"
+          value={dateOfVisibility}
+          onChange={(e) => setDateOfVisibility(e.currentTarget.value)}
+        />
+      )}
       <Checkbox label="Visible" checked={visible} onChange={(e) => setVisible(e.currentTarget.checked)} />
       <Group justify="flex-end">
         <Button onClick={submit} loading={loading} disabled={!title.trim() || !dateOfVisibility}>
@@ -82,13 +112,19 @@ export function MemzEditor({ memz, onSaved }: { memz: Memz; onSaved: () => void 
 
 export function GalleryPage() {
   const [page, setPage] = useState(1);
-  const { data, refetch } = useQuery({ queryKey: ['memz', page], queryFn: () => memzApi.adminFindAll(page - 1, PAGE_SIZE) });
+  const { data, refetch } = useQuery({
+    queryKey: ['memz', page],
+    queryFn: () => memzApi.adminFindAll(page - 1, PAGE_SIZE),
+  });
 
   useEffect(() => {
     document.title = 'Gallery';
   }, []);
 
-  useNotificationListener([RegisteredEvent.MEMZ_SET_VISIBLE, RegisteredEvent.MEMZ_ADDED, RegisteredEvent.MEMZ_DELETED], () => refetch());
+  useNotificationListener(
+    [RegisteredEvent.MEMZ_SET_VISIBLE, RegisteredEvent.MEMZ_ADDED, RegisteredEvent.MEMZ_DELETED],
+    () => refetch(),
+  );
 
   const edit = (memz: Memz = { title: '', description: '', visible: false }) =>
     openDrawer({

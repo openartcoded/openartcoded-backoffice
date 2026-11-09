@@ -1,5 +1,21 @@
 import { useEffect, useState } from 'react';
-import { ActionIcon, Badge, Button, Center, Checkbox, Group, Loader, NumberInput, Paper, SimpleGrid, Stack, Tabs, Text, TextInput, Textarea } from '@mantine/core';
+import {
+  ActionIcon,
+  Badge,
+  Button,
+  Center,
+  Checkbox,
+  Group,
+  Loader,
+  NumberInput,
+  Paper,
+  SimpleGrid,
+  Stack,
+  Tabs,
+  Text,
+  TextInput,
+  Textarea,
+} from '@mantine/core';
 import { Dropzone } from '@mantine/dropzone';
 import { useForm } from '@mantine/form';
 import { useQueryClient } from '@tanstack/react-query';
@@ -20,7 +36,19 @@ export function PersonalInfoForm() {
   return <PersonalInfoFormContent info={info} />;
 }
 
-function ImageField({ label, uploadId, file, onFile, disabled }: { label: string; uploadId?: string; file?: File; onFile: (f: File) => void; disabled: boolean }) {
+function ImageField({
+  label,
+  uploadId,
+  file,
+  onFile,
+  disabled,
+}: {
+  label: string;
+  uploadId?: string;
+  file?: File;
+  onFile: (f: File) => void;
+  disabled: boolean;
+}) {
   const [preview, setPreview] = useState<string>();
   useEffect(() => {
     if (!file) return;
@@ -41,7 +69,15 @@ function ImageField({ label, uploadId, file, onFile, disabled }: { label: string
           </Badge>
         )}
       </Group>
-      <Dropzone onDrop={(f) => f[0] && onFile(f[0])} accept={['image/*']} multiple={false} disabled={disabled} p={0} radius="md" className="image-field">
+      <Dropzone
+        onDrop={(f) => f[0] && onFile(f[0])}
+        accept={['image/*']}
+        multiple={false}
+        disabled={disabled}
+        p={0}
+        radius="md"
+        className="image-field"
+      >
         <Center h={140} p="sm" style={{ pointerEvents: 'none' }}>
           {preview ? (
             <img src={preview} alt={label} />
@@ -90,7 +126,11 @@ function PersonalInfoFormContent({ info }: { info: PersonalInfo }) {
       organizationBankBIC: info.organizationBankBIC ?? '',
       financeCharge: info.financeCharge ?? 0,
       maxDaysToPay: info.maxDaysToPay ?? 30,
-      accountants: (info.accountants ?? []).map((a) => ({ ...a, phoneNumber: a.phoneNumber ?? '', expenseReceiveEmailHook: a.expenseReceiveEmailHook ?? '' })),
+      accountants: (info.accountants ?? []).map((a) => ({
+        ...a,
+        phoneNumber: a.phoneNumber ?? '',
+        expenseReceiveEmailHook: a.expenseReceiveEmailHook ?? '',
+      })),
     },
     validate: {
       ceoFullName: required(),
@@ -182,7 +222,12 @@ function PersonalInfoFormContent({ info }: { info: PersonalInfo }) {
             {field('organizationPhoneNumber', 'Phone Number')}
             {field('organizationBankAccount', 'Bank Account')}
             {field('organizationBankBIC', 'Bank Account BIC', 'BIC')}
-            <NumberInput label="Finance Charge" placeholder="E.G 1.5" disabled={!isAdmin} {...form.getInputProps('financeCharge')} />
+            <NumberInput
+              label="Finance Charge"
+              placeholder="E.G 1.5"
+              disabled={!isAdmin}
+              {...form.getInputProps('financeCharge')}
+            />
             <NumberInput label="Max Days To Pay" disabled={!isAdmin} {...form.getInputProps('maxDaysToPay')} />
           </Stack>
         </Tabs.Panel>
@@ -213,10 +258,22 @@ function PersonalInfoFormContent({ info }: { info: PersonalInfo }) {
             {form.values.accountants.map((a, i) => (
               <Paper key={i} withBorder p="sm" bg="gray.0">
                 <SimpleGrid cols={{ base: 1, md: 2 }}>
-                  <TextInput label="First Name" disabled={!isAdmin} {...form.getInputProps(`accountants.${i}.firstName`)} />
-                  <TextInput label="Last Name" disabled={!isAdmin} {...form.getInputProps(`accountants.${i}.lastName`)} />
+                  <TextInput
+                    label="First Name"
+                    disabled={!isAdmin}
+                    {...form.getInputProps(`accountants.${i}.firstName`)}
+                  />
+                  <TextInput
+                    label="Last Name"
+                    disabled={!isAdmin}
+                    {...form.getInputProps(`accountants.${i}.lastName`)}
+                  />
                   <TextInput label="Email" disabled={!isAdmin} {...form.getInputProps(`accountants.${i}.email`)} />
-                  <TextInput label="Phone number" disabled={!isAdmin} {...form.getInputProps(`accountants.${i}.phoneNumber`)} />
+                  <TextInput
+                    label="Phone number"
+                    disabled={!isAdmin}
+                    {...form.getInputProps(`accountants.${i}.phoneNumber`)}
+                  />
                 </SimpleGrid>
                 <Checkbox
                   mt="sm"
@@ -234,7 +291,12 @@ function PersonalInfoFormContent({ info }: { info: PersonalInfo }) {
                 )}
                 {isAdmin && (
                   <Group justify="flex-end">
-                    <ActionIcon variant="subtle" color="red" onClick={() => form.removeListItem('accountants', i)} aria-label="remove accountant">
+                    <ActionIcon
+                      variant="subtle"
+                      color="red"
+                      onClick={() => form.removeListItem('accountants', i)}
+                      aria-label="remove accountant"
+                    >
                       <Icon icon="trash" />
                     </ActionIcon>
                   </Group>

@@ -1,5 +1,21 @@
 import { useState } from 'react';
-import { Alert, Anchor, Autocomplete, Button, Checkbox, Code, Group, List, Loader, Paper, Select, Stack, Text, TextInput, Textarea } from '@mantine/core';
+import {
+  Alert,
+  Anchor,
+  Autocomplete,
+  Button,
+  Checkbox,
+  Code,
+  Group,
+  List,
+  Loader,
+  Paper,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+  Textarea,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
@@ -19,7 +35,12 @@ interface ParamValue {
 }
 
 const toParams = (params?: ActionParameter[] | null): ParamValue[] =>
-  (params ?? []).map((p) => ({ key: p.key ?? '', value: p.value ?? '', parameterType: p.parameterType, required: p.required }));
+  (params ?? []).map((p) => ({
+    key: p.key ?? '',
+    value: p.value ?? '',
+    parameterType: p.parameterType,
+    required: p.required,
+  }));
 
 export function CronHelp() {
   const [expr, setExpr] = useState('');
@@ -31,7 +52,12 @@ export function CronHelp() {
   return (
     <Stack gap="sm">
       <Group wrap="nowrap">
-        <TextInput style={{ flex: 1 }} placeholder="Insert Cron expression to validate" value={expr} onChange={(e) => setExpr(e.currentTarget.value)} />
+        <TextInput
+          style={{ flex: 1 }}
+          placeholder="Insert Cron expression to validate"
+          value={expr}
+          onChange={(e) => setExpr(e.currentTarget.value)}
+        />
         <Button variant="outline" disabled={!expr} onClick={validate}>
           Validate
         </Button>
@@ -54,29 +80,45 @@ export function CronHelp() {
       <Text>The following rules apply:</Text>
       <List size="sm">
         <List.Item>
-          A field may be an asterisk (<Code>*</Code>), which always stands for "first-last". For the "day of the month" or "day of the
-          week" fields, a question mark (<Code>?</Code>) may be used instead of an asterisk.
+          A field may be an asterisk (<Code>*</Code>), which always stands for "first-last". For the "day of the month"
+          or "day of the week" fields, a question mark (<Code>?</Code>) may be used instead of an asterisk.
         </List.Item>
         <List.Item>
-          Ranges of numbers are expressed by two numbers separated with a hyphen (<Code>-</Code>). The specified range is inclusive.
+          Ranges of numbers are expressed by two numbers separated with a hyphen (<Code>-</Code>). The specified range
+          is inclusive.
         </List.Item>
         <List.Item>
-          Following a range (or <Code>*</Code>) with <Code>/n</Code> specifies the interval of the number's value through the range.
+          Following a range (or <Code>*</Code>) with <Code>/n</Code> specifies the interval of the number's value
+          through the range.
         </List.Item>
         <List.Item>
-          English names can also be used for the "month" and "day of week" fields. Use the first three letters of the particular day or
-          month (case does not matter).
+          English names can also be used for the "month" and "day of week" fields. Use the first three letters of the
+          particular day or month (case does not matter).
         </List.Item>
       </List>
       <Text>Example expressions:</Text>
       <List size="sm">
-        <List.Item><Code>0 0 * * * *</Code> = the top of every hour of every day.</List.Item>
-        <List.Item><Code>*/10 * * * * *</Code> = every ten seconds.</List.Item>
-        <List.Item><Code>0 0 8-10 * * *</Code> = 8, 9 and 10 o'clock of every day.</List.Item>
-        <List.Item><Code>0 0 6,19 * * *</Code> = 6:00 AM and 7:00 PM every day.</List.Item>
-        <List.Item><Code>0 0/30 8-10 * * *</Code> = 8:00, 8:30, 9:00, 9:30, 10:00 and 10:30 every day.</List.Item>
-        <List.Item><Code>0 0 9-17 * * MON-FRI</Code> = on the hour nine-to-five weekdays</List.Item>
-        <List.Item><Code>0 0 0 25 12 ?</Code> = every Christmas Day at midnight</List.Item>
+        <List.Item>
+          <Code>0 0 * * * *</Code> = the top of every hour of every day.
+        </List.Item>
+        <List.Item>
+          <Code>*/10 * * * * *</Code> = every ten seconds.
+        </List.Item>
+        <List.Item>
+          <Code>0 0 8-10 * * *</Code> = 8, 9 and 10 o'clock of every day.
+        </List.Item>
+        <List.Item>
+          <Code>0 0 6,19 * * *</Code> = 6:00 AM and 7:00 PM every day.
+        </List.Item>
+        <List.Item>
+          <Code>0 0/30 8-10 * * *</Code> = 8:00, 8:30, 9:00, 9:30, 10:00 and 10:30 every day.
+        </List.Item>
+        <List.Item>
+          <Code>0 0 9-17 * * MON-FRI</Code> = on the hour nine-to-five weekdays
+        </List.Item>
+        <List.Item>
+          <Code>0 0 0 25 12 ?</Code> = every Christmas Day at midnight
+        </List.Item>
       </List>
     </Stack>
   );
@@ -193,7 +235,13 @@ export function TaskForm({ task, actions, blur, onSave, onDelete, onClone }: Tas
         {!v.hasAction && (
           <>
             <TextInput label="Title" placeholder="Title" data-autofocus {...form.getInputProps('title')} />
-            <Textarea label="Description" placeholder="Description" autosize minRows={3} {...form.getInputProps('description')} />
+            <Textarea
+              label="Description"
+              placeholder="Description"
+              autosize
+              minRows={3}
+              {...form.getInputProps('description')}
+            />
           </>
         )}
         {v.hasAction && (
@@ -210,7 +258,11 @@ export function TaskForm({ task, actions, blur, onSave, onDelete, onClone }: Tas
                 {action.description}
               </Alert>
             )}
-            <TextInput label="Custom Title" placeholder="Enter a custom title" {...form.getInputProps('customActionName')} />
+            <TextInput
+              label="Custom Title"
+              placeholder="Enter a custom title"
+              {...form.getInputProps('customActionName')}
+            />
             {!!v.actionParameters.length && (
               <Stack gap="xs">
                 <Text size="sm" fw={500}>
@@ -257,7 +309,14 @@ export function TaskForm({ task, actions, blur, onSave, onDelete, onClone }: Tas
 
         {v.hasSpecificDate ? (
           <>
-            <Select label="Quick date" placeholder="Pick a date quickly..." data={QUICK_DATES} value={quick} onChange={applyQuickDate} clearable />
+            <Select
+              label="Quick date"
+              placeholder="Pick a date quickly..."
+              data={QUICK_DATES}
+              value={quick}
+              onChange={applyQuickDate}
+              clearable
+            />
             <TextInput
               type="datetime-local"
               label="Specific time"
@@ -274,7 +333,12 @@ export function TaskForm({ task, actions, blur, onSave, onDelete, onClone }: Tas
             label={
               <Group gap={4}>
                 Cron
-                <Anchor component="button" type="button" c="dark" onClick={() => openModal({ title: 'Cron Expression Helper', size: 'lg', render: () => <CronHelp /> })}>
+                <Anchor
+                  component="button"
+                  type="button"
+                  c="dark"
+                  onClick={() => openModal({ title: 'Cron Expression Helper', size: 'lg', render: () => <CronHelp /> })}
+                >
                   <Icon icon="question-circle" />
                 </Anchor>
               </Group>
@@ -283,20 +347,28 @@ export function TaskForm({ task, actions, blur, onSave, onDelete, onClone }: Tas
             {...form.getInputProps('cronExpression')}
           />
         )}
-        {task.nextDate && <TextInput label="Next Date" value={fmtDate(task.nextDate, 'DD/MM/YYYY HH:mm:ss')} disabled />}
-        {task.lastExecutionDate && <TextInput label="Last Execution" value={fmtDate(task.lastExecutionDate, 'DD/MM/YYYY HH:mm:ss')} disabled />}
-
-        {!!invalidFields.length && (
-          <Alert color="yellow">Invalid field: {JSON.stringify(invalidFields)}</Alert>
+        {task.nextDate && (
+          <TextInput label="Next Date" value={fmtDate(task.nextDate, 'DD/MM/YYYY HH:mm:ss')} disabled />
+        )}
+        {task.lastExecutionDate && (
+          <TextInput label="Last Execution" value={fmtDate(task.lastExecutionDate, 'DD/MM/YYYY HH:mm:ss')} disabled />
         )}
 
+        {!!invalidFields.length && <Alert color="yellow">Invalid field: {JSON.stringify(invalidFields)}</Alert>}
+
         <Group gap="md">
-          <Checkbox label="Specific Date" checked={v.hasSpecificDate} onChange={(e) => toggleSpecificDate(e.currentTarget.checked)} />
+          <Checkbox
+            label="Specific Date"
+            checked={v.hasSpecificDate}
+            onChange={(e) => toggleSpecificDate(e.currentTarget.checked)}
+          />
           <Checkbox label="Has Action" checked={v.hasAction} onChange={(e) => toggleAction(e.currentTarget.checked)} />
           <Checkbox label="Disabled" {...form.getInputProps('disabled', { type: 'checkbox' })} />
           <Checkbox label="Mail" {...form.getInputProps('sendMail', { type: 'checkbox' })} />
           <Checkbox label="Sms" {...form.getInputProps('sendSms', { type: 'checkbox' })} />
-          {v.hasAction && <Checkbox label="Persist result" {...form.getInputProps('persistResult', { type: 'checkbox' })} />}
+          {v.hasAction && (
+            <Checkbox label="Persist result" {...form.getInputProps('persistResult', { type: 'checkbox' })} />
+          )}
           <Checkbox label="In App Notification" {...form.getInputProps('inAppNotification', { type: 'checkbox' })} />
         </Group>
 

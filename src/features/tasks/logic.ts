@@ -58,9 +58,7 @@ export function quickDate(option: string, now: Date = new Date()): Date {
 
 /** distinct days (start of day) of the next execution of the tasks, sorted */
 export function nextDates(tasks: ReminderTask[]): Date[] {
-  const days = tasks
-    .filter((t) => t.nextDate)
-    .map((t) => dayjs(t.nextDate).startOf('day').valueOf());
+  const days = tasks.filter((t) => t.nextDate).map((t) => dayjs(t.nextDate).startOf('day').valueOf());
   return [...new Set(days)].sort((a, b) => a - b).map((d) => new Date(d));
 }
 

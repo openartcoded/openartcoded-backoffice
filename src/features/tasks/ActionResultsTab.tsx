@@ -56,7 +56,13 @@ function ResultDetail({ result }: { result: ActionResult }) {
 }
 
 /** results persisted by the actions (when "persist result" is checked on the task), per action */
-export function ActionResultsTab({ actionKey, onActionChange }: { actionKey: string | null; onActionChange: (key: string | null) => void }) {
+export function ActionResultsTab({
+  actionKey,
+  onActionChange,
+}: {
+  actionKey: string | null;
+  onActionChange: (key: string | null) => void;
+}) {
   const [page, setPage] = useState(1);
   const { data: actions = [] } = useQuery({ queryKey: ['allowed-actions'], queryFn: tasksApi.allowedActions });
   const key = actionKey ?? actions[0]?.key ?? null;
@@ -89,41 +95,45 @@ export function ActionResultsTab({ actionKey, onActionChange }: { actionKey: str
         )}
       </Group>
       <div className="scroll-body">
-      {isLoading && <Loader size="sm" />}
-      {results && !results.content.length && (
-        <Paper withBorder>
-          <EmptyState icon="list" title="No result" description='Results are kept when "persist result" is checked on the task.' />
-        </Paper>
-      )}
-      {!!results?.content.length && (
-        <Accordion variant="separated" chevronPosition="left">
-          {results.content.map((r) => (
-            <Accordion.Item key={r.id} value={r.id ?? ''}>
-              <Accordion.Control>
-                <Group justify="space-between" wrap="nowrap" pr="sm">
-                  <Group gap="sm" wrap="nowrap">
-                    <StatusBadge value={r.status ?? 'UNKNOWN'} />
-                    <Text size="sm">{fmtDate(r.startedDate ?? r.createdDate, 'ddd DD/MM/YYYY HH:mm:ss')}</Text>
-                  </Group>
-                  <Group gap="md" wrap="nowrap">
-                    {!!r.messages?.length && (
-                      <Text size="xs" c="dimmed">
-                        {r.messages.length} line(s)
+        {isLoading && <Loader size="sm" />}
+        {results && !results.content.length && (
+          <Paper withBorder>
+            <EmptyState
+              icon="list"
+              title="No result"
+              description='Results are kept when "persist result" is checked on the task.'
+            />
+          </Paper>
+        )}
+        {!!results?.content.length && (
+          <Accordion variant="separated" chevronPosition="left">
+            {results.content.map((r) => (
+              <Accordion.Item key={r.id} value={r.id ?? ''}>
+                <Accordion.Control>
+                  <Group justify="space-between" wrap="nowrap" pr="sm">
+                    <Group gap="sm" wrap="nowrap">
+                      <StatusBadge value={r.status ?? 'UNKNOWN'} />
+                      <Text size="sm">{fmtDate(r.startedDate ?? r.createdDate, 'ddd DD/MM/YYYY HH:mm:ss')}</Text>
+                    </Group>
+                    <Group gap="md" wrap="nowrap">
+                      {!!r.messages?.length && (
+                        <Text size="xs" c="dimmed">
+                          {r.messages.length} line(s)
+                        </Text>
+                      )}
+                      <Text size="xs" c="dimmed" w={70} ta="right">
+                        {duration(r.startedDate, r.finishedDate)}
                       </Text>
-                    )}
-                    <Text size="xs" c="dimmed" w={70} ta="right">
-                      {duration(r.startedDate, r.finishedDate)}
-                    </Text>
+                    </Group>
                   </Group>
-                </Group>
-              </Accordion.Control>
-              <Accordion.Panel>
-                <ResultDetail result={r} />
-              </Accordion.Panel>
-            </Accordion.Item>
-          ))}
-        </Accordion>
-      )}
+                </Accordion.Control>
+                <Accordion.Panel>
+                  <ResultDetail result={r} />
+                </Accordion.Panel>
+              </Accordion.Item>
+            ))}
+          </Accordion>
+        )}
       </div>
       {results && results.page.totalPages > 1 && (
         <Group justify="flex-end" mt="sm">

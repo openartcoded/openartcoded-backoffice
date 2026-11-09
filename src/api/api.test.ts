@@ -39,13 +39,27 @@ describe('api modules', () => {
   });
 
   it('uses the bookmarked endpoint for bookmarked invoices', async () => {
-    await invoicesApi.search({ bookmarked: true, page: 0, size: 10, sort: { property: 'dateCreation', direction: 'DESC' } });
+    await invoicesApi.search({
+      bookmarked: true,
+      page: 0,
+      size: 10,
+      sort: { property: 'dateCreation', direction: 'DESC' },
+    });
     expect(get).toHaveBeenCalledWith('/api/invoice/bookmarked', { page: 0, size: 10, sort: 'dateCreation,DESC' });
   });
 
   it('pages invoices with the archived / logical flags', async () => {
-    await invoicesApi.search({ archived: true, page: 1, size: 5, sort: { property: 'dateOfInvoice', direction: 'ASC' } });
-    expect(post).toHaveBeenCalledWith('/api/invoice/page', {}, { archived: true, logical: false, page: 1, size: 5, sort: 'dateOfInvoice,ASC' });
+    await invoicesApi.search({
+      archived: true,
+      page: 1,
+      size: 5,
+      sort: { property: 'dateOfInvoice', direction: 'ASC' },
+    });
+    expect(post).toHaveBeenCalledWith(
+      '/api/invoice/page',
+      {},
+      { archived: true, logical: false, page: 1, size: 5, sort: 'dateOfInvoice,ASC' },
+    );
   });
 
   it('does not call the backend for an empty list of ids', async () => {

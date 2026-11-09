@@ -22,7 +22,16 @@ describe('report helpers', () => {
     ];
     expect(unreadForStatus(counters, 'DRAFT', 'me@x.be')).toBe(3);
     expect(unreadForStatus(undefined, 'DRAFT', 'me@x.be')).toBe(0);
-    expect(unreadMessages([{ emailFrom: 'other', read: false }, { emailFrom: 'me', read: false }, { emailFrom: 'other', read: true }], 'me')).toBe(1);
+    expect(
+      unreadMessages(
+        [
+          { emailFrom: 'other', read: false },
+          { emailFrom: 'me', read: false },
+          { emailFrom: 'other', read: true },
+        ],
+        'me',
+      ),
+    ).toBe(1);
   });
 
   it('formats relative times', () => {

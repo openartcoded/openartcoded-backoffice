@@ -1,7 +1,27 @@
 import { useState } from 'react';
-import { DragDropContext, Draggable, Droppable, type DraggableProvided, type DraggableStateSnapshot, type DropResult } from '@hello-pangea/dnd';
+import {
+  DragDropContext,
+  Draggable,
+  Droppable,
+  type DraggableProvided,
+  type DraggableStateSnapshot,
+  type DropResult,
+} from '@hello-pangea/dnd';
 import { useQueryClient } from '@tanstack/react-query';
-import { ActionIcon, Badge, Button, FileButton, Group, Paper, Popover, Stack, Switch, Text, TextInput, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Badge,
+  Button,
+  FileButton,
+  Group,
+  Paper,
+  Popover,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Tooltip,
+} from '@mantine/core';
 import { Icon } from '@/components/Icon';
 import { settingsApi } from '@/api/misc';
 import { saveBlob } from '@/api/http';
@@ -91,7 +111,8 @@ export function SettingsPanel() {
     invalidate();
   };
 
-  const exportLinks = () => saveBlob(new Blob([JSON.stringify(links, null, 2)], { type: 'application/json' }), `menu${Date.now()}.json`);
+  const exportLinks = () =>
+    saveBlob(new Blob([JSON.stringify(links, null, 2)], { type: 'application/json' }), `menu${Date.now()}.json`);
 
   const remove = async (link: MenuLink) => {
     if (!link.id || !(await confirm(`Remove ${link.title} from the menu?`))) return;
@@ -137,7 +158,13 @@ export function SettingsPanel() {
               </Text>
             </Tooltip>
           )}
-          <Switch size="xs" checked={!!link.show} onChange={() => save({ ...link, show: !link.show })} aria-label="toggle visibility" mr="xs" />
+          <Switch
+            size="xs"
+            checked={!!link.show}
+            onChange={() => save({ ...link, show: !link.show })}
+            aria-label="toggle visibility"
+            mr="xs"
+          />
           <EditLink link={link} onSave={(l) => save(l)} />
           <ActionIcon variant="subtle" color="gray" onClick={() => remove(link)} aria-label="delete">
             <Icon icon="trash" />
@@ -168,7 +195,10 @@ export function SettingsPanel() {
       </Group>
       <DragDropContext onDragEnd={onDragEnd}>
         {/* the dragged row is rendered in document.body: inside the modal it would be offset by the modal positioning */}
-        <Droppable droppableId="menu-links" renderClone={(draggable, snapshot, rubric) => renderRow(links[rubric.source.index], draggable, snapshot)}>
+        <Droppable
+          droppableId="menu-links"
+          renderClone={(draggable, snapshot, rubric) => renderRow(links[rubric.source.index], draggable, snapshot)}
+        >
           {(droppable) => (
             <div ref={droppable.innerRef} {...droppable.droppableProps}>
               {links.map((link, index) => (

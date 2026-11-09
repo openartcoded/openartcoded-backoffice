@@ -6,12 +6,20 @@ import { renderWithProviders } from '@/test/utils';
 vi.mock('@/api/misc', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/misc')>()),
   settingsApi: {
-    menuLinks: vi.fn(async () => ([
-      { id: 'b', title: 'Invoices', order: 2, show: true, icon: ['fas', 'file-invoice'], routerLink: ['invoice'], roles: [] },
+    menuLinks: vi.fn(async () => [
+      {
+        id: 'b',
+        title: 'Invoices',
+        order: 2,
+        show: true,
+        icon: ['fas', 'file-invoice'],
+        routerLink: ['invoice'],
+        roles: [],
+      },
       { id: 'a', title: 'Home', order: 1, show: true, icon: ['fas', 'home'], routerLink: [''], roles: [] },
-    ])),
+    ]),
     save: vi.fn(async () => ({})),
-    delete: vi.fn(async () => (undefined)),
+    delete: vi.fn(async () => undefined),
     importAll: vi.fn(),
   },
 }));
@@ -40,7 +48,15 @@ describe('SettingsPanel', () => {
 });
 
 describe('reorderLinks', () => {
-  const link = (id: string, order: number) => ({ id, title: id, order, show: true, icon: 'home', routerLink: [id], roles: [] });
+  const link = (id: string, order: number) => ({
+    id,
+    title: id,
+    order,
+    show: true,
+    icon: 'home',
+    routerLink: [id],
+    roles: [],
+  });
 
   it('moves a link and only returns the links whose order changed', () => {
     const { list, changed } = reorderLinks([link('a', 0), link('b', 1), link('c', 2), link('d', 3)], 3, 1);

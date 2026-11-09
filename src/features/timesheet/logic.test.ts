@@ -1,9 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { autoTimes, clientRates, durationColor, hoursToMinutes, rateLabel, selectedRateId, timesFromHours, yearStats } from './logic';
+import {
+  autoTimes,
+  clientRates,
+  durationColor,
+  hoursToMinutes,
+  rateLabel,
+  selectedRateId,
+  timesFromHours,
+  yearStats,
+} from './logic';
 
 describe('period times', () => {
   it('starts at 8 when the max hours per day is >= 8, at 9 otherwise', () => {
-    expect(autoTimes(8)).toEqual({ morningStartTime: '08:00', morningEndTime: '12:00', afternoonStartTime: '13:00', afternoonEndTime: '17:00' });
+    expect(autoTimes(8)).toEqual({
+      morningStartTime: '08:00',
+      morningEndTime: '12:00',
+      afternoonStartTime: '13:00',
+      afternoonEndTime: '17:00',
+    });
     expect(autoTimes(7).morningStartTime).toBe('09:00');
   });
 

@@ -1,6 +1,20 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ActionIcon, Badge, Button, Checkbox, Group, Kbd, Paper, Stack, Text, Textarea, TextInput, Tooltip, UnstyledButton } from '@mantine/core';
+import {
+  ActionIcon,
+  Badge,
+  Button,
+  Checkbox,
+  Group,
+  Kbd,
+  Paper,
+  Stack,
+  Text,
+  Textarea,
+  TextInput,
+  Tooltip,
+  UnstyledButton,
+} from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import html2canvas from 'html2canvas';
@@ -38,7 +52,12 @@ export function CompanyStamp() {
     }
   };
 
-  const address = [info.organizationAddress, [info.organizationPostCode, info.organizationCity].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const address = [
+    info.organizationAddress,
+    [info.organizationPostCode, info.organizationCity].filter(Boolean).join(' '),
+  ]
+    .filter(Boolean)
+    .join(', ');
   const line = (icon: string, value?: string) =>
     value && (
       <div className="company-card-line">
@@ -116,7 +135,8 @@ export function taskName(task: ReminderTask) {
 export function NextTasks() {
   const client = useQueryClient();
   const { data: tasks = [] } = useQuery({ queryKey: ['next-tasks'], queryFn: tasksApi.nextTen });
-  const open = (task?: ReminderTask) => openTaskForm(task, () => client.invalidateQueries({ queryKey: ['next-tasks'] }));
+  const open = (task?: ReminderTask) =>
+    openTaskForm(task, () => client.invalidateQueries({ queryKey: ['next-tasks'] }));
   return (
     <Stack gap="xs">
       <Group justify="space-between">
@@ -198,10 +218,22 @@ export function TodoList() {
   const row = (todo: Todo) => (
     <Group key={todo.id} gap="sm" wrap="nowrap" className="todo-row">
       <Checkbox checked={!!todo.done} onChange={() => toggle(todo)} aria-label="toggle done" radius="xl" />
-      <Text size="sm" style={{ flex: 1 }} td={todo.done ? 'line-through' : undefined} c={todo.done ? 'dimmed' : undefined}>
+      <Text
+        size="sm"
+        style={{ flex: 1 }}
+        td={todo.done ? 'line-through' : undefined}
+        c={todo.done ? 'dimmed' : undefined}
+      >
         {todo.title}
       </Text>
-      <ActionIcon variant="subtle" color="gray" size="sm" className="todo-delete" onClick={() => remove(todo)} aria-label="delete todo">
+      <ActionIcon
+        variant="subtle"
+        color="gray"
+        size="sm"
+        className="todo-delete"
+        onClick={() => remove(todo)}
+        aria-label="delete todo"
+      >
         <Icon icon="trash" />
       </ActionIcon>
     </Group>
@@ -296,35 +328,48 @@ function PostitBoardContent({ initial }: { initial: PostIt[] }) {
 
   return (
     <Stack gap="sm">
-        {rows.map((row, i) => (
-          <Paper key={row.key} p="sm" className={row.id ? 'postit' : 'postit postit-new'}>
-            <Textarea
-              variant="unstyled"
-              placeholder="New note..."
-              autosize
-              minRows={4}
-              value={row.note}
-              onChange={(e) => update(row.key, { note: e.currentTarget.value })}
-            />
-            <Group justify={row.updatedOn ? 'space-between' : 'flex-end'}>
-              {row.updatedOn && (
-                <Text size="xs" c="dimmed">
-                  {fmtDate(row.updatedOn, 'DD/MM/YY HH:mm')}
-                </Text>
-              )}
-              <Group gap={2}>
-                <ActionIcon variant="subtle" color="dark" size="sm" disabled={!row.note.trim()} onClick={() => save(row, i)} aria-label="save postit">
-                  <Icon icon="save" />
+      {rows.map((row, i) => (
+        <Paper key={row.key} p="sm" className={row.id ? 'postit' : 'postit postit-new'}>
+          <Textarea
+            variant="unstyled"
+            placeholder="New note..."
+            autosize
+            minRows={4}
+            value={row.note}
+            onChange={(e) => update(row.key, { note: e.currentTarget.value })}
+          />
+          <Group justify={row.updatedOn ? 'space-between' : 'flex-end'}>
+            {row.updatedOn && (
+              <Text size="xs" c="dimmed">
+                {fmtDate(row.updatedOn, 'DD/MM/YY HH:mm')}
+              </Text>
+            )}
+            <Group gap={2}>
+              <ActionIcon
+                variant="subtle"
+                color="dark"
+                size="sm"
+                disabled={!row.note.trim()}
+                onClick={() => save(row, i)}
+                aria-label="save postit"
+              >
+                <Icon icon="save" />
+              </ActionIcon>
+              {row.id && (
+                <ActionIcon
+                  variant="subtle"
+                  color="dark"
+                  size="sm"
+                  onClick={() => remove(row)}
+                  aria-label="delete postit"
+                >
+                  <Icon icon="trash" />
                 </ActionIcon>
-                {row.id && (
-                  <ActionIcon variant="subtle" color="dark" size="sm" onClick={() => remove(row)} aria-label="delete postit">
-                    <Icon icon="trash" />
-                  </ActionIcon>
-                )}
-              </Group>
+              )}
             </Group>
-          </Paper>
-        ))}
+          </Group>
+        </Paper>
+      ))}
     </Stack>
   );
 }

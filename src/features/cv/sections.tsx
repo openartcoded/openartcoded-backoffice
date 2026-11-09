@@ -1,5 +1,20 @@
 import { useState } from 'react';
-import { ActionIcon, Anchor, Badge, Button, Checkbox, Group, NumberInput, Paper, Stack, TagsInput, Text, TextInput, Textarea, Title } from '@mantine/core';
+import {
+  ActionIcon,
+  Anchor,
+  Badge,
+  Button,
+  Checkbox,
+  Group,
+  NumberInput,
+  Paper,
+  Stack,
+  TagsInput,
+  Text,
+  TextInput,
+  Textarea,
+  Title,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { Icon } from '@/components/Icon';
 import { openModal } from '@/components/modal';
@@ -65,7 +80,14 @@ export function Introduction({ introduction, onSave }: { introduction?: string; 
   }
   return (
     <Stack>
-      <Textarea autosize minRows={6} placeholder="intro here" autoFocus value={value} onChange={(e) => setValue(e.currentTarget.value)} />
+      <Textarea
+        autosize
+        minRows={6}
+        placeholder="intro here"
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.currentTarget.value)}
+      />
       <Group justify="flex-end">
         <Button
           variant="default"
@@ -185,7 +207,13 @@ export function PersonSection({ person, onSave }: { person: Person; onSave: (p: 
 }
 
 // ---------------- personal projects ----------------
-export function ProjectForm({ project, onSubmit }: { project: PersonalProject; onSubmit: (p: PersonalProject) => void }) {
+export function ProjectForm({
+  project,
+  onSubmit,
+}: {
+  project: PersonalProject;
+  onSubmit: (p: PersonalProject) => void;
+}) {
   const form = useForm({
     initialValues: { name: project.name ?? '', url: project.url ?? '', description: project.description ?? '' },
     validate: { name: required(), url: required() },
@@ -206,7 +234,13 @@ export function ProjectForm({ project, onSubmit }: { project: PersonalProject; o
   );
 }
 
-export function ProjectsSection({ projects, onSave }: { projects: PersonalProject[]; onSave: (p: PersonalProject[]) => void }) {
+export function ProjectsSection({
+  projects,
+  onSave,
+}: {
+  projects: PersonalProject[];
+  onSave: (p: PersonalProject[]) => void;
+}) {
   const edit = (project: PersonalProject, index?: number) =>
     openModal({
       title: project.name || 'New Project',
@@ -229,7 +263,10 @@ export function ProjectsSection({ projects, onSave }: { projects: PersonalProjec
           <Paper key={`${p.name}-${i}`} bg="gray.0" p="sm">
             <Group justify="space-between">
               <Text fw={700}>{p.name}</Text>
-              <ItemActions onEdit={() => edit(p, i)} onDelete={async () => (await askDelete()) && onSave(projects.filter((_, j) => j !== i))} />
+              <ItemActions
+                onEdit={() => edit(p, i)}
+                onDelete={async () => (await askDelete()) && onSave(projects.filter((_, j) => j !== i))}
+              />
             </Group>
             {p.url && (
               <Anchor href={p.url} target="_blank" size="sm">
@@ -249,7 +286,13 @@ export function ProjectsSection({ projects, onSave }: { projects: PersonalProjec
 }
 
 // ---------------- experiences ----------------
-export function ExperienceForm({ experience, onSubmit }: { experience: Experience; onSubmit: (e: Experience) => void }) {
+export function ExperienceForm({
+  experience,
+  onSubmit,
+}: {
+  experience: Experience;
+  onSubmit: (e: Experience) => void;
+}) {
   const form = useForm({
     initialValues: {
       title: experience.title ?? '',
@@ -286,17 +329,31 @@ export function ExperienceForm({ experience, onSubmit }: { experience: Experienc
           <Text size="sm" fw={500}>
             Descriptions
           </Text>
-          <ActionIcon variant="default" onClick={() => form.insertListItem('description', '')} aria-label="add description">
+          <ActionIcon
+            variant="default"
+            onClick={() => form.insertListItem('description', '')}
+            aria-label="add description"
+          >
             <Icon icon="plus" />
           </ActionIcon>
         </Group>
         {v.description.map((_, i) => (
           <Group key={i} wrap="nowrap" gap={4}>
             <TextInput style={{ flex: 1 }} {...form.getInputProps(`description.${i}`)} />
-            <ActionIcon variant="subtle" color="red" onClick={() => form.removeListItem('description', i)} aria-label="delete description">
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              onClick={() => form.removeListItem('description', i)}
+              aria-label="delete description"
+            >
               <Icon icon="trash" />
             </ActionIcon>
-            <ActionIcon variant="subtle" disabled={i === 0} onClick={() => form.reorderListItem('description', { from: i, to: i - 1 })} aria-label="move up">
+            <ActionIcon
+              variant="subtle"
+              disabled={i === 0}
+              onClick={() => form.reorderListItem('description', { from: i, to: i - 1 })}
+              aria-label="move up"
+            >
               <Icon icon="arrow-up" />
             </ActionIcon>
             <ActionIcon
@@ -323,11 +380,20 @@ export function filterExperiences(list: Experience[], search: string): Experienc
   if (search.length < 2) return list;
   const s = search.toUpperCase();
   return list.filter(
-    (x) => x.title?.toUpperCase().includes(s) || x.company?.toUpperCase().includes(s) || x.description?.some((d) => d.toUpperCase().includes(s)),
+    (x) =>
+      x.title?.toUpperCase().includes(s) ||
+      x.company?.toUpperCase().includes(s) ||
+      x.description?.some((d) => d.toUpperCase().includes(s)),
   );
 }
 
-export function ExperiencesSection({ experiences, onSave }: { experiences: Experience[]; onSave: (e: Experience[]) => void }) {
+export function ExperiencesSection({
+  experiences,
+  onSave,
+}: {
+  experiences: Experience[];
+  onSave: (e: Experience[]) => void;
+}) {
   const [search, setSearch] = useState('');
   const edit = (exp: Experience) =>
     openModal({
@@ -348,17 +414,37 @@ export function ExperiencesSection({ experiences, onSave }: { experiences: Exper
     <Paper withBorder p="md">
       <SectionHeader
         title={`Experiences (${experiences.length})`}
-        onAdd={() => edit({ current: false, company: '', title: '', from: null, to: null, description: [], uuid: crypto.randomUUID() })}
+        onAdd={() =>
+          edit({
+            current: false,
+            company: '',
+            title: '',
+            from: null,
+            to: null,
+            description: [],
+            uuid: crypto.randomUUID(),
+          })
+        }
       />
       <TextInput placeholder="search..." mb="sm" value={search} onChange={(e) => setSearch(e.currentTarget.value)} />
       <Stack>
         {filtered.map((exp) => (
           <Paper key={exp.uuid} bg="gray.0" p="sm">
             <Group justify="space-between">
-              <Text fw={700} c={search.length > 2 && exp.company?.toUpperCase().includes(search.toUpperCase()) ? 'artcoded' : undefined}>
+              <Text
+                fw={700}
+                c={
+                  search.length > 2 && exp.company?.toUpperCase().includes(search.toUpperCase())
+                    ? 'artcoded'
+                    : undefined
+                }
+              >
                 {exp.title} @ {exp.company}
               </Text>
-              <ItemActions onEdit={() => edit(exp)} onDelete={async () => (await askDelete()) && onSave(experiences.filter((x) => x.uuid !== exp.uuid))} />
+              <ItemActions
+                onEdit={() => edit(exp)}
+                onDelete={async () => (await askDelete()) && onSave(experiences.filter((x) => x.uuid !== exp.uuid))}
+              />
             </Group>
             <Text size="sm" c="dimmed">
               {period(exp.from, exp.to, exp.current)}
@@ -380,7 +466,12 @@ export function ExperiencesSection({ experiences, onSave }: { experiences: Exper
 // ---------------- skills ----------------
 export function SkillForm({ skill, onSubmit }: { skill: Skill; onSubmit: (s: Skill) => void }) {
   const form = useForm({
-    initialValues: { name: skill.name ?? '', priority: skill.priority ?? 0, tags: skill.tags ?? [], softSkill: !!skill.softSkill },
+    initialValues: {
+      name: skill.name ?? '',
+      priority: skill.priority ?? 0,
+      tags: skill.tags ?? [],
+      softSkill: !!skill.softSkill,
+    },
     validate: { name: required(), priority: (v) => (String(v) === '' ? 'Required' : null) },
   });
   return (
@@ -424,14 +515,20 @@ export function SkillsSection({ skills, onSave }: { skills: Skill[]; onSave: (s:
     });
   return (
     <Paper withBorder p="md">
-      <SectionHeader title="Skills" onAdd={() => edit({ priority: 0, name: '', hardSkill: true, softSkill: false, tags: [] })} />
+      <SectionHeader
+        title="Skills"
+        onAdd={() => edit({ priority: 0, name: '', hardSkill: true, softSkill: false, tags: [] })}
+      />
       <TextInput placeholder="search..." mb="sm" value={search} onChange={(e) => setSearch(e.currentTarget.value)} />
       <Stack>
         {filterSkills(skills, search).map((skill) => (
           <Paper key={skill.name} bg="gray.0" p="sm">
             <Group justify="space-between">
               <Text fw={700}>{skill.name}</Text>
-              <ItemActions onEdit={() => edit(skill)} onDelete={async () => (await askDelete()) && onSave(skills.filter((x) => x.name !== skill.name))} />
+              <ItemActions
+                onEdit={() => edit(skill)}
+                onDelete={async () => (await askDelete()) && onSave(skills.filter((x) => x.name !== skill.name))}
+              />
             </Group>
             <Group gap={4}>
               {skill.tags?.map((t) => (
@@ -448,7 +545,13 @@ export function SkillsSection({ skills, onSave }: { skills: Skill[]; onSave: (s:
 }
 
 // ---------------- education ----------------
-export function EducationForm({ history, onSubmit }: { history: ScholarHistory; onSubmit: (h: ScholarHistory) => void }) {
+export function EducationForm({
+  history,
+  onSubmit,
+}: {
+  history: ScholarHistory;
+  onSubmit: (h: ScholarHistory) => void;
+}) {
   const form = useForm({
     initialValues: {
       title: history.title ?? '',
@@ -462,7 +565,13 @@ export function EducationForm({ history, onSubmit }: { history: ScholarHistory; 
   return (
     <form
       onSubmit={form.onSubmit((v) =>
-        onSubmit({ title: v.title, school: v.school, current: v.current, from: fromInput(v.from), to: v.current ? null : fromInput(v.to) }),
+        onSubmit({
+          title: v.title,
+          school: v.school,
+          current: v.current,
+          from: fromInput(v.from),
+          to: v.current ? null : fromInput(v.to),
+        }),
       )}
     >
       <Stack gap="sm">
@@ -481,7 +590,13 @@ export function EducationForm({ history, onSubmit }: { history: ScholarHistory; 
   );
 }
 
-export function EducationSection({ histories, onSave }: { histories: ScholarHistory[]; onSave: (h: ScholarHistory[]) => void }) {
+export function EducationSection({
+  histories,
+  onSave,
+}: {
+  histories: ScholarHistory[];
+  onSave: (h: ScholarHistory[]) => void;
+}) {
   const edit = (history: ScholarHistory, index?: number) =>
     openModal({
       title: history.title || 'New Education',
@@ -498,7 +613,10 @@ export function EducationSection({ histories, onSave }: { histories: ScholarHist
     });
   return (
     <Paper withBorder p="md">
-      <SectionHeader title="Educations" onAdd={() => edit({ current: false, school: '', title: '', from: null, to: null })} />
+      <SectionHeader
+        title="Educations"
+        onAdd={() => edit({ current: false, school: '', title: '', from: null, to: null })}
+      />
       <Stack>
         {histories.map((h, i) => (
           <Paper key={`${h.title}-${i}`} bg="gray.0" p="sm">
@@ -506,7 +624,10 @@ export function EducationSection({ histories, onSave }: { histories: ScholarHist
               <Text fw={700}>
                 {h.title} @ {h.school}
               </Text>
-              <ItemActions onEdit={() => edit(h, i)} onDelete={async () => (await askDelete()) && onSave(histories.filter((_, j) => j !== i))} />
+              <ItemActions
+                onEdit={() => edit(h, i)}
+                onDelete={async () => (await askDelete()) && onSave(histories.filter((_, j) => j !== i))}
+              />
             </Group>
             <Text size="sm" c="dimmed">
               {period(h.from, h.to, h.current)}
@@ -532,7 +653,12 @@ export function HobbiesForm({ hobbies, onSubmit }: { hobbies: Hobby[]; onSubmit:
         {form.values.hobbies.map((_, i) => (
           <Group key={i} wrap="nowrap">
             <TextInput style={{ flex: 1 }} autoFocus={i === 0} {...form.getInputProps(`hobbies.${i}`)} />
-            <ActionIcon variant="subtle" color="red" onClick={() => form.removeListItem('hobbies', i)} aria-label="delete hobby">
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              onClick={() => form.removeListItem('hobbies', i)}
+              aria-label="delete hobby"
+            >
               <Icon icon="trash" />
             </ActionIcon>
           </Group>

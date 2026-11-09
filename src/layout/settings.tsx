@@ -41,5 +41,11 @@ function Settings({ initialTab }: { initialTab: SettingsTab }) {
 /** personal info, menu and cache, opened from the user menu (or ctrl+k) */
 export function openSettings(tab: SettingsTab = 'personal-info') {
   // fade only: a transform on the modal would offset the dragged rows of the menu editor (position: fixed)
-  openModal({ title: 'Settings', size: 'xl', closeOnClickOutside: false, transition: 'fade', render: () => <Settings initialTab={tab} /> });
+  openModal({
+    title: 'Settings',
+    size: 'xl',
+    closeOnClickOutside: false,
+    transition: 'fade',
+    render: () => <Settings initialTab={tab} />,
+  });
 }

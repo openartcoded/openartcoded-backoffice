@@ -16,7 +16,13 @@ export function TimesheetsPage() {
   const [year, setYear] = useState<number>(new Date().getFullYear());
   const [client, setClient] = useState<string>();
 
-  const years = useMemo(() => Object.keys(grouped ?? {}).map(Number).sort((a, b) => a - b), [grouped]);
+  const years = useMemo(
+    () =>
+      Object.keys(grouped ?? {})
+        .map(Number)
+        .sort((a, b) => a - b),
+    [grouped],
+  );
   const clientNames = useMemo(
     () => [...new Set(Object.values(grouped ?? {}).flatMap((byClient) => Object.keys(byClient)))],
     [grouped],
@@ -43,17 +49,31 @@ export function TimesheetsPage() {
       {header}
       {!years.length ? (
         <Paper withBorder>
-          <EmptyState icon="clock" title="No timesheet" description="Timesheets are created automatically each month for the ongoing clients." />
+          <EmptyState
+            icon="clock"
+            title="No timesheet"
+            description="Timesheets are created automatically each month for the ongoing clients."
+          />
         </Paper>
       ) : (
         <Stack gap="md" className={demoMode ? 'blur' : undefined}>
           <Group justify="space-between" gap="sm">
             {clientNames.length > 1 ? (
-              <SegmentedControl value={selectedClient ?? ''} onChange={setClient} data={clientNames} aria-label="client" />
+              <SegmentedControl
+                value={selectedClient ?? ''}
+                onChange={setClient}
+                data={clientNames}
+                aria-label="client"
+              />
             ) : (
               <Text fw={500}>{selectedClient}</Text>
             )}
-            <SegmentedControl value={String(year)} onChange={(y) => setYear(Number(y))} data={years.map(String)} aria-label="year" />
+            <SegmentedControl
+              value={String(year)}
+              onChange={(y) => setYear(Number(y))}
+              data={years.map(String)}
+              aria-label="year"
+            />
           </Group>
           {stats && (
             <SimpleGrid cols={{ base: 2, sm: 4 }}>
@@ -88,7 +108,11 @@ export function TimesheetsPage() {
                 <Table.Tr key={t.id} onClick={() => navigate(`/timesheets/timesheet/${t.id}`)}>
                   <Table.Td fw={500}>{t.name}</Table.Td>
                   <Table.Td>
-                    <StatusBadge value={t.closed ? 'CLOSED' : 'OPEN'} label={t.closed ? 'Released' : 'Open'} color={t.closed ? 'green' : 'blue'} />
+                    <StatusBadge
+                      value={t.closed ? 'CLOSED' : 'OPEN'}
+                      label={t.closed ? 'Released' : 'Open'}
+                      color={t.closed ? 'green' : 'blue'}
+                    />
                   </Table.Td>
                   <Table.Td ta="right">{t.numberOfWorkingDays}</Table.Td>
                   <Table.Td ta="right" visibleFrom="sm">

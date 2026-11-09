@@ -95,7 +95,14 @@ export function ClientsPage() {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {!clients.length && <EmptyRow colSpan={5} icon="user" title="No client" description="Add a client to generate its timesheets and invoices." />}
+              {!clients.length && (
+                <EmptyRow
+                  colSpan={5}
+                  icon="user"
+                  title="No client"
+                  description="Add a client to generate its timesheets and invoices."
+                />
+              )}
               {clients.map((c) => {
                 const status = c.contractStatus ? CONTRACT_STATUS_DISPLAY[c.contractStatus] : undefined;
                 return (
@@ -118,7 +125,12 @@ export function ClientsPage() {
                     </Table.Td>
                     {isAdmin && (
                       <Table.Td>
-                        <RowActions groups={[[{ label: 'Edit', icon: 'edit', onClick: () => open(c) }], [{ label: 'Delete', icon: 'trash', color: 'red', onClick: () => remove(c) }]]} />
+                        <RowActions
+                          groups={[
+                            [{ label: 'Edit', icon: 'edit', onClick: () => open(c) }],
+                            [{ label: 'Delete', icon: 'trash', color: 'red', onClick: () => remove(c) }],
+                          ]}
+                        />
                       </Table.Td>
                     )}
                   </Table.Tr>

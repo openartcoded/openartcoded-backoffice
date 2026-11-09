@@ -1,6 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Badge, Button, FileInput, Group, Image, Loader, Select, SimpleGrid, Stack, Tabs, TagsInput, Text, TextInput, Textarea } from '@mantine/core';
+import {
+  Badge,
+  Button,
+  FileInput,
+  Group,
+  Image,
+  Loader,
+  Select,
+  SimpleGrid,
+  Stack,
+  Tabs,
+  TagsInput,
+  Text,
+  TextInput,
+  Textarea,
+} from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
 import { AuthImage } from '@/components/common';
@@ -128,7 +143,12 @@ function PostEditor({ initial }: { initial: Post }) {
 
   const set = <K extends keyof EditorState>(key: K, value: EditorState[K]) => setState((s) => ({ ...s, [key]: value }));
 
-  const updateAttachments = (p: Post) => setPost((current) => ({ ...current, attachmentIds: p.attachmentIds, processedAttachmentIds: p.processedAttachmentIds }));
+  const updateAttachments = (p: Post) =>
+    setPost((current) => ({
+      ...current,
+      attachmentIds: p.attachmentIds,
+      processedAttachmentIds: p.processedAttachmentIds,
+    }));
 
   const upload = async () => {
     if (!files.length) return;
@@ -163,7 +183,14 @@ function PostEditor({ initial }: { initial: Post }) {
           <Tabs.Tab value="editor">Editor</Tabs.Tab>
           <Tabs.Tab value="attachments">Attachments</Tabs.Tab>
           <Tabs.Tab value="tasks">Tasks</Tabs.Tab>
-          <Tabs.Tab value="channel" rightSection={<Badge size="xs" color={unread ? 'red' : 'gray'}>{unread}</Badge>}>
+          <Tabs.Tab
+            value="channel"
+            rightSection={
+              <Badge size="xs" color={unread ? 'red' : 'gray'}>
+                {unread}
+              </Badge>
+            }
+          >
             Channel
           </Tabs.Tab>
         </Tabs.List>
@@ -171,14 +198,45 @@ function PostEditor({ initial }: { initial: Post }) {
           <Stack gap="sm">
             <Text size="sm">{dueDateStatus(state.status ?? undefined, state.dueDate)}</Text>
             <SimpleGrid cols={{ base: 1, md: 2 }}>
-              <TextInput label="Title" value={state.title} onChange={(e) => set('title', e.currentTarget.value)} error={!state.title.trim() && 'required'} />
-              <TextInput label="Author" value={state.author} onChange={(e) => set('author', e.currentTarget.value)} error={!state.author.trim() && 'required'} />
+              <TextInput
+                label="Title"
+                value={state.title}
+                onChange={(e) => set('title', e.currentTarget.value)}
+                error={!state.title.trim() && 'required'}
+              />
+              <TextInput
+                label="Author"
+                value={state.author}
+                onChange={(e) => set('author', e.currentTarget.value)}
+                error={!state.author.trim() && 'required'}
+              />
               <TagsInput label="Tags" splitChars={[',']} value={state.tags} onChange={(v) => set('tags', v)} />
-              <TextInput type="datetime-local" label="Due Date" value={state.dueDate} onChange={(e) => set('dueDate', e.currentTarget.value)} />
-              <Select label="Priority" data={priorityOptions} value={state.priority} onChange={(v) => set('priority', v as Priority | null)} />
-              <Select label="Status" data={statusOptions} value={state.status} onChange={(v) => set('status', v as PostStatus | null)} />
+              <TextInput
+                type="datetime-local"
+                label="Due Date"
+                value={state.dueDate}
+                onChange={(e) => set('dueDate', e.currentTarget.value)}
+              />
+              <Select
+                label="Priority"
+                data={priorityOptions}
+                value={state.priority}
+                onChange={(v) => set('priority', v as Priority | null)}
+              />
+              <Select
+                label="Status"
+                data={statusOptions}
+                value={state.status}
+                onChange={(v) => set('status', v as PostStatus | null)}
+              />
             </SimpleGrid>
-            <Textarea label="Description" minRows={8} autosize value={state.description} onChange={(e) => set('description', e.currentTarget.value)} />
+            <Textarea
+              label="Description"
+              minRows={8}
+              autosize
+              value={state.description}
+              onChange={(e) => set('description', e.currentTarget.value)}
+            />
             <Text size="sm" fw={500}>
               Cover image
             </Text>

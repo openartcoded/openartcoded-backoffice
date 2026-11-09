@@ -23,7 +23,18 @@ const common = {
   xAxisProps: { interval: 'preserveStartEnd' as const, minTickGap: 12, tickMargin: 8 },
 };
 
-const CLIENT_COLORS = ['artcoded.7', 'teal.6', 'orange.6', 'grape.6', 'cyan.6', 'red.6', 'lime.6', 'indigo.6', 'pink.6', 'yellow.6'];
+const CLIENT_COLORS = [
+  'artcoded.7',
+  'teal.6',
+  'orange.6',
+  'grape.6',
+  'cyan.6',
+  'red.6',
+  'lime.6',
+  'indigo.6',
+  'pink.6',
+  'yellow.6',
+];
 
 function ChartLoader() {
   return (
@@ -68,12 +79,23 @@ export function InvoicesPerMonthChart({ stats }: { stats: InvoiceStats }) {
 }
 
 export function InvoicesPerClientChart({ stats }: { stats: InvoiceStats }) {
-  const data = stats.perClient.map((c, i) => ({ name: c.client, value: c.total, color: CLIENT_COLORS[i % CLIENT_COLORS.length] }));
+  const data = stats.perClient.map((c, i) => ({
+    name: c.client,
+    value: c.total,
+    color: CLIENT_COLORS[i % CLIENT_COLORS.length],
+  }));
   return (
     <ChartCard title="Invoice / Client">
       <SimpleGrid cols={{ base: 1, sm: 2 }} h={{ sm: CHART_HEIGHT }} spacing="xl" style={{ alignItems: 'center' }}>
         <Center>
-          <DonutChart data={data} size={260} thickness={36} withTooltip tooltipDataSource="segment" valueFormatter={fmtCurrency} />
+          <DonutChart
+            data={data}
+            size={260}
+            thickness={36}
+            withTooltip
+            tooltipDataSource="segment"
+            valueFormatter={fmtCurrency}
+          />
         </Center>
         <ScrollArea.Autosize mah={CHART_HEIGHT}>
           <Stack gap={6}>
@@ -82,7 +104,12 @@ export function InvoicesPerClientChart({ stats }: { stats: InvoiceStats }) {
               .map((d) => (
                 <Group key={d.name} justify="space-between" wrap="nowrap" gap="sm">
                   <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
-                    <ColorSwatch color={`var(--mantine-color-${d.color.replace('.', '-')})`} size={10} radius={2} withShadow={false} />
+                    <ColorSwatch
+                      color={`var(--mantine-color-${d.color.replace('.', '-')})`}
+                      size={10}
+                      radius={2}
+                      withShadow={false}
+                    />
                     <Text size="sm" truncate>
                       {d.name}
                     </Text>
@@ -100,7 +127,10 @@ export function InvoicesPerClientChart({ stats }: { stats: InvoiceStats }) {
 }
 
 export function DossierSummaryChart() {
-  const { data, isLoading } = useQuery({ queryKey: ['dossier-summaries'], queryFn: () => dossiersApi.allSummaries(true) });
+  const { data, isLoading } = useQuery({
+    queryKey: ['dossier-summaries'],
+    queryFn: () => dossiersApi.allSummaries(true),
+  });
   if (isLoading) return <ChartLoader />;
   return (
     <ChartCard title="Earnings / Expenses">

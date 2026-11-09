@@ -280,4 +280,3 @@ export interface PersonalInfo {
   accountants?: Accountant[];
   demoMode?: boolean;
 }
-

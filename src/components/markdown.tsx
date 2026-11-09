@@ -10,7 +10,15 @@ export function Markdown({ source }: { source?: string | null }) {
 }
 
 /** markdown editor with live side-by-side preview */
-export function MarkdownEditor({ value, onChange, height = '60vh' }: { value: string; onChange: (v: string) => void; height?: string | number }) {
+export function MarkdownEditor({
+  value,
+  onChange,
+  height = '60vh',
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  height?: string | number;
+}) {
   return (
     <div data-color-mode="light">
       <MDEditor value={value} onChange={(v) => onChange(v ?? '')} height={height} preview="live" />

@@ -9,12 +9,19 @@ vi.mock('@/hooks/notifications', () => notificationsMock());
 vi.mock('@/api/misc', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/misc')>()),
   tasksApi: {
-    findAll: vi.fn(async () => ([
+    findAll: vi.fn(async () => [
       { id: '1', title: 'Pay taxes', description: '', disabled: false, nextDate: '2026-11-04T10:00:00' },
-      { id: '2', title: 'Backup', description: '', disabled: false, actionKey: 'BACKUP', nextDate: '2026-11-05T10:00:00' },
+      {
+        id: '2',
+        title: 'Backup',
+        description: '',
+        disabled: false,
+        actionKey: 'BACKUP',
+        nextDate: '2026-11-05T10:00:00',
+      },
       { id: '3', title: 'Old one', description: '', disabled: true, nextDate: '2026-11-05T11:00:00' },
-    ])),
-    allowedActions: vi.fn(async () => ([])),
+    ]),
+    allowedActions: vi.fn(async () => []),
     actionResults: vi.fn(),
     save: vi.fn(),
     delete: vi.fn(),

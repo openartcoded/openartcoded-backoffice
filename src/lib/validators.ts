@@ -6,8 +6,10 @@ export const isValidEmail = (value?: string | null) => !!value && validator.isEm
 export const isValidMobilePhone = (value?: string | null) =>
   !!value && validator.isMobilePhone(value.trim(), ['fr-BE', 'nl-BE', 'fr-FR', 'nl-NL']);
 
-export const required = (label = 'Required') => (value: unknown) =>
-  value === null || value === undefined || (typeof value === 'string' && !value.trim()) ? label : null;
+export const required =
+  (label = 'Required') =>
+  (value: unknown) =>
+    value === null || value === undefined || (typeof value === 'string' && !value.trim()) ? label : null;
 
 export const emailValidator = (value?: string | null) => (isValidEmail(value) ? null : 'Invalid email');
 

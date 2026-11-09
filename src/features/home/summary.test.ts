@@ -3,7 +3,15 @@ import { amountInDays, computeInvoiceStats, defaultYear, dossierChartData, feeCh
 
 describe('invoice summary', () => {
   const invoices = [
-    { period: '02/2026', amount: 16, hoursPerDay: 8, amountType: 'HOURS', subTotal: 1000, client: 'B', dateOfInvoice: '2026-02-28' },
+    {
+      period: '02/2026',
+      amount: 16,
+      hoursPerDay: 8,
+      amountType: 'HOURS',
+      subTotal: 1000,
+      client: 'B',
+      dateOfInvoice: '2026-02-28',
+    },
     { period: '01/2026', amount: 20, amountType: 'DAYS', subTotal: 10000, client: 'A', dateOfInvoice: '2026-01-31' },
     { period: '01/2026', amount: 2, amountType: 'DAYS', subTotal: 1000, client: 'B', dateOfInvoice: '2026-01-31' },
     { period: '12/2025', amount: 18, amountType: 'DAYS', subTotal: 9000, client: 'A', dateOfInvoice: '2025-12-31' },

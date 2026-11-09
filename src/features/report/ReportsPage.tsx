@@ -15,7 +15,8 @@ import { dueDateStatus, priorityOptions, statusOptions, unreadForStatus } from '
 
 const PAGE_SIZE = 5;
 
-export const postUrl = (p: Post, edit = false) => `/report/post/${slugify(p.title) || 'post'}/${p.id}${edit ? '/edit' : ''}`;
+export const postUrl = (p: Post, edit = false) =>
+  `/report/post/${slugify(p.title) || 'post'}/${p.id}${edit ? '/edit' : ''}`;
 
 export function PostList({ bookmarked, status: fixedStatus }: { bookmarked?: boolean; status?: PostStatus }) {
   const navigate = useNavigate();
@@ -64,15 +65,54 @@ export function PostList({ bookmarked, status: fixedStatus }: { bookmarked?: boo
   return (
     <div className="fill-column">
       <Group gap="xs" mb="md" wrap="wrap">
-        <TextInput w={240} type="search" placeholder="Search" aria-label="Search" leftSection={<Icon icon="search" />} value={text} onChange={(e) => setText(e.currentTarget.value)} />
-        <Select w={160} placeholder="Any priority" aria-label="Priority" data={priorityOptions} value={priority} onChange={(v) => setPriority(v as Priority | null)} clearable />
-        {!fixedStatus && <Select w={160} placeholder="Any status" aria-label="Status" data={statusOptions} value={status} onChange={(v) => setStatus(v as PostStatus | null)} clearable />}
-        <Select w={180} placeholder="Any tag" aria-label="Tag" data={tags.map((t) => ({ value: t, label: `#${t}` }))} value={tag} onChange={setTag} clearable searchable />
+        <TextInput
+          w={240}
+          type="search"
+          placeholder="Search"
+          aria-label="Search"
+          leftSection={<Icon icon="search" />}
+          value={text}
+          onChange={(e) => setText(e.currentTarget.value)}
+        />
+        <Select
+          w={160}
+          placeholder="Any priority"
+          aria-label="Priority"
+          data={priorityOptions}
+          value={priority}
+          onChange={(v) => setPriority(v as Priority | null)}
+          clearable
+        />
+        {!fixedStatus && (
+          <Select
+            w={160}
+            placeholder="Any status"
+            aria-label="Status"
+            data={statusOptions}
+            value={status}
+            onChange={(v) => setStatus(v as PostStatus | null)}
+            clearable
+          />
+        )}
+        <Select
+          w={180}
+          placeholder="Any tag"
+          aria-label="Tag"
+          data={tags.map((t) => ({ value: t, label: `#${t}` }))}
+          value={tag}
+          onChange={setTag}
+          clearable
+          searchable
+        />
       </Group>
       <Stack gap="sm" className="scroll-body">
         {posts && !posts.content.length && (
           <Paper withBorder>
-            <EmptyState icon="blog" title="No report" description="Reports track a subject over time: notes, attachments, a scrum board and a discussion." />
+            <EmptyState
+              icon="blog"
+              title="No report"
+              description="Reports track a subject over time: notes, attachments, a scrum board and a discussion."
+            />
           </Paper>
         )}
         {posts?.content.map((p) => (
@@ -103,7 +143,9 @@ export function PostList({ bookmarked, status: fixedStatus }: { bookmarked?: boo
                 )}
                 <Text size="xs" c="dimmed">
                   Updated {fmtDate(p.updatedDate)}
-                  {p.dueDate && p.status !== 'DONE' && p.status !== 'CANCELLED' ? ` · ${dueDateStatus(p.status, p.dueDate)}` : ''}
+                  {p.dueDate && p.status !== 'DONE' && p.status !== 'CANCELLED'
+                    ? ` · ${dueDateStatus(p.status, p.dueDate)}`
+                    : ''}
                 </Text>
               </Stack>
               <Group gap={2} wrap="nowrap" onClick={(e) => e.stopPropagation()}>

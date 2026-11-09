@@ -18,15 +18,24 @@ export const theme = createTheme({
     ],
   },
   primaryShade: 7,
-  fontFamily: '"Inter Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-  headings: { fontFamily: '"Inter Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
+  fontFamily:
+    '"Inter Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  headings: {
+    fontFamily:
+      '"Inter Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  },
   defaultRadius: 'sm',
   components: {
     Table: {
       defaultProps: { highlightOnHover: true, withTableBorder: true, verticalSpacing: 'xs', horizontalSpacing: 'sm' },
       styles: {
         thead: { backgroundColor: 'var(--mantine-color-gray-0)' },
-        th: { fontSize: 'var(--mantine-font-size-xs)', fontWeight: 600, color: 'var(--mantine-color-dimmed)', whiteSpace: 'nowrap' },
+        th: {
+          fontSize: 'var(--mantine-font-size-xs)',
+          fontWeight: 600,
+          color: 'var(--mantine-color-dimmed)',
+          whiteSpace: 'nowrap',
+        },
       },
     },
     Paper: { defaultProps: { radius: 'md' } },

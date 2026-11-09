@@ -15,7 +15,6 @@ export function CvEditorPage() {
   const { data: cv } = useQuery({ queryKey: ['cv'], queryFn: cvApi.full });
   const [file, setFile] = useState<File | null>(null);
 
-
   if (!cv) return <Loader />;
   const json = JSON.stringify(cv, null, 2);
 
@@ -32,14 +31,23 @@ export function CvEditorPage() {
 
   return (
     <>
-      <PageHeader title="Import / export" description="The whole curriculum as JSON." back={{ to: '/cv', label: 'Curriculum' }} />
+      <PageHeader
+        title="Import / export"
+        description="The whole curriculum as JSON."
+        back={{ to: '/cv', label: 'Curriculum' }}
+      />
       <Stack>
         <Group align="flex-end">
           <FileInput style={{ flex: 1 }} label="Import" accept="application/json" value={file} onChange={setFile} />
           <Button onClick={importCv} disabled={!file}>
             Import
           </Button>
-          <ActionIcon size="lg" variant="default" aria-label="export" onClick={() => saveBlob(new Blob([json], { type: 'application/json' }), `cv${Date.now()}.json`)}>
+          <ActionIcon
+            size="lg"
+            variant="default"
+            aria-label="export"
+            onClick={() => saveBlob(new Blob([json], { type: 'application/json' }), `cv${Date.now()}.json`)}
+          >
             <Icon icon="download" />
           </ActionIcon>
         </Group>

@@ -19,7 +19,8 @@ export function filterNotifications(list: ArtcodedNotification[], f: Notificatio
 }
 
 /** distinct notification types, sorted */
-export const notificationTypes = (list: ArtcodedNotification[]) => [...new Set(list.map((n) => n.type).filter(Boolean))].sort();
+export const notificationTypes = (list: ArtcodedNotification[]) =>
+  [...new Set(list.map((n) => n.type).filter(Boolean))].sort();
 
 /** NEW_FEE -> New fee */
 export const typeLabel = (type: string) => (type.charAt(0) + type.slice(1).toLowerCase()).replace(/_/g, ' ');

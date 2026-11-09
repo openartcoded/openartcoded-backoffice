@@ -18,7 +18,15 @@ export interface OpenModalOptions {
  * Opens a modal rendered by the mantine modal manager.
  * The content receives a close callback. Returns the close function.
  */
-export function openModal({ title, size = 'lg', fullScreen, closeOnClickOutside = true, onClose, transition, render }: OpenModalOptions) {
+export function openModal({
+  title,
+  size = 'lg',
+  fullScreen,
+  closeOnClickOutside = true,
+  onClose,
+  transition,
+  render,
+}: OpenModalOptions) {
   const modalId = `modal-${Math.random().toString(36).slice(2)}`;
   const close = () => modals.close(modalId);
   modals.open({

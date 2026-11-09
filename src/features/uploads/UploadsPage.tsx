@@ -1,6 +1,23 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Alert, Anchor, Badge, Button, Group, Loader, Pagination, Paper, Popover, Select, SimpleGrid, Stack, Table, Tabs, Text, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Anchor,
+  Badge,
+  Button,
+  Group,
+  Loader,
+  Pagination,
+  Paper,
+  Popover,
+  Select,
+  SimpleGrid,
+  Stack,
+  Table,
+  Tabs,
+  Text,
+  TextInput,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
@@ -14,10 +31,25 @@ import { useDemoMode, useIsAdmin } from '@/auth/session';
 import { bytesToHuman, dayjs, fmtDateTime, trim } from '@/lib/format';
 import { toast } from '@/lib/ui';
 import type { FileUpload, FileUploadSearchCriteria } from '@/types';
-import { searchErrorMessage, skippedFiles, snippet, SNIPPET_LENGTH, toDisplayHit, uploadIdFromFileName, type DisplayHit } from './fileSearch';
+import {
+  searchErrorMessage,
+  skippedFiles,
+  snippet,
+  SNIPPET_LENGTH,
+  toDisplayHit,
+  uploadIdFromFileName,
+  type DisplayHit,
+} from './fileSearch';
 
 const PAGE_SIZE = 10;
-const emptySearch = { id: '', correlationId: '', originalFilename: '', dateAfter: '', dateBefore: '', publicResource: null as string | null };
+const emptySearch = {
+  id: '',
+  correlationId: '',
+  originalFilename: '',
+  dateAfter: '',
+  dateBefore: '',
+  publicResource: null as string | null,
+};
 
 function SearchForm({ isAdmin, onSearch }: { isAdmin: boolean; onSearch: (v: typeof emptySearch) => void }) {
   const form = useForm({ initialValues: emptySearch });
@@ -25,12 +57,27 @@ function SearchForm({ isAdmin, onSearch }: { isAdmin: boolean; onSearch: (v: typ
   return (
     <form onSubmit={form.onSubmit(onSearch)}>
       <Group gap="xs" mb="md" wrap="wrap">
-        <TextInput w={240} placeholder="File name" aria-label="File name" leftSection={<Icon icon="search" />} {...form.getInputProps('originalFilename')} />
+        <TextInput
+          w={240}
+          placeholder="File name"
+          aria-label="File name"
+          leftSection={<Icon icon="search" />}
+          {...form.getInputProps('originalFilename')}
+        />
         <TextInput w={150} type="date" aria-label="From" {...form.getInputProps('dateAfter')} />
         <TextInput w={150} type="date" aria-label="To" {...form.getInputProps('dateBefore')} />
         <Popover position="bottom-start" shadow="md" width={300}>
           <Popover.Target>
-            <Button variant="default" rightSection={extra ? <Badge size="xs" circle>{extra}</Badge> : undefined}>
+            <Button
+              variant="default"
+              rightSection={
+                extra ? (
+                  <Badge size="xs" circle>
+                    {extra}
+                  </Badge>
+                ) : undefined
+              }
+            >
               More filters
             </Button>
           </Popover.Target>
@@ -77,7 +124,10 @@ export function UploadTable({ bookmarked }: { bookmarked: boolean }) {
   const demoMode = useDemoMode();
   const [criteria, setCriteria] = useState<FileUploadSearchCriteria>({ bookmarked });
   const [page, setPage] = useState(1);
-  const { data: uploads, refetch } = useQuery({ queryKey: ['uploads-search', criteria, page], queryFn: () => filesApi.search(criteria, page - 1, PAGE_SIZE) });
+  const { data: uploads, refetch } = useQuery({
+    queryKey: ['uploads-search', criteria, page],
+    queryFn: () => filesApi.search(criteria, page - 1, PAGE_SIZE),
+  });
   const { data: links = {} } = useQuery({ queryKey: ['correlation-links'], queryFn: filesApi.correlationLinks });
 
   const toggleBookmark = async (u: FileUpload) => {
@@ -107,72 +157,84 @@ export function UploadTable({ bookmarked }: { bookmarked: boolean }) {
         <>
           <div className="scroll-body">
             <Table.ScrollContainer minWidth={640}>
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  {isAdmin && <Table.Th w={40} />}
-                  <Table.Th>File</Table.Th>
-                  {isAdmin && <Table.Th visibleFrom="md">Linked to</Table.Th>}
-                  <Table.Th visibleFrom="sm">Uploaded</Table.Th>
-                  <Table.Th visibleFrom="sm" ta="right">
-                    Size
-                  </Table.Th>
-                  <Table.Th w={110} />
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody className={demoMode ? 'blur' : undefined}>
-                {!uploads.content.length && <EmptyRow colSpan={6} icon="upload" title="No files" />}
-                {uploads.content.map((u) => (
-                  <Table.Tr key={u.id}>
-                    {isAdmin && (
-                      <Table.Td>
-                        <BookmarkButton bookmarked={u.bookmarked} onToggle={() => toggleBookmark(u)} />
-                      </Table.Td>
-                    )}
-                    <Table.Td>
-                      <Group gap={6} wrap="nowrap">
-                        <ThumbnailPreview thumbnailId={u.thumbnailId}>
-                          <Text size="sm" fw={500} className="text-break">
-                            {trim(u.originalFilename, 50)}
-                          </Text>
-                        </ThumbnailPreview>
-                        {u.publicResource && <StatusBadge value="PUBLIC" label="Public" color="blue" />}
-                      </Group>
-                    </Table.Td>
-                    {isAdmin && (
-                      <Table.Td visibleFrom="md">
-                        {u.correlationId ? (
-                          <CopyButton variant="subtle" color="gray" text={u.correlationId} label={links[u.correlationId] || 'Copy id'} successMessage="Correlation id copied" />
-                        ) : (
-                          <Text size="sm" c="dimmed">
-                            —
-                          </Text>
-                        )}
-                      </Table.Td>
-                    )}
-                    <Table.Td visibleFrom="sm">{fmtDateTime(u.creationDate)}</Table.Td>
-                    <Table.Td visibleFrom="sm" ta="right" c="dimmed">
-                      {bytesToHuman(u.size)}
-                    </Table.Td>
-                    <Table.Td>
-                      <RowActions
-                        inline={[
-                          { label: 'Open', icon: 'eye', hidden: !canPreview(u), onClick: () => openFileViewer(u) },
-                          { label: 'Download', icon: 'download', onClick: () => downloadUpload(u.id, u.originalFilename) },
-                        ]}
-                      />
-                    </Table.Td>
+              <Table>
+                <Table.Thead>
+                  <Table.Tr>
+                    {isAdmin && <Table.Th w={40} />}
+                    <Table.Th>File</Table.Th>
+                    {isAdmin && <Table.Th visibleFrom="md">Linked to</Table.Th>}
+                    <Table.Th visibleFrom="sm">Uploaded</Table.Th>
+                    <Table.Th visibleFrom="sm" ta="right">
+                      Size
+                    </Table.Th>
+                    <Table.Th w={110} />
                   </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
+                </Table.Thead>
+                <Table.Tbody className={demoMode ? 'blur' : undefined}>
+                  {!uploads.content.length && <EmptyRow colSpan={6} icon="upload" title="No files" />}
+                  {uploads.content.map((u) => (
+                    <Table.Tr key={u.id}>
+                      {isAdmin && (
+                        <Table.Td>
+                          <BookmarkButton bookmarked={u.bookmarked} onToggle={() => toggleBookmark(u)} />
+                        </Table.Td>
+                      )}
+                      <Table.Td>
+                        <Group gap={6} wrap="nowrap">
+                          <ThumbnailPreview thumbnailId={u.thumbnailId}>
+                            <Text size="sm" fw={500} className="text-break">
+                              {trim(u.originalFilename, 50)}
+                            </Text>
+                          </ThumbnailPreview>
+                          {u.publicResource && <StatusBadge value="PUBLIC" label="Public" color="blue" />}
+                        </Group>
+                      </Table.Td>
+                      {isAdmin && (
+                        <Table.Td visibleFrom="md">
+                          {u.correlationId ? (
+                            <CopyButton
+                              variant="subtle"
+                              color="gray"
+                              text={u.correlationId}
+                              label={links[u.correlationId] || 'Copy id'}
+                              successMessage="Correlation id copied"
+                            />
+                          ) : (
+                            <Text size="sm" c="dimmed">
+                              —
+                            </Text>
+                          )}
+                        </Table.Td>
+                      )}
+                      <Table.Td visibleFrom="sm">{fmtDateTime(u.creationDate)}</Table.Td>
+                      <Table.Td visibleFrom="sm" ta="right" c="dimmed">
+                        {bytesToHuman(u.size)}
+                      </Table.Td>
+                      <Table.Td>
+                        <RowActions
+                          inline={[
+                            { label: 'Open', icon: 'eye', hidden: !canPreview(u), onClick: () => openFileViewer(u) },
+                            {
+                              label: 'Download',
+                              icon: 'download',
+                              onClick: () => downloadUpload(u.id, u.originalFilename),
+                            },
+                          ]}
+                        />
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </Table.ScrollContainer>
           </div>
           <Group justify="space-between" mt="sm">
             <Text size="sm" c="dimmed">
               {uploads.page.totalElements} file(s)
             </Text>
-            {uploads.page.totalPages > 1 && <Pagination value={page} onChange={setPage} total={uploads.page.totalPages} />}
+            {uploads.page.totalPages > 1 && (
+              <Pagination value={page} onChange={setPage} total={uploads.page.totalPages} />
+            )}
           </Group>
         </>
       )}
@@ -212,7 +274,10 @@ export function FuzzySearch() {
   });
   const hits = search.data ?? [];
   const error = search.error
-    ? searchErrorMessage(axios.isAxiosError(search.error) ? search.error.response?.status : undefined, search.error.message)
+    ? searchErrorMessage(
+        axios.isAxiosError(search.error) ? search.error.response?.status : undefined,
+        search.error.message,
+      )
     : '';
   const skipped = skippedFiles(stats.data);
 
@@ -227,7 +292,15 @@ export function FuzzySearch() {
         }}
       >
         <Group wrap="nowrap">
-          <TextInput style={{ flex: 1 }} type="search" maxLength={4096} placeholder="e.g. invioce" autoComplete="off" value={query} onChange={(e) => setQuery(e.currentTarget.value)} />
+          <TextInput
+            style={{ flex: 1 }}
+            type="search"
+            maxLength={4096}
+            placeholder="e.g. invioce"
+            autoComplete="off"
+            value={query}
+            onChange={(e) => setQuery(e.currentTarget.value)}
+          />
           <Button type="submit" disabled={search.isFetching || !query.trim()}>
             Search
           </Button>
@@ -249,7 +322,13 @@ export function FuzzySearch() {
               ))}
             </SimpleGrid>
             {stats.data.skipped > 0 && (
-              <Button variant="subtle" size="xs" mt="xs" onClick={() => setShowSkipped((s) => !s)} aria-expanded={showSkipped}>
+              <Button
+                variant="subtle"
+                size="xs"
+                mt="xs"
+                onClick={() => setShowSkipped((s) => !s)}
+                aria-expanded={showSkipped}
+              >
                 {showSkipped ? 'Hide skipped files' : `Show skipped files (${stats.data.skipped})`}
               </Button>
             )}
@@ -272,19 +351,28 @@ export function FuzzySearch() {
         <Paper key={`${hit.fileName}|${hit.sheet}|${hit.position}|${i}`} withBorder p="sm">
           <Text fw={700}>
             {hit.upload ? (
-              <Anchor onClick={() => filesApi.download(hit.upload!.id)}>{hit.upload.originalFilename || hit.fileName}</Anchor>
+              <Anchor onClick={() => filesApi.download(hit.upload!.id)}>
+                {hit.upload.originalFilename || hit.fileName}
+              </Anchor>
             ) : (
               hit.fileName
             )}
           </Text>
           <Text size="xs" c="dimmed">
-            {[hit.sheet, hit.position, hit.upload ? 'Click title to download' : 'Download unavailable'].filter(Boolean).join(' · ')}
+            {[hit.sheet, hit.position, hit.upload ? 'Click title to download' : 'Download unavailable']
+              .filter(Boolean)
+              .join(' · ')}
           </Text>
           <Text size="sm" mt={4} className="pre-wrap">
             {snippet(hit.content, !!expanded[i]) || 'No preview available'}
           </Text>
           {hit.content.length > SNIPPET_LENGTH && (
-            <Button variant="subtle" size="compact-xs" onClick={() => setExpanded((e) => ({ ...e, [i]: !e[i] }))} aria-expanded={!!expanded[i]}>
+            <Button
+              variant="subtle"
+              size="compact-xs"
+              onClick={() => setExpanded((e) => ({ ...e, [i]: !e[i] }))}
+              aria-expanded={!!expanded[i]}
+            >
               {expanded[i] ? 'Read less' : 'Read more'}
             </Button>
           )}
@@ -300,7 +388,11 @@ export function FuzzySearch() {
           <Button variant="default" disabled={page === 0 || search.isFetching} onClick={() => setPage((p) => p - 1)}>
             Previous
           </Button>
-          <Button variant="default" disabled={hits.length < FUZZY_PAGE_SIZE || search.isFetching} onClick={() => setPage((p) => p + 1)}>
+          <Button
+            variant="default"
+            disabled={hits.length < FUZZY_PAGE_SIZE || search.isFetching}
+            onClick={() => setPage((p) => p + 1)}
+          >
             Next
           </Button>
         </Group>
@@ -314,7 +406,10 @@ export function UploadsPage() {
   const navigate = useNavigate();
   return (
     <>
-      <PageHeader title="Uploads" description="Every file stored by the backoffice: attachments, generated PDFs, images..." />
+      <PageHeader
+        title="Uploads"
+        description="Every file stored by the backoffice: attachments, generated PDFs, images..."
+      />
       <Tabs className="page-tabs" value={name} onChange={(v) => v && navigate(`/file-upload/${v}`)} keepMounted={false}>
         <Tabs.List mb="md">
           <Tabs.Tab value="home">All files</Tabs.Tab>

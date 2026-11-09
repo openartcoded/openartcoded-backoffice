@@ -1,7 +1,25 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { LineChart } from '@mantine/charts';
-import { ActionIcon, Alert, Anchor, Button, Checkbox, Group, Loader, NavLink, Paper, Progress, Select, Stack, Table, Tabs, Text, TextInput, Title } from '@mantine/core';
+import {
+  ActionIcon,
+  Alert,
+  Anchor,
+  Button,
+  Checkbox,
+  Group,
+  Loader,
+  NavLink,
+  Paper,
+  Progress,
+  Select,
+  Stack,
+  Table,
+  Tabs,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
@@ -16,13 +34,22 @@ import type { Portfolio, Tick } from '@/types';
 const YAHOO_URL = 'https://finance.yahoo.com/quote/';
 
 /** percentage between the price when added and the current price */
-export const tickDelta = (priceWhenAdded: number, current: number) => ((current - priceWhenAdded) / priceWhenAdded) * 100;
+export const tickDelta = (priceWhenAdded: number, current: number) =>
+  ((current - priceWhenAdded) / priceWhenAdded) * 100;
 
 /** chart rows from a yahoo chart result (null values are skipped) */
-export function chartRows(quote: { timestamp?: number[]; indicators?: { quote?: { close?: number[]; high?: number[]; low?: number[] }[] } }) {
+export function chartRows(quote: {
+  timestamp?: number[];
+  indicators?: { quote?: { close?: number[]; high?: number[]; low?: number[] }[] };
+}) {
   const q = quote.indicators?.quote?.[0];
   return (quote.timestamp ?? [])
-    .map((t, i) => ({ time: dayjs.unix(t).format('HH:mm'), close: q?.close?.[i], high: q?.high?.[i], low: q?.low?.[i] }))
+    .map((t, i) => ({
+      time: dayjs.unix(t).format('HH:mm'),
+      close: q?.close?.[i],
+      high: q?.high?.[i],
+      low: q?.low?.[i],
+    }))
     .filter((r) => r.close !== null && r.close !== undefined);
 }
 
@@ -32,7 +59,13 @@ function PortfolioForm({ portfolio, onSubmit }: { portfolio: Portfolio; onSubmit
   return (
     <Stack gap="sm">
       <TextInput label="Id" value={portfolio.id ?? ''} disabled />
-      <TextInput label="Name" placeholder="Name (Minimum 4 characters)" data-autofocus value={name} onChange={(e) => setName(e.currentTarget.value)} />
+      <TextInput
+        label="Name"
+        placeholder="Name (Minimum 4 characters)"
+        data-autofocus
+        value={name}
+        onChange={(e) => setName(e.currentTarget.value)}
+      />
       <TextInput label="Creation Date" value={fmtDateTime(portfolio.dateCreation)} disabled />
       <TextInput label="Updated Date" value={fmtDateTime(portfolio.updatedDate)} disabled />
       <Checkbox label="Current" checked={principal} onChange={(e) => setPrincipal(e.currentTarget.checked)} />
@@ -45,7 +78,15 @@ function PortfolioForm({ portfolio, onSubmit }: { portfolio: Portfolio; onSubmit
   );
 }
 
-function PortfolioSelect({ portfolios, value, onChange }: { portfolios: Portfolio[]; value?: string; onChange: (id: string) => void }) {
+function PortfolioSelect({
+  portfolios,
+  value,
+  onChange,
+}: {
+  portfolios: Portfolio[];
+  value?: string;
+  onChange: (id: string) => void;
+}) {
   return (
     <Select
       data={portfolios.map((p) => ({ value: p.id ?? '', label: p.name }))}
@@ -69,7 +110,8 @@ export function PortfolioTab() {
   const quotes = useQueries({
     queries: ticks.map((t) => ({
       queryKey: ['tick-price', t.symbol],
-      queryFn: async () => (await financeApi.chart(t.symbol!, '1d', '1d')).chart.result[0].meta.regularMarketPrice as number,
+      queryFn: async () =>
+        (await financeApi.chart(t.symbol!, '1d', '1d')).chart.result[0].meta.regularMarketPrice as number,
       retry: false,
     })),
   });
@@ -80,9 +122,16 @@ export function PortfolioTab() {
     const list = ticks.map((t, i) => {
       const q = quotes[i];
       const current = q?.data;
-      return { tick: t, loading: !!q?.isLoading, error: q?.error, current, delta: current !== undefined ? tickDelta(t.priceWhenAdded, current) : undefined };
+      return {
+        tick: t,
+        loading: !!q?.isLoading,
+        error: q?.error,
+        current,
+        delta: current !== undefined ? tickDelta(t.priceWhenAdded, current) : undefined,
+      };
     });
-    const filtered = filter.length < 2 ? list : list.filter((r) => r.tick.symbol?.toUpperCase().includes(filter.toUpperCase()));
+    const filtered =
+      filter.length < 2 ? list : list.filter((r) => r.tick.symbol?.toUpperCase().includes(filter.toUpperCase()));
     if (sortAsc === null) return filtered;
     return [...filtered].sort((a, b) => ((a.delta ?? 0) - (b.delta ?? 0)) * (sortAsc ? 1 : -1));
   }, [ticks, quotes, filter, sortAsc]);
@@ -151,7 +200,13 @@ export function PortfolioTab() {
       </Group>
       {selected && (
         <>
-          <TextInput type="search" placeholder="Filter..." autoFocus value={filter} onChange={(e) => setFilter(e.currentTarget.value)} />
+          <TextInput
+            type="search"
+            placeholder="Filter..."
+            autoFocus
+            value={filter}
+            onChange={(e) => setFilter(e.currentTarget.value)}
+          />
           <Table>
             <Table.Thead>
               <Table.Tr>
@@ -162,7 +217,13 @@ export function PortfolioTab() {
                 <Table.Th>
                   <Group gap={4}>
                     Result
-                    <ActionIcon variant="subtle" color="dark" size="xs" onClick={() => setSortAsc((s) => !s)} aria-label="sort by result">
+                    <ActionIcon
+                      variant="subtle"
+                      color="dark"
+                      size="xs"
+                      onClick={() => setSortAsc((s) => !s)}
+                      aria-label="sort by result"
+                    >
                       <Icon icon={sortAsc ? 'arrow-up' : 'arrow-down'} />
                     </ActionIcon>
                   </Group>
@@ -176,7 +237,11 @@ export function PortfolioTab() {
                 </Table.Tr>
               )}
               {rows.map((r) => (
-                <Table.Tr key={r.tick.symbol} className="clickable" onClick={() => navigate(`/finance/ticks?symbol=${encodeURIComponent(r.tick.symbol ?? '')}`)}>
+                <Table.Tr
+                  key={r.tick.symbol}
+                  className="clickable"
+                  onClick={() => navigate(`/finance/ticks?symbol=${encodeURIComponent(r.tick.symbol ?? '')}`)}
+                >
                   <Table.Td>{r.tick.symbol}</Table.Td>
                   <Table.Td visibleFrom="md">{fmtDate(r.tick.addedDate)}</Table.Td>
                   <Table.Td>{r.tick.priceWhenAdded}</Table.Td>
@@ -187,7 +252,9 @@ export function PortfolioTab() {
                   ) : (
                     <>
                       <Table.Td>{r.current}</Table.Td>
-                      <Table.Td c={(r.delta ?? 0) >= 0 ? 'green' : 'red'}>{r.delta !== undefined ? `${fmtNumber(r.delta)}%` : ''}</Table.Td>
+                      <Table.Td c={(r.delta ?? 0) >= 0 ? 'green' : 'red'}>
+                        {r.delta !== undefined ? `${fmtNumber(r.delta)}%` : ''}
+                      </Table.Td>
                     </>
                   )}
                 </Table.Tr>
@@ -237,7 +304,10 @@ export function TicksTab() {
 
   const add = () =>
     quote &&
-    updateTicks([...(portfolio?.ticks ?? []), { symbol: symbol!, currency: quote.meta.currency, priceWhenAdded: quote.meta.regularMarketPrice }]);
+    updateTicks([
+      ...(portfolio?.ticks ?? []),
+      { symbol: symbol!, currency: quote.meta.currency, priceWhenAdded: quote.meta.regularMarketPrice },
+    ]);
   const removeTick = () => updateTicks((portfolio?.ticks ?? []).filter((t) => t.symbol !== symbol));
 
   const delta = quote ? quote.meta.regularMarketPrice - quote.meta.previousClose : 0;
@@ -245,12 +315,23 @@ export function TicksTab() {
 
   return (
     <Stack>
-      <TextInput type="search" placeholder="Search ticks" autoComplete="off" autoFocus value={input} onChange={(e) => setInput(e.currentTarget.value)} />
+      <TextInput
+        type="search"
+        placeholder="Search ticks"
+        autoComplete="off"
+        autoFocus
+        value={input}
+        onChange={(e) => setInput(e.currentTarget.value)}
+      />
       {results.data && debounced !== symbol && (
         <Paper withBorder>
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {(results.data.quotes ?? []).map((q: any) => (
-            <NavLink key={q.symbol} label={`${q.longname || q.shortname} (${q.symbol})`} onClick={() => select(q.symbol)} />
+            <NavLink
+              key={q.symbol}
+              label={`${q.longname || q.shortname} (${q.symbol})`}
+              onClick={() => select(q.symbol)}
+            />
           ))}
         </Paper>
       )}
@@ -258,7 +339,9 @@ export function TicksTab() {
       {quote && (
         <>
           <Group justify="space-between">
-            {portfolios.length > 0 && <PortfolioSelect portfolios={portfolios} value={portfolio?.id} onChange={setPortfolioId} />}
+            {portfolios.length > 0 && (
+              <PortfolioSelect portfolios={portfolios} value={portfolio?.id} onChange={setPortfolioId} />
+            )}
             <Group gap="xs">
               <Button variant="default" leftSection={<Icon icon="sync" />} onClick={() => detail.refetch()}>
                 Reload

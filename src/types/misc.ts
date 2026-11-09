@@ -66,15 +66,7 @@ export type TimesheetsByYearAndClient = Record<string, Record<string, Timesheet[
 
 // ---------- reminder tasks ----------
 export type ActionParameterType =
-  | 'INTEGER'
-  | 'LONG'
-  | 'STRING'
-  | 'BIG_STRING'
-  | 'BOOLEAN'
-  | 'DOUBLE'
-  | 'BIGDECIMAL'
-  | 'BIGINTEGER'
-  | 'OPTION';
+  'INTEGER' | 'LONG' | 'STRING' | 'BIG_STRING' | 'BOOLEAN' | 'DOUBLE' | 'BIGDECIMAL' | 'BIGINTEGER' | 'OPTION';
 
 export interface ActionParameter {
   key?: string;

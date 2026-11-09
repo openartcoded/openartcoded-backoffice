@@ -10,7 +10,6 @@ import { confirm } from '@/lib/ui';
 export function CvRequestsPage() {
   const { data: requests, refetch } = useQuery({ queryKey: ['cv-requests'], queryFn: cvApi.downloadRequests });
 
-
   return (
     <>
       <PageHeader title="CV download requests" back={{ to: '/cv', label: 'Curriculum' }} />

@@ -9,8 +9,16 @@ const fees = [
 
 describe('dossier', () => {
   it('computes the totals of expenses and invoices', () => {
-    const invoices = [{ taxes: 105, subTotal: 500 }, { taxes: 21, subTotal: 100 }] as Invoice[];
-    expect(computeTotals(fees, invoices)).toEqual({ feeTotalVat: 220.5, feeTotalExclVat: 1050, vatTotal: 126, invoiceTotalExclVat: 600 });
+    const invoices = [
+      { taxes: 105, subTotal: 500 },
+      { taxes: 21, subTotal: 100 },
+    ] as Invoice[];
+    expect(computeTotals(fees, invoices)).toEqual({
+      feeTotalVat: 220.5,
+      feeTotalExclVat: 1050,
+      vatTotal: 126,
+      invoiceTotalExclVat: 600,
+    });
     expect(computeTotals([], [])).toEqual({ feeTotalVat: 0, feeTotalExclVat: 0, vatTotal: 0, invoiceTotalExclVat: 0 });
   });
 

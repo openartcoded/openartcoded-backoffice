@@ -1,6 +1,27 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ActionIcon, Alert, Badge, Button, Checkbox, ColorInput, Group, NumberInput, Pagination, Paper, Popover, Select, Stack, Switch, Table, Tabs, Text, TextInput, Textarea, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Alert,
+  Badge,
+  Button,
+  Checkbox,
+  ColorInput,
+  Group,
+  NumberInput,
+  Pagination,
+  Paper,
+  Popover,
+  Select,
+  Stack,
+  Switch,
+  Table,
+  Tabs,
+  Text,
+  TextInput,
+  Textarea,
+  Tooltip,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
@@ -21,7 +42,15 @@ import { openFeeDetail, TagForm, tagColor } from './FeeDetail';
 
 const PAGE_SIZE = 10;
 
-const emptySearch = { id: '', tag: null as string | null, subject: '', body: '', dateAfter: '', dateBefore: '', hasPaymentProof: false };
+const emptySearch = {
+  id: '',
+  tag: null as string | null,
+  subject: '',
+  body: '',
+  dateAfter: '',
+  dateBefore: '',
+  hasPaymentProof: false,
+};
 type SearchValues = typeof emptySearch;
 
 /** search form values -> criteria (empty fields are ignored, dates cover the whole day) */
@@ -55,12 +84,27 @@ export function FeeSearchForm({ tags, onSearch }: { tags: Label[]; onSearch: (v:
           searchable
           {...form.getInputProps('tag')}
         />
-        <TextInput w={220} placeholder="Subject" aria-label="Subject" leftSection={<Icon icon="search" />} {...form.getInputProps('subject')} />
+        <TextInput
+          w={220}
+          placeholder="Subject"
+          aria-label="Subject"
+          leftSection={<Icon icon="search" />}
+          {...form.getInputProps('subject')}
+        />
         <TextInput w={150} type="date" aria-label="From" {...form.getInputProps('dateAfter')} />
         <TextInput w={150} type="date" aria-label="To" {...form.getInputProps('dateBefore')} />
         <Popover position="bottom-start" shadow="md" width={280}>
           <Popover.Target>
-            <Button variant="default" rightSection={extra ? <Badge size="xs" circle>{extra}</Badge> : undefined}>
+            <Button
+              variant="default"
+              rightSection={
+                extra ? (
+                  <Badge size="xs" circle>
+                    {extra}
+                  </Badge>
+                ) : undefined
+              }
+            >
               More filters
             </Button>
           </Popover.Target>
@@ -92,7 +136,17 @@ export function FeeSearchForm({ tags, onSearch }: { tags: Label[]; onSearch: (v:
   );
 }
 
-function ProcessValidation({ fees: initial, labels, dossier, onSubmit }: { fees: Fee[]; labels: Label[]; dossier?: Dossier | null; onSubmit: (fees: Fee[]) => void }) {
+function ProcessValidation({
+  fees: initial,
+  labels,
+  dossier,
+  onSubmit,
+}: {
+  fees: Fee[];
+  labels: Label[];
+  dossier?: Dossier | null;
+  onSubmit: (fees: Fee[]) => void;
+}) {
   const [fees, setFees] = useState(initial);
   return (
     <Stack>
@@ -106,7 +160,12 @@ function ProcessValidation({ fees: initial, labels, dossier, onSubmit }: { fees:
               <Icon icon="circle" color={tagColor(labels, f.tag)} />
               {f.subject}
             </Group>
-            <ActionIcon variant="subtle" color="red" onClick={() => setFees((list) => list.filter((x) => x.id !== f.id))} aria-label="remove">
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              onClick={() => setFees((list) => list.filter((x) => x.id !== f.id))}
+              aria-label="remove"
+            >
               <Icon icon="times" />
             </ActionIcon>
           </Group>
@@ -135,7 +194,12 @@ export function ManualSubmitForm({ onSubmit }: { onSubmit: (form: FeeManualForm)
           {files.map((f, i) => (
             <Group key={`${f.name}-${i}`} justify="space-between" px="sm" py={4}>
               <Text size="sm">{f.name}</Text>
-              <ActionIcon variant="subtle" color="red" aria-label="remove file" onClick={() => setFiles((list) => list.filter((x) => x !== f))}>
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                aria-label="remove file"
+                onClick={() => setFiles((list) => list.filter((x) => x !== f))}
+              >
                 <Icon icon="times" />
               </ActionIcon>
             </Group>
@@ -143,7 +207,10 @@ export function ManualSubmitForm({ onSubmit }: { onSubmit: (form: FeeManualForm)
         </Stack>
       )}
       <Group justify="flex-end">
-        <Button disabled={!subject.trim() || !body.trim() || !files.length} onClick={() => onSubmit({ subject, body, files })}>
+        <Button
+          disabled={!subject.trim() || !body.trim() || !files.length}
+          onClick={() => onSubmit({ subject, body, files })}
+        >
           Submit
         </Button>
       </Group>
@@ -161,7 +228,10 @@ export function FeeTable({ archived, bookmarked }: { archived?: boolean; bookmar
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Fee[]>([]);
   const [showTagForm, setShowTagForm] = useState(false);
-  const { data: fees, refetch } = useQuery({ queryKey: ['fees', criteria, page], queryFn: () => feesApi.search(criteria, page - 1, PAGE_SIZE) });
+  const { data: fees, refetch } = useQuery({
+    queryKey: ['fees', criteria, page],
+    queryFn: () => feesApi.search(criteria, page - 1, PAGE_SIZE),
+  });
   const { data: tags = [] } = useQuery({ queryKey: ['labels'], queryFn: labelsApi.findAll });
   const { data: activeDossier } = useQuery({ queryKey: ['active-dossier'], queryFn: dossiersApi.activeDossier });
   const selectable = !archived && !bookmarked && isAdmin;
@@ -178,12 +248,19 @@ export function FeeTable({ archived, bookmarked }: { archived?: boolean; bookmar
   const content = fees?.content ?? [];
   const allSelected = !!content.length && content.every(isSelected);
   const toggleAll = () =>
-    setSelected((list) => (allSelected ? list.filter((s) => !content.some((f) => f.id === s.id)) : [...list, ...content.filter((f) => !isSelected(f))]));
+    setSelected((list) =>
+      allSelected
+        ? list.filter((s) => !content.some((f) => f.id === s.id))
+        : [...list, ...content.filter((f) => !isSelected(f))],
+    );
 
   const saveTag = async (tag: Label | null) => {
     setShowTagForm(false);
     if (!tag?.name) return;
-    await feesApi.updateTag(selected.map((s) => s.id), tag.name);
+    await feesApi.updateTag(
+      selected.map((s) => s.id),
+      tag.name,
+    );
     search(criteria);
     refetch();
   };
@@ -237,7 +314,12 @@ export function FeeTable({ archived, bookmarked }: { archived?: boolean; bookmar
             <Group gap="xs">
               <Popover opened={showTagForm} onChange={setShowTagForm} position="bottom-end" shadow="md" width={280}>
                 <Popover.Target>
-                  <Button size="xs" variant="default" leftSection={<Icon icon="tag" />} onClick={() => setShowTagForm((o) => !o)}>
+                  <Button
+                    size="xs"
+                    variant="default"
+                    leftSection={<Icon icon="tag" />}
+                    onClick={() => setShowTagForm((o) => !o)}
+                  >
                     Set tag
                   </Button>
                 </Popover.Target>
@@ -246,11 +328,23 @@ export function FeeTable({ archived, bookmarked }: { archived?: boolean; bookmar
                 </Popover.Dropdown>
               </Popover>
               <Tooltip label="No active dossier" disabled={!!activeDossier}>
-                <Button size="xs" variant="default" leftSection={<Icon icon="check" />} disabled={!activeDossier} onClick={process}>
+                <Button
+                  size="xs"
+                  variant="default"
+                  leftSection={<Icon icon="check" />}
+                  disabled={!activeDossier}
+                  onClick={process}
+                >
                   Process
                 </Button>
               </Tooltip>
-              <Button size="xs" variant="default" color="red" leftSection={<Icon icon="trash" />} onClick={deleteSelected}>
+              <Button
+                size="xs"
+                variant="default"
+                color="red"
+                leftSection={<Icon icon="trash" />}
+                onClick={deleteSelected}
+              >
                 Delete
               </Button>
               <Button size="xs" variant="subtle" color="gray" onClick={() => setSelected([])}>
@@ -263,72 +357,93 @@ export function FeeTable({ archived, bookmarked }: { archived?: boolean; bookmar
 
       <div className="scroll-body">
         <Table.ScrollContainer minWidth={640}>
-        <Table className="clickable-rows">
-          <Table.Thead>
-            <Table.Tr>
-              {selectable && (
-                <Table.Th w={40}>
-                  <Checkbox aria-label="select all" checked={allSelected} indeterminate={!allSelected && content.some(isSelected)} disabled={!content.length} onChange={toggleAll} />
-                </Table.Th>
-              )}
-              <Table.Th>Subject</Table.Th>
-              <Table.Th w={150}>Tag</Table.Th>
-              <Table.Th visibleFrom="md">Received</Table.Th>
-              {archived && <Table.Th visibleFrom="md">Processed</Table.Th>}
-              <Table.Th ta="right" visibleFrom="sm">
-                Amount excl. VAT
-              </Table.Th>
-              <Table.Th visibleFrom="md" ta="center">
-                Files
-              </Table.Th>
-              {isAdmin && <Table.Th w={80} />}
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody className={demoMode ? 'blur' : undefined}>
-            {!content.length && <EmptyRow colSpan={8} icon="money-bill-wave" title="No expenses" description="Expenses received by mail or submitted manually show up here." />}
-            {content.map((f) => (
-              <Table.Tr key={f.id} onClick={() => openFeeDetail(f, () => refetch())} bg={isSelected(f) ? 'artcoded.0' : undefined}>
+          <Table className="clickable-rows">
+            <Table.Thead>
+              <Table.Tr>
                 {selectable && (
-                  <Table.Td onClick={(e) => e.stopPropagation()}>
-                    <Checkbox aria-label="select" checked={isSelected(f)} onChange={() => toggle(f)} />
-                  </Table.Td>
+                  <Table.Th w={40}>
+                    <Checkbox
+                      aria-label="select all"
+                      checked={allSelected}
+                      indeterminate={!allSelected && content.some(isSelected)}
+                      disabled={!content.length}
+                      onChange={toggleAll}
+                    />
+                  </Table.Th>
                 )}
-                <Table.Td>
-                  <Group gap={4} wrap="nowrap">
-                    <Text size="sm" lineClamp={1}>
-                      {f.subject}
-                    </Text>
-                    <ImportedInfo imported={f.imported} date={f.importedDate} />
-                  </Group>
-                </Table.Td>
-                <Table.Td>
-                  <TagBadge tags={tags} tag={f.tag} />
-                </Table.Td>
-                <Table.Td visibleFrom="md">{fmtDate(f.date)}</Table.Td>
-                {archived && <Table.Td visibleFrom="md">{fmtDate(f.archivedDate)}</Table.Td>}
-                <MoneyCell value={f.priceHVAT} visibleFrom="sm" />
-                <Table.Td visibleFrom="md" ta="center" c="dimmed">
-                  {f.attachmentIds?.length || '—'}
-                </Table.Td>
-                {isAdmin && (
+                <Table.Th>Subject</Table.Th>
+                <Table.Th w={150}>Tag</Table.Th>
+                <Table.Th visibleFrom="md">Received</Table.Th>
+                {archived && <Table.Th visibleFrom="md">Processed</Table.Th>}
+                <Table.Th ta="right" visibleFrom="sm">
+                  Amount excl. VAT
+                </Table.Th>
+                <Table.Th visibleFrom="md" ta="center">
+                  Files
+                </Table.Th>
+                {isAdmin && <Table.Th w={80} />}
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody className={demoMode ? 'blur' : undefined}>
+              {!content.length && (
+                <EmptyRow
+                  colSpan={8}
+                  icon="money-bill-wave"
+                  title="No expenses"
+                  description="Expenses received by mail or submitted manually show up here."
+                />
+              )}
+              {content.map((f) => (
+                <Table.Tr
+                  key={f.id}
+                  onClick={() => openFeeDetail(f, () => refetch())}
+                  bg={isSelected(f) ? 'artcoded.0' : undefined}
+                >
+                  {selectable && (
+                    <Table.Td onClick={(e) => e.stopPropagation()}>
+                      <Checkbox aria-label="select" checked={isSelected(f)} onChange={() => toggle(f)} />
+                    </Table.Td>
+                  )}
                   <Table.Td>
-                    <Group gap={2} wrap="nowrap" justify="flex-end">
-                      <RowActions inline={[{ label: 'Send by email', icon: 'envelope', onClick: () => sendMail(f) }]} />
-                      <BookmarkButton bookmarked={f.bookmarked} onToggle={() => toggleBookmark(f)} />
+                    <Group gap={4} wrap="nowrap">
+                      <Text size="sm" lineClamp={1}>
+                        {f.subject}
+                      </Text>
+                      <ImportedInfo imported={f.imported} date={f.importedDate} />
                     </Group>
                   </Table.Td>
-                )}
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </Table.ScrollContainer>
+                  <Table.Td>
+                    <TagBadge tags={tags} tag={f.tag} />
+                  </Table.Td>
+                  <Table.Td visibleFrom="md">{fmtDate(f.date)}</Table.Td>
+                  {archived && <Table.Td visibleFrom="md">{fmtDate(f.archivedDate)}</Table.Td>}
+                  <MoneyCell value={f.priceHVAT} visibleFrom="sm" />
+                  <Table.Td visibleFrom="md" ta="center" c="dimmed">
+                    {f.attachmentIds?.length || '—'}
+                  </Table.Td>
+                  {isAdmin && (
+                    <Table.Td>
+                      <Group gap={2} wrap="nowrap" justify="flex-end">
+                        <RowActions
+                          inline={[{ label: 'Send by email', icon: 'envelope', onClick: () => sendMail(f) }]}
+                        />
+                        <BookmarkButton bookmarked={f.bookmarked} onToggle={() => toggleBookmark(f)} />
+                      </Group>
+                    </Table.Td>
+                  )}
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
       </div>
       <Group justify="space-between" mt="sm">
         <Text size="sm" c="dimmed">
           {fees?.page.totalElements ?? 0} expense(s)
         </Text>
-        {fees && fees.page.totalPages > 1 && <Pagination value={page} onChange={setPage} total={fees.page.totalPages} />}
+        {fees && fees.page.totalPages > 1 && (
+          <Pagination value={page} onChange={setPage} total={fees.page.totalPages} />
+        )}
       </Group>
     </div>
   );
@@ -336,7 +451,12 @@ export function FeeTable({ archived, bookmarked }: { archived?: boolean; bookmar
 
 /** tag of an expense, in the color of its label */
 export function TagBadge({ tags, tag }: { tags: Label[]; tag?: string }) {
-  if (!tag) return <Text size="sm" c="dimmed">—</Text>;
+  if (!tag)
+    return (
+      <Text size="sm" c="dimmed">
+        —
+      </Text>
+    );
   return (
     <Badge variant="dot" color={tagColor(tags, tag)} radius="sm" tt="none" fw={500}>
       {titleCase(tag)}
@@ -360,7 +480,15 @@ export function LabelsEditor() {
   );
 }
 
-function LabelsForm({ labels, isAdmin, onSaved }: { labels: Label[]; isAdmin: boolean; onSaved: (l: Label[]) => void }) {
+function LabelsForm({
+  labels,
+  isAdmin,
+  onSaved,
+}: {
+  labels: Label[];
+  isAdmin: boolean;
+  onSaved: (l: Label[]) => void;
+}) {
   const toRow = (l: Label) => ({
     id: l.id ?? null,
     name: l.name ?? '',
@@ -386,7 +514,14 @@ function LabelsForm({ labels, isAdmin, onSaved }: { labels: Label[]; isAdmin: bo
   });
   const submit = form.onSubmit(async (v) => {
     const saved = await labelsApi.updateAll(
-      v.labels.map(({ id, name, colorHex, priceHVAT, vat, hidden }) => ({ id, name, colorHex, priceHVAT: Number(priceHVAT), vat: Number(vat), hidden })),
+      v.labels.map(({ id, name, colorHex, priceHVAT, vat, hidden }) => ({
+        id,
+        name,
+        colorHex,
+        priceHVAT: Number(priceHVAT),
+        vat: Number(vat),
+        hidden,
+      })),
     );
     toast.success('Labels saved');
     onSaved(saved);
@@ -399,7 +534,11 @@ function LabelsForm({ labels, isAdmin, onSaved }: { labels: Label[]; isAdmin: bo
             Default price and VAT applied when an expense gets the label.
           </Text>
           <Group gap="xs">
-            <Button variant="default" leftSection={<Icon icon="plus" />} onClick={() => form.insertListItem('labels', toRow({}))}>
+            <Button
+              variant="default"
+              leftSection={<Icon icon="plus" />}
+              onClick={() => form.insertListItem('labels', toRow({}))}
+            >
               Add label
             </Button>
             <Button type="submit" disabled={!form.isValid()}>
@@ -433,10 +572,22 @@ function LabelsForm({ labels, isAdmin, onSaved }: { labels: Label[]; isAdmin: bo
                 />
               </Table.Td>
               <Table.Td>
-                <NumberInput size="xs" prefix="€ " decimalScale={2} disabled={l.noDefaultPrice || !isAdmin} {...form.getInputProps(`labels.${i}.priceHVAT`)} />
+                <NumberInput
+                  size="xs"
+                  prefix="€ "
+                  decimalScale={2}
+                  disabled={l.noDefaultPrice || !isAdmin}
+                  {...form.getInputProps(`labels.${i}.priceHVAT`)}
+                />
               </Table.Td>
               <Table.Td>
-                <NumberInput size="xs" prefix="€ " decimalScale={2} disabled={l.noDefaultPrice || !isAdmin} {...form.getInputProps(`labels.${i}.vat`)} />
+                <NumberInput
+                  size="xs"
+                  prefix="€ "
+                  decimalScale={2}
+                  disabled={l.noDefaultPrice || !isAdmin}
+                  {...form.getInputProps(`labels.${i}.vat`)}
+                />
               </Table.Td>
               {isAdmin && (
                 <Table.Td>

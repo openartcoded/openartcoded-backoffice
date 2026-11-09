@@ -1,5 +1,18 @@
 import { useEffect, useState } from 'react';
-import { ActionIcon, Button, Code, Grid, Group, Paper, ScrollArea, Select, Stack, Table, Text, Textarea } from '@mantine/core';
+import {
+  ActionIcon,
+  Button,
+  Code,
+  Grid,
+  Group,
+  Paper,
+  ScrollArea,
+  Select,
+  Stack,
+  Table,
+  Text,
+  Textarea,
+} from '@mantine/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
 import { CopyButton } from '@/components/common';
@@ -44,7 +57,11 @@ export function GraalJsHelp() {
     } catch {
       content = '# Error\n\nFailed to load help content.';
     }
-    openModal({ title: 'GraalJS Scripting Quick Reference', fullScreen: true, render: () => <Markdown source={content} /> });
+    openModal({
+      title: 'GraalJS Scripting Quick Reference',
+      fullScreen: true,
+      render: () => <Markdown source={content} />,
+    });
   };
   return (
     <ActionIcon variant="subtle" color="dark" onClick={open} aria-label="GraalJS Quick Help">

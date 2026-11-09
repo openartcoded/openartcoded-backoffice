@@ -1,6 +1,18 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-import { Center, Grid, Group, Loader, Paper, ScrollArea, SegmentedControl, SimpleGrid, Stack, Tabs, Text } from '@mantine/core';
+import {
+  Center,
+  Grid,
+  Group,
+  Loader,
+  Paper,
+  ScrollArea,
+  SegmentedControl,
+  SimpleGrid,
+  Stack,
+  Tabs,
+  Text,
+} from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { infoApi, timesheetApi } from '@/api/misc';
 import { dossiersApi, feesApi, invoicesApi } from '@/api/billing';
@@ -9,7 +21,14 @@ import { Markdown } from '@/components/markdown';
 import { KpiCard, PageHeader, Panel, StatusBadge } from '@/components/ui';
 import { bytesToHuman, dayjs, fmtCurrency, fmtDateTime, trim } from '@/lib/format';
 import { ToolboxPanel } from '@/features/toolbox/ToolboxPanel';
-import { CHART_HEIGHT, DossierSummaryChart, FeeSummaryChart, InvoiceStatsPanel, InvoicesPerClientChart, InvoicesPerMonthChart } from './charts';
+import {
+  CHART_HEIGHT,
+  DossierSummaryChart,
+  FeeSummaryChart,
+  InvoiceStatsPanel,
+  InvoicesPerClientChart,
+  InvoicesPerMonthChart,
+} from './charts';
 import { LogsPanel, ScriptConsole } from './console';
 import { computeInvoiceStats } from './summary';
 import { CompanyStamp, LoadedScripts, MostClickedMenu, NextTasks, PostitBoard, TodoList } from './widgets';
@@ -22,7 +41,11 @@ function greeting(now = new Date()) {
 /** key figures: to invoice, revenue of the year, unprocessed expenses, active dossier */
 function Kpis({ isAdmin, revenue, invoices }: { isAdmin: boolean; revenue?: number; invoices?: number }) {
   const navigate = useNavigate();
-  const { data: estimate } = useQuery({ queryKey: ['timesheet-estimate'], queryFn: timesheetApi.estimateThisMonth, enabled: isAdmin });
+  const { data: estimate } = useQuery({
+    queryKey: ['timesheet-estimate'],
+    queryFn: timesheetApi.estimateThisMonth,
+    enabled: isAdmin,
+  });
   const { data: fees } = useQuery({
     queryKey: ['home-unpaid-fees'],
     queryFn: () => feesApi.search({ archived: false, bookmarked: false }, 0, 1),
@@ -33,7 +56,13 @@ function Kpis({ isAdmin, revenue, invoices }: { isAdmin: boolean; revenue?: numb
   return (
     <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }}>
       {isAdmin && (
-        <KpiCard label="To invoice this month" icon="clock" value={fmtCurrency(estimate ?? 0)} hint="Based on the open timesheets" onClick={() => navigate('/timesheets')} />
+        <KpiCard
+          label="To invoice this month"
+          icon="clock"
+          value={fmtCurrency(estimate ?? 0)}
+          hint="Based on the open timesheets"
+          onClick={() => navigate('/timesheets')}
+        />
       )}
       <KpiCard
         label={`Revenue ${new Date().getFullYear()} (excl. VAT)`}
@@ -108,14 +137,20 @@ function SystemPanel() {
   const { data: health } = useQuery({ queryKey: ['health'], queryFn: infoApi.health });
   const components = health?.components;
   const services = (['jms', 'mail', 'mongo', 'redis'] as const)
-    .map((k) => ({ key: k, label: k === 'jms' ? 'Artemis' : k[0].toUpperCase() + k.slice(1), status: components?.[k]?.status }))
+    .map((k) => ({
+      key: k,
+      label: k === 'jms' ? 'Artemis' : k[0].toUpperCase() + k.slice(1),
+      status: components?.[k]?.status,
+    }))
     .filter((s) => s.status);
 
   return (
     <Grid>
       <Grid.Col span={{ base: 12, md: 7 }}>
         <Panel title="What's new">
-          <ScrollArea.Autosize mah={420}>{news ? <Markdown source={news} /> : <Loader size="sm" />}</ScrollArea.Autosize>
+          <ScrollArea.Autosize mah={420}>
+            {news ? <Markdown source={news} /> : <Loader size="sm" />}
+          </ScrollArea.Autosize>
         </Panel>
       </Grid.Col>
       <Grid.Col span={{ base: 12, md: 5 }}>
@@ -132,7 +167,11 @@ function SystemPanel() {
                 />
               )}
               {services.map((s) => (
-                <Row key={s.key} label={s.label} value={<StatusBadge value={s.status === 'UP' ? 'SUCCESS' : 'FAILURE'} label={s.status} />} />
+                <Row
+                  key={s.key}
+                  label={s.label}
+                  value={<StatusBadge value={s.status === 'UP' ? 'SUCCESS' : 'FAILURE'} label={s.status} />}
+                />
               ))}
             </Stack>
           </Panel>
@@ -213,7 +252,10 @@ export function HomePage() {
   const { data: user } = useMe();
   const { data: personalInfo } = usePersonalInfo();
   const isAdmin = useIsAdmin();
-  const { data: invoiceSummaries } = useQuery({ queryKey: ['invoice-summaries'], queryFn: invoicesApi.findAllSummaries });
+  const { data: invoiceSummaries } = useQuery({
+    queryKey: ['invoice-summaries'],
+    queryFn: invoicesApi.findAllSummaries,
+  });
   const stats = invoiceSummaries ? computeInvoiceStats(invoiceSummaries) : undefined;
   const thisYear = stats?.perYear[new Date().getFullYear()];
 
@@ -228,7 +270,11 @@ export function HomePage() {
         actions={isAdmin && <MostClickedMenu />}
         mb={0}
       />
-      <Kpis isAdmin={isAdmin} revenue={stats ? (thisYear?.totalExclVat ?? 0) : undefined} invoices={stats ? (thisYear?.numberOfInvoices ?? 0) : undefined} />
+      <Kpis
+        isAdmin={isAdmin}
+        revenue={stats ? (thisYear?.totalExclVat ?? 0) : undefined}
+        invoices={stats ? (thisYear?.numberOfInvoices ?? 0) : undefined}
+      />
       <div className={isAdmin ? 'home-main' : 'home-main home-main-single'}>
         <Paper withBorder p="md" className="home-panel">
           <Workspace isAdmin={isAdmin} stats={stats} />

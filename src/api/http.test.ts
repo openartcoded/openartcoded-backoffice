@@ -9,7 +9,9 @@ describe('filenameFromDisposition', () => {
   });
 
   it('prefers the utf-8 filename', () => {
-    expect(filenameFromDisposition(`attachment; filename="a.pdf"; filename*=UTF-8''fa%C3%A7ture.pdf`)).toBe('façture.pdf');
+    expect(filenameFromDisposition(`attachment; filename="a.pdf"; filename*=UTF-8''fa%C3%A7ture.pdf`)).toBe(
+      'façture.pdf',
+    );
   });
 
   it('falls back when there is no header', () => {
@@ -21,7 +23,13 @@ describe('filenameFromDisposition', () => {
 describe('errorMessage', () => {
   const axiosError = (data: unknown) => {
     const err = new AxiosError('Request failed');
-    err.response = { data, status: 400, statusText: 'Bad Request', headers: {}, config: { headers: new AxiosHeaders() } };
+    err.response = {
+      data,
+      status: 400,
+      statusText: 'Bad Request',
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+    };
     return err;
   };
 

@@ -15,7 +15,12 @@ interface Ctx {
 }
 
 /** saves the period with the given times / type */
-async function savePeriod(timesheetId: string, period: TimesheetPeriod, times: PeriodTimes, extra: Partial<TimesheetPeriod> = {}) {
+async function savePeriod(
+  timesheetId: string,
+  period: TimesheetPeriod,
+  times: PeriodTimes,
+  extra: Partial<TimesheetPeriod> = {},
+) {
   return timesheetApi.savePeriod(timesheetId, {
     ...period,
     ...extra,
@@ -27,7 +32,15 @@ async function savePeriod(timesheetId: string, period: TimesheetPeriod, times: P
 }
 
 /** quick buttons of a row: fill as a working day / set as holiday */
-export function PeriodQuickActions({ period, ctx, onSaved }: { period: TimesheetPeriod; ctx: Ctx; onSaved: () => void }) {
+export function PeriodQuickActions({
+  period,
+  ctx,
+  onSaved,
+}: {
+  period: TimesheetPeriod;
+  ctx: Ctx;
+  onSaved: () => void;
+}) {
   const auto = autoTimes(ctx.settings?.maxHoursPerDay);
   return (
     <Group gap={0} wrap="nowrap" onClick={(e) => e.stopPropagation()}>
@@ -63,7 +76,15 @@ export function PeriodQuickActions({ period, ctx, onSaved }: { period: Timesheet
   );
 }
 
-export function PeriodForm({ period: initial, ctx, onSaved }: { period: TimesheetPeriod; ctx: Ctx; onSaved: (p: TimesheetPeriod) => void }) {
+export function PeriodForm({
+  period: initial,
+  ctx,
+  onSaved,
+}: {
+  period: TimesheetPeriod;
+  ctx: Ctx;
+  onSaved: (p: TimesheetPeriod) => void;
+}) {
   const rates = ctx.rates ?? [];
   const [period, setPeriod] = useState(initial);
   const [times, setTimes] = useState<PeriodTimes>({
@@ -76,7 +97,9 @@ export function PeriodForm({ period: initial, ctx, onSaved }: { period: Timeshee
   const [projectName, setProjectName] = useState(initial.projectName ?? '');
   const [shortDescription, setShortDescription] = useState(initial.shortDescription ?? '');
   const [rateId, setRateId] = useState<string | null>(
-    initial.rateId && rates.some((r) => r.id === initial.rateId) ? initial.rateId : (rates[0]?.id ?? initial.rateId ?? null),
+    initial.rateId && rates.some((r) => r.id === initial.rateId)
+      ? initial.rateId
+      : (rates[0]?.id ?? initial.rateId ?? null),
   );
   const [hours, setHours] = useState('');
 
@@ -156,7 +179,11 @@ export function PeriodForm({ period: initial, ctx, onSaved }: { period: Timeshee
             }}
             w={160}
           />
-          <Button leftSection={<Icon icon="user-clock" />} onClick={fill} disabled={closed || ctx.student || hoursToMinutes(hours, maxHours) === null}>
+          <Button
+            leftSection={<Icon icon="user-clock" />}
+            onClick={fill}
+            disabled={closed || ctx.student || hoursToMinutes(hours, maxHours) === null}
+          >
             Fill
           </Button>
           <Button leftSection={<Icon icon="user-clock" />} onClick={auto} disabled={closed || ctx.student}>
@@ -167,7 +194,14 @@ export function PeriodForm({ period: initial, ctx, onSaved }: { period: Timeshee
         {timeField('morningEndTime', 'Morning End', !!times.morningStartTime)}
         {timeField('afternoonStartTime', 'Afternoon Start', !!times.morningEndTime)}
         {timeField('afternoonEndTime', 'Afternoon End', !!times.afternoonStartTime)}
-        <Select label="Type" data={PERIOD_TYPES} value={periodType} onChange={changeType} disabled={closed} allowDeselect={false} />
+        <Select
+          label="Type"
+          data={PERIOD_TYPES}
+          value={periodType}
+          onChange={changeType}
+          disabled={closed}
+          allowDeselect={false}
+        />
         {rates.length > 1 && (
           <Select
             label="Rate"
@@ -178,7 +212,12 @@ export function PeriodForm({ period: initial, ctx, onSaved }: { period: Timeshee
             allowDeselect={false}
           />
         )}
-        <TextInput label="Project Name" value={projectName} disabled={closed} onChange={(e) => setProjectName(e.currentTarget.value)} />
+        <TextInput
+          label="Project Name"
+          value={projectName}
+          disabled={closed}
+          onChange={(e) => setProjectName(e.currentTarget.value)}
+        />
         <Textarea
           label="Short description"
           autosize

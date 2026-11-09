@@ -51,7 +51,11 @@ export function PostDetailPage() {
         }
         actions={
           <>
-            <Button variant="default" leftSection={<Icon icon="file-pdf" />} onClick={() => reportApi.generatePdf(post.id!)}>
+            <Button
+              variant="default"
+              leftSection={<Icon icon="file-pdf" />}
+              onClick={() => reportApi.generatePdf(post.id!)}
+            >
               PDF
             </Button>
             <Button leftSection={<Icon icon="edit" />} onClick={() => navigate(postUrl(post, true))}>
@@ -78,7 +82,9 @@ export function PostDetailPage() {
               Discussion
             </Tabs.Tab>
           )}
-          {!!post.attachmentIds?.length && <Tabs.Tab value="attachments">Attachments ({post.attachmentIds.length})</Tabs.Tab>}
+          {!!post.attachmentIds?.length && (
+            <Tabs.Tab value="attachments">Attachments ({post.attachmentIds.length})</Tabs.Tab>
+          )}
         </Tabs.List>
         <Tabs.Panel value="overview">
           <Stack gap="lg" maw={960}>
@@ -92,7 +98,11 @@ export function PostDetailPage() {
                 {post.description}
               </Text>
             )}
-            {post.content?.length ? <Markdown source={post.content} /> : <EmptyState icon="file-lines" title="No content yet" />}
+            {post.content?.length ? (
+              <Markdown source={post.content} />
+            ) : (
+              <EmptyState icon="file-lines" title="No content yet" />
+            )}
           </Stack>
         </Tabs.Panel>
         <Tabs.Panel value="attachments">

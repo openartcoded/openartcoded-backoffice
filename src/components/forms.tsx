@@ -19,7 +19,13 @@ export interface MailFormProps {
   onSubmit: (req: MailRequest) => void;
 }
 
-export function MailForm({ attachments: initialAttachments = [], context = {}, to = [], defaultSubject = '', onSubmit }: MailFormProps) {
+export function MailForm({
+  attachments: initialAttachments = [],
+  context = {},
+  to = [],
+  defaultSubject = '',
+  onSubmit,
+}: MailFormProps) {
   const [attachments, setAttachments] = useState(initialAttachments);
   const form = useForm({
     initialValues: {

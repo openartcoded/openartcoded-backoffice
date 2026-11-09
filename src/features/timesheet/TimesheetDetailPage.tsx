@@ -1,6 +1,19 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ActionIcon, Button, ColorSwatch, Group, Loader, Menu, NumberInput, ScrollArea, SegmentedControl, Select, Stack, Table } from '@mantine/core';
+import {
+  ActionIcon,
+  Button,
+  ColorSwatch,
+  Group,
+  Loader,
+  Menu,
+  NumberInput,
+  ScrollArea,
+  SegmentedControl,
+  Select,
+  Stack,
+  Table,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
@@ -18,10 +31,27 @@ import { fmtCurrency, fmtDate, titleCase } from '@/lib/format';
 import { confirm, toast } from '@/lib/ui';
 import { openInvoiceById } from '@/features/invoice/InvoiceDetail';
 import type { BillableClient, PeriodType, TimesheetPeriod, TimesheetSettingsForm } from '@/types';
-import { clientRates, durationColor, isToday, PERIOD_TAGS, rateLabel, selectedRateId, shortDay, tagColor } from './logic';
+import {
+  clientRates,
+  durationColor,
+  isToday,
+  PERIOD_TAGS,
+  rateLabel,
+  selectedRateId,
+  shortDay,
+  tagColor,
+} from './logic';
 import { PeriodForm, PeriodQuickActions } from './PeriodForm';
 
-function SettingsForm({ settings, clients, onSubmit }: { settings: TimesheetSettingsForm; clients: BillableClient[]; onSubmit: (s: TimesheetSettingsForm) => void }) {
+function SettingsForm({
+  settings,
+  clients,
+  onSubmit,
+}: {
+  settings: TimesheetSettingsForm;
+  clients: BillableClient[];
+  onSubmit: (s: TimesheetSettingsForm) => void;
+}) {
   const form = useForm({
     initialValues: {
       minHoursPerDay: settings.minHoursPerDay ?? 0,
@@ -35,7 +65,9 @@ function SettingsForm({ settings, clients, onSubmit }: { settings: TimesheetSett
     },
   });
   return (
-    <form onSubmit={form.onSubmit((v) => onSubmit({ ...v, clientId: v.clientId ?? '', timesheetId: settings.timesheetId }))}>
+    <form
+      onSubmit={form.onSubmit((v) => onSubmit({ ...v, clientId: v.clientId ?? '', timesheetId: settings.timesheetId }))}
+    >
       <Stack gap="sm">
         <NumberInput label="Min Hours Per Day" data-autofocus {...form.getInputProps('minHoursPerDay')} />
         <NumberInput label="Max Hours Per Day" {...form.getInputProps('maxHoursPerDay')} />
@@ -62,7 +94,10 @@ export function TimesheetDetailPage() {
   const demoMode = useDemoMode();
   const [filter, setFilter] = useState<PeriodType | null>('WORKING_DAY');
   const [savingRate, setSavingRate] = useState(false);
-  const { data: timesheet, refetch } = useQuery({ queryKey: ['timesheet', id], queryFn: () => timesheetApi.findById(id) });
+  const { data: timesheet, refetch } = useQuery({
+    queryKey: ['timesheet', id],
+    queryFn: () => timesheetApi.findById(id),
+  });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: clientsApi.findAll });
   const billable = !!timesheet?.clientId && !timesheet.student;
   const { data: total, refetch: refetchTotal } = useQuery({
@@ -83,7 +118,13 @@ export function TimesheetDetailPage() {
   const rates = clientRates(clients.find((c) => c.id === timesheet.clientId));
   const rateLocked = savingRate || !!timesheet.invoiceId;
   const periods = (timesheet.periods ?? []).filter((p) => !filter || p.periodType === filter);
-  const ctx = { timesheetId: timesheet.id ?? id, closed: timesheet.closed, student: timesheet.student, settings, rates };
+  const ctx = {
+    timesheetId: timesheet.id ?? id,
+    closed: timesheet.closed,
+    student: timesheet.student,
+    settings,
+    rates,
+  };
 
   const openPeriod = (period: TimesheetPeriod) =>
     openModal({
@@ -172,7 +213,11 @@ export function TimesheetDetailPage() {
         }
         actions={
           <>
-            <StatusBadge value={timesheet.closed ? 'CLOSED' : 'OPEN'} label={timesheet.closed ? 'Released' : 'Open'} color={timesheet.closed ? 'green' : 'blue'} />
+            <StatusBadge
+              value={timesheet.closed ? 'CLOSED' : 'OPEN'}
+              label={timesheet.closed ? 'Released' : 'Open'}
+              color={timesheet.closed ? 'green' : 'blue'}
+            />
             {!timesheet.closed ? (
               <Button
                 leftSection={<Icon icon="door-closed" />}
@@ -185,7 +230,10 @@ export function TimesheetDetailPage() {
                 Release
               </Button>
             ) : timesheet.invoiceId ? (
-              <Button leftSection={<Icon icon="file-invoice-dollar" />} onClick={() => openInvoiceById(timesheet.invoiceId!)}>
+              <Button
+                leftSection={<Icon icon="file-invoice-dollar" />}
+                onClick={() => openInvoiceById(timesheet.invoiceId!)}
+              >
                 Open invoice
               </Button>
             ) : (
@@ -208,10 +256,18 @@ export function TimesheetDetailPage() {
                 </ActionIcon>
               </Menu.Target>
               <Menu.Dropdown>
-                <Menu.Item leftSection={<Icon icon="file-pdf" />} disabled={!timesheet.closed} onClick={() => withUpload((u) => openFileViewer(u))}>
+                <Menu.Item
+                  leftSection={<Icon icon="file-pdf" />}
+                  disabled={!timesheet.closed}
+                  onClick={() => withUpload((u) => openFileViewer(u))}
+                >
                   View PDF
                 </Menu.Item>
-                <Menu.Item leftSection={<Icon icon="download" />} disabled={!timesheet.closed} onClick={() => timesheet.uploadId && downloadUpload(timesheet.uploadId)}>
+                <Menu.Item
+                  leftSection={<Icon icon="download" />}
+                  disabled={!timesheet.closed}
+                  onClick={() => timesheet.uploadId && downloadUpload(timesheet.uploadId)}
+                >
                   Download
                 </Menu.Item>
                 <Menu.Item leftSection={<Icon icon="envelope" />} disabled={!timesheet.closed} onClick={send}>
@@ -259,73 +315,73 @@ export function TimesheetDetailPage() {
             ]}
           />
         </ScrollArea>
-          <div className="scroll-body">
-            <Table stickyHeader>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Day</Table.Th>
-                  <Table.Th>Date</Table.Th>
-                  <Table.Th visibleFrom="md">Morning Start</Table.Th>
-                  <Table.Th visibleFrom="md">Morning End</Table.Th>
-                  <Table.Th visibleFrom="md">Afternoon Start</Table.Th>
-                  <Table.Th visibleFrom="md">Afternoon End</Table.Th>
-                  <Table.Th>Duration</Table.Th>
-                  {rates.length > 1 && <Table.Th>Rate</Table.Th>}
-                  <Table.Th />
+        <div className="scroll-body">
+          <Table stickyHeader>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Day</Table.Th>
+                <Table.Th>Date</Table.Th>
+                <Table.Th visibleFrom="md">Morning Start</Table.Th>
+                <Table.Th visibleFrom="md">Morning End</Table.Th>
+                <Table.Th visibleFrom="md">Afternoon Start</Table.Th>
+                <Table.Th visibleFrom="md">Afternoon End</Table.Th>
+                <Table.Th>Duration</Table.Th>
+                {rates.length > 1 && <Table.Th>Rate</Table.Th>}
+                <Table.Th />
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {!periods.length && <EmptyRow colSpan={9} icon="calendar" title="No day of this type" />}
+              {periods.map((p) => (
+                <Table.Tr
+                  key={p.id ?? String(p.date)}
+                  className="clickable"
+                  bg={isToday(p) ? 'artcoded.0' : p.periodType !== 'WORKING_DAY' ? 'gray.0' : undefined}
+                  onClick={() => openPeriod(p)}
+                >
+                  <Table.Td>
+                    <Group gap={6} wrap="nowrap">
+                      <Icon icon="circle" color={`var(--mantine-color-${tagColor(p.periodType)}-6)`} />
+                      {shortDay(p.dayOfWeek)}
+                    </Group>
+                  </Table.Td>
+                  <Table.Td>{fmtDate(p.date)}</Table.Td>
+                  <Table.Td visibleFrom="md">{fmtDate(p.morningStartTime, 'HH:mm')}</Table.Td>
+                  <Table.Td visibleFrom="md">{fmtDate(p.morningEndTime, 'HH:mm')}</Table.Td>
+                  <Table.Td visibleFrom="md">{fmtDate(p.afternoonStartTime, 'HH:mm')}</Table.Td>
+                  <Table.Td visibleFrom="md">{fmtDate(p.afternoonEndTime, 'HH:mm')}</Table.Td>
+                  {(p.duration ?? 0) >= 0 ? (
+                    <Table.Td c={durationColor(p, settings.minHoursPerDay, settings.maxHoursPerDay)} fw={600}>
+                      {p.durationInHours}h
+                    </Table.Td>
+                  ) : (
+                    <Table.Td>
+                      <StatusBadge value="FAILURE" label="Invalid times" />
+                    </Table.Td>
+                  )}
+                  {rates.length > 1 && (
+                    <Table.Td onClick={(e) => e.stopPropagation()}>
+                      {p.periodType === 'WORKING_DAY' && (
+                        <Select
+                          size="xs"
+                          data={rates.map((r, i) => ({ value: r.id ?? '', label: rateLabel(r, i) }))}
+                          value={selectedRateId(rates, p) ?? null}
+                          disabled={rateLocked}
+                          title={timesheet.invoiceId ? 'An invoice was generated, the rate cannot be changed' : ''}
+                          onChange={(v) => changeRate(p, v)}
+                          allowDeselect={false}
+                        />
+                      )}
+                    </Table.Td>
+                  )}
+                  <Table.Td>
+                    <PeriodQuickActions period={p} ctx={ctx} onSaved={reload} />
+                  </Table.Td>
                 </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {!periods.length && <EmptyRow colSpan={9} icon="calendar" title="No day of this type" />}
-                {periods.map((p) => (
-                  <Table.Tr
-                    key={p.id ?? String(p.date)}
-                    className="clickable"
-                    bg={isToday(p) ? 'artcoded.0' : p.periodType !== 'WORKING_DAY' ? 'gray.0' : undefined}
-                    onClick={() => openPeriod(p)}
-                  >
-                    <Table.Td>
-                      <Group gap={6} wrap="nowrap">
-                        <Icon icon="circle" color={`var(--mantine-color-${tagColor(p.periodType)}-6)`} />
-                        {shortDay(p.dayOfWeek)}
-                      </Group>
-                    </Table.Td>
-                    <Table.Td>{fmtDate(p.date)}</Table.Td>
-                    <Table.Td visibleFrom="md">{fmtDate(p.morningStartTime, 'HH:mm')}</Table.Td>
-                    <Table.Td visibleFrom="md">{fmtDate(p.morningEndTime, 'HH:mm')}</Table.Td>
-                    <Table.Td visibleFrom="md">{fmtDate(p.afternoonStartTime, 'HH:mm')}</Table.Td>
-                    <Table.Td visibleFrom="md">{fmtDate(p.afternoonEndTime, 'HH:mm')}</Table.Td>
-                    {(p.duration ?? 0) >= 0 ? (
-                      <Table.Td c={durationColor(p, settings.minHoursPerDay, settings.maxHoursPerDay)} fw={600}>
-                        {p.durationInHours}h
-                      </Table.Td>
-                    ) : (
-                      <Table.Td>
-                        <StatusBadge value="FAILURE" label="Invalid times" />
-                      </Table.Td>
-                    )}
-                    {rates.length > 1 && (
-                      <Table.Td onClick={(e) => e.stopPropagation()}>
-                        {p.periodType === 'WORKING_DAY' && (
-                          <Select
-                            size="xs"
-                            data={rates.map((r, i) => ({ value: r.id ?? '', label: rateLabel(r, i) }))}
-                            value={selectedRateId(rates, p) ?? null}
-                            disabled={rateLocked}
-                            title={timesheet.invoiceId ? 'An invoice was generated, the rate cannot be changed' : ''}
-                            onChange={(v) => changeRate(p, v)}
-                            allowDeselect={false}
-                          />
-                        )}
-                      </Table.Td>
-                    )}
-                    <Table.Td>
-                      <PeriodQuickActions period={p} ctx={ctx} onSaved={reload} />
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </div>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </div>
       </Stack>
     </>
   );

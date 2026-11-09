@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { adminUser, renderWithProviders } from '@/test/utils';
 import { notificationsMock, sessionMock } from '@/test/mocks';
@@ -33,8 +33,9 @@ describe('TasksPage', () => {
   it('shows all the enabled tasks and the disabled ones on demand', async () => {
     renderWithProviders(<TasksPage />);
     await screen.findByText('Pay taxes');
-    await userEvent.click(screen.getByLabelText('Day'));
-    await userEvent.click(await screen.findByRole('option', { name: 'All days' }));
+    await userEvent.click(screen.getByRole('textbox', { name: 'Day' }));
+    // the dropdown is still in its opening transition in jsdom (display: none): click the option directly
+    fireEvent.click(await screen.findByRole('option', { name: 'All days', hidden: true }));
     expect(screen.getByText('Backup')).toBeInTheDocument();
     expect(screen.queryByText('Old one')).not.toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Hide disabled'));
@@ -44,8 +45,9 @@ describe('TasksPage', () => {
   it('hides the actions', async () => {
     renderWithProviders(<TasksPage />);
     await screen.findByText('Pay taxes');
-    await userEvent.click(screen.getByLabelText('Day'));
-    await userEvent.click(await screen.findByRole('option', { name: 'All days' }));
+    await userEvent.click(screen.getByRole('textbox', { name: 'Day' }));
+    // the dropdown is still in its opening transition in jsdom (display: none): click the option directly
+    fireEvent.click(await screen.findByRole('option', { name: 'All days', hidden: true }));
     await userEvent.click(screen.getByLabelText('Show actions'));
     expect(screen.queryByText('Backup')).not.toBeInTheDocument();
   });

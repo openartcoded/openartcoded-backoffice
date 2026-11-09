@@ -33,6 +33,8 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
       css: false,
+      // these packages import their own css: let vite process them (node can't import .css)
+      server: { deps: { inline: [/@uiw\//, /react-pdf/] } },
       restoreMocks: true,
       clearMocks: true,
     },

@@ -6,9 +6,12 @@ import { RequireRole } from './auth/RequireRole';
 import { ROLE_ACCOUNTANT, ROLE_ADMIN } from './types';
 import { NotFoundPage } from './features/home/NotFoundPage';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function page<T extends Record<string, ComponentType<any>>>(loader: () => Promise<T>, name: keyof T) {
-  return lazy(() => loader().then((m) => ({ default: m[name] })));
+/** names of the exports of a module that are components (a page module also exports helpers) */
+type ComponentKeys<T> = { [K in keyof T]: T[K] extends ComponentType<never> ? K : never }[keyof T];
+
+/** lazy loaded page: the named export of a module */
+function page<T, K extends ComponentKeys<T>>(loader: () => Promise<T>, name: K) {
+  return lazy(async () => ({ default: (await loader())[name] as ComponentType }));
 }
 
 const HomePage = page(() => import('./features/home/HomePage'), 'HomePage');

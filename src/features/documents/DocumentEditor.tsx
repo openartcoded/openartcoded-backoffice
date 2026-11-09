@@ -35,7 +35,9 @@ export function DocumentEditor({
     },
   });
 
-  const submit = form.onSubmit((v) => isAdmin && onSubmit?.({ id: document.id, ...v, document: file ?? null }));
+  const submit = form.onSubmit((v) => {
+    if (isAdmin) onSubmit?.({ id: document.id, ...v, document: file ?? null });
+  });
 
   return (
     <form onSubmit={submit}>

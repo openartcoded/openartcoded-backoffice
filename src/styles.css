@@ -20,6 +20,11 @@ body {
   overflow: hidden;
 }
 
+/*
+ * nothing scrolls horizontally: scroll containers only scroll vertically (overflow-y alone would make the x axis
+ * scrollable too), and long words wrap instead of widening their container.
+ */
+
 /* main = the screen below the header, never taller */
 .app-main {
   height: 100dvh;
@@ -46,6 +51,7 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /*
@@ -75,6 +81,7 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .app-content > .mantine-Tabs-root:last-child,
@@ -89,6 +96,7 @@ body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .search-trigger {
@@ -115,7 +123,8 @@ body {
 }
 
 .text-break {
-  word-break: break-all;
+  /* breaks long words (urls, file names) only when they don't fit, not in the middle of every word */
+  overflow-wrap: anywhere;
 }
 
 .pre-wrap {
@@ -145,6 +154,7 @@ body {
   z-index: 200;
   background: var(--mantine-color-body);
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* post-its: soft paper notes, the empty one invites to add a note */
@@ -261,6 +271,7 @@ body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* to do: one line per item, delete on hover */
@@ -402,6 +413,7 @@ body {
   min-width: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  overflow-x: hidden;
   /* reserve the scrollbar space so the width doesn't jump between tabs */
   scrollbar-gutter: stable;
   padding-right: 4px;

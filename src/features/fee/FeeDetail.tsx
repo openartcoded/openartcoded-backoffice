@@ -179,7 +179,7 @@ export function FeeEdit({ fee: initial, onUpdated }: { fee: Fee; onUpdated: (f: 
         Attachments
       </Text>
       {!attachments.length && <Text c="dimmed">No attachments.</Text>}
-      <Stack gap={0} className="bordered-list" mah="20vh" style={{ overflowY: 'auto' }}>
+      <Stack gap={0} className="bordered-list" mah="20vh" style={{ overflowY: 'auto', overflowX: 'hidden' }}>
         {attachments.map((a) => (
           <Group key={a.id} justify="space-between" px="sm" py={4} wrap="nowrap">
             <Text size="sm" className="text-break">

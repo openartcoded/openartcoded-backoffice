@@ -41,5 +41,7 @@ export const theme = createTheme({
     Paper: { defaultProps: { radius: 'md' } },
     Card: { defaultProps: { radius: 'md', withBorder: true } },
     Modal: { defaultProps: { centered: false, radius: 'md' } },
+    // the gutters use negative margins: without this the grid is wider than its container (horizontal scrollbar)
+    Grid: { defaultProps: { overflow: 'hidden' } },
   },
 });

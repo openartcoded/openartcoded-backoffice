@@ -21,10 +21,13 @@ function setup(templates: () => FreemarkerTemplate[], extra: Partial<Parameters<
 
 describe('TemplatesManager default template (invoice)', () => {
   it('marks the template flagged as default', async () => {
-    setup(() => [
-      { id: 'a', name: 'old' },
-      { id: 'b', name: 'peppol', defaultTemplate: true },
-    ], { setDefault: vi.fn(), unsetDefault: vi.fn() });
+    setup(
+      () => [
+        { id: 'a', name: 'old' },
+        { id: 'b', name: 'peppol', defaultTemplate: true },
+      ],
+      { setDefault: vi.fn(), unsetDefault: vi.fn() },
+    );
     await screen.findByText('peppol');
     expect(screen.getAllByText('Default')).toHaveLength(1);
     expect(rowOf('peppol')).toHaveTextContent('Default');
@@ -77,10 +80,13 @@ describe('TemplatesManager default template (invoice)', () => {
 
 describe('TemplatesManager default template (cv)', () => {
   it('keeps a given default that cannot be unset', async () => {
-    setup(() => [
-      { id: 'a', name: 'classic' },
-      { id: 'b', name: 'modern' },
-    ], { defaultTemplateId: 'a', setDefault: vi.fn(async () => undefined) });
+    setup(
+      () => [
+        { id: 'a', name: 'classic' },
+        { id: 'b', name: 'modern' },
+      ],
+      { defaultTemplateId: 'a', setDefault: vi.fn(async () => undefined) },
+    );
     await screen.findByText('classic');
     expect(rowOf('classic')).toHaveTextContent('Default');
     const buttons = screen.getAllByLabelText('set as default');

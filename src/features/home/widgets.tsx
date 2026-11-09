@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   ActionIcon,
-  Badge,
   Button,
   Checkbox,
   Group,
@@ -20,6 +19,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import html2canvas from 'html2canvas';
 import { Icon } from '@/components/Icon';
 import { AuthImage } from '@/components/common';
+import { StatusBadge } from '@/components/ui';
 import { hasOpenModal } from '@/components/modal';
 import { postItApi, scriptApi, settingsApi, tasksApi, todoApi } from '@/api/misc';
 import { usePersonalInfo } from '@/auth/session';
@@ -384,8 +384,8 @@ export function LoadedScripts() {
   return (
     <Stack gap={0}>
       {scripts.map((s) => (
-        <Group key={s.id} justify="space-between" py={4} className="border-bottom" wrap="nowrap">
-          <div>
+        <Group key={s.id} justify="space-between" py={6} className="border-bottom" wrap="nowrap" gap="sm">
+          <div style={{ minWidth: 0 }}>
             <Text size="xs" c="dimmed" fw={700}>
               {s.name}
             </Text>
@@ -393,9 +393,9 @@ export function LoadedScripts() {
               {s.description}
             </Text>
           </div>
-          <Badge color={s.enabled ? 'artcoded' : 'red'} circle size="xs">
-            {' '}
-          </Badge>
+          <div style={{ flexShrink: 0 }}>
+            <StatusBadge value={s.enabled ? 'SUCCESS' : 'FAILURE'} label={s.enabled ? 'Enabled' : 'Disabled'} />
+          </div>
         </Group>
       ))}
     </Stack>

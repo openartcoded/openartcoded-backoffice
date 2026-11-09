@@ -82,6 +82,9 @@ export const invoicesApi = {
   listTemplates: () => get<FreemarkerTemplate[]>(`${inv}/list-templates`),
   addTemplate: (fd: FormData) => post<FreemarkerTemplate>(`${inv}/add-template`, fd),
   deleteTemplate: (id: string) => del<void>(`${inv}/delete-template`, { id }),
+  /** marks the template as the default one for new invoices, or unsets it */
+  setDefaultTemplate: (id: string, isDefault: boolean) =>
+    post<FreemarkerTemplate>(`${inv}/default-template`, {}, { id, default: isDefault }),
 };
 
 const fee = '/api/fee';

@@ -81,7 +81,10 @@ export function CompanyStamp() {
           )}
         </div>
         <div className="company-card-contact">
-          {line('phone', info.organizationPhoneNumber)}
+          {line(
+            'phone',
+            [info.organizationPhoneNumber, info.organizationSecondPhoneNumber].filter(Boolean).join(' · ') || undefined,
+          )}
           {line('envelope', info.organizationEmailAddress)}
           {line('map-marker-alt', address)}
           {line('vcard', info.vatNumber && `VAT ${info.vatNumber}`)}

@@ -367,6 +367,9 @@ export function InvoicePage() {
           load={invoicesApi.listTemplates}
           add={invoicesApi.addTemplate}
           remove={(t) => invoicesApi.deleteTemplate(t.id!)}
+          setDefault={(t) => invoicesApi.setDefaultTemplate(t.id!, true)}
+          unsetDefault={(t) => invoicesApi.setDefaultTemplate(t.id!, false)}
+          hint="New invoices (also from a timesheet or an existing invoice) use the default template, or the latest one when there is no default."
         />
       ),
     });

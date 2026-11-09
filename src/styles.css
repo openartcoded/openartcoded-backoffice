@@ -382,3 +382,38 @@ body {
   width: 11px;
   color: var(--mantine-color-artcoded-7);
 }
+
+/* settings modal: fixed size so switching tabs doesn't resize the modal, only the active panel scrolls */
+.settings-tabs {
+  display: flex;
+  flex-direction: column;
+  height: min(720px, calc(100dvh - 12rem));
+  min-height: 320px;
+}
+
+.settings-tabs-list {
+  flex: none;
+  margin-bottom: var(--mantine-spacing-md);
+}
+
+.settings-tabs-panel {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* reserve the scrollbar space so the width doesn't jump between tabs */
+  scrollbar-gutter: stable;
+  padding-right: 4px;
+}
+
+/* the submit button stays visible at the bottom of the scrolling panel */
+.settings-form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin-top: var(--mantine-spacing-md);
+  padding: var(--mantine-spacing-sm) 0;
+  background: var(--mantine-color-body);
+  border-top: 1px solid var(--mantine-color-gray-2);
+}

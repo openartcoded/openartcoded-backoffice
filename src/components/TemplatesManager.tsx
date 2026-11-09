@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ActionIcon, Button, Group, Stack, Tabs, Text, TextInput, Tooltip } from '@mantine/core';
+import { ActionIcon, Badge, Button, Group, Stack, Tabs, Text, TextInput, Tooltip } from '@mantine/core';
 import { Icon } from './Icon';
 import { FilePicker } from './files';
 import { NoContent } from './common';
@@ -16,6 +16,8 @@ export function TemplatesManager({
   remove: removeTemplate,
   defaultTemplateId: initialDefault,
   setDefault,
+  unsetDefault,
+  hint,
 }: {
   queryKey: string;
   load: () => Promise<FreemarkerTemplate[]>;
@@ -23,17 +25,33 @@ export function TemplatesManager({
   remove: (t: FreemarkerTemplate) => Promise<unknown>;
   defaultTemplateId?: string;
   setDefault?: (t: FreemarkerTemplate) => Promise<unknown>;
+  /** when given, the default can be unset (the default is then optional) */
+  unsetDefault?: (t: FreemarkerTemplate) => Promise<unknown>;
+  hint?: string;
 }) {
   const [name, setName] = useState('');
   const [file, setFile] = useState<File>();
-  const [defaultTemplateId, setDefaultTemplateId] = useState(initialDefault);
+  // the default is either given (cv) or flagged on the template itself (invoice)
+  const [localDefault, setLocalDefault] = useState(initialDefault);
   const { data: templates = [], refetch } = useQuery({ queryKey: ['templates', queryKey], queryFn: load });
+  const defaultTemplateId = localDefault ?? templates.find((t) => t.defaultTemplate)?.id;
+  const isDefault = (t: FreemarkerTemplate) => !!t.id && t.id === defaultTemplateId;
 
   const onSetDefault = setDefault
     ? async (t: FreemarkerTemplate) => {
         await setDefault(t);
-        setDefaultTemplateId(t.id);
+        setLocalDefault(t.id);
         toast.success('template set as default');
+        refetch();
+      }
+    : undefined;
+
+  const onUnsetDefault = unsetDefault
+    ? async (t: FreemarkerTemplate) => {
+        await unsetDefault(t);
+        setLocalDefault(undefined);
+        await refetch();
+        toast.success('default template unset');
       }
     : undefined;
 
@@ -68,11 +86,23 @@ export function TemplatesManager({
         <Tabs.Tab value="new">New Template</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="current" pt="sm">
+        {hint && (
+          <Text size="sm" c="dimmed" mb="sm">
+            {hint}
+          </Text>
+        )}
         {!templates.length && <NoContent />}
         <Stack gap={0} className="bordered-list">
           {templates.map((t) => (
             <Group key={t.id} justify="space-between" px="sm" py={6}>
-              <Text>{t.name}</Text>
+              <Group gap="xs">
+                <Text>{t.name}</Text>
+                {isDefault(t) && (
+                  <Badge size="xs" variant="light" color="green">
+                    Default
+                  </Badge>
+                )}
+              </Group>
               <Group gap={4}>
                 <ActionIcon
                   variant="subtle"
@@ -82,22 +112,22 @@ export function TemplatesManager({
                   <Icon icon="download" />
                 </ActionIcon>
                 {onSetDefault && (
-                  <Tooltip label="Set as default">
+                  <Tooltip label={isDefault(t) && onUnsetDefault ? 'Unset default' : 'Set as default'}>
                     <ActionIcon
                       variant="subtle"
                       color="green"
-                      disabled={t.id === defaultTemplateId}
-                      onClick={() => onSetDefault(t)}
-                      aria-label="set as default"
+                      disabled={isDefault(t) && !onUnsetDefault}
+                      onClick={() => (isDefault(t) ? onUnsetDefault?.(t) : onSetDefault(t))}
+                      aria-label={isDefault(t) && onUnsetDefault ? 'unset default' : 'set as default'}
                     >
-                      <Icon icon={t.id === defaultTemplateId ? 'check' : 'rocket'} />
+                      <Icon icon={isDefault(t) ? 'check' : 'rocket'} />
                     </ActionIcon>
                   </Tooltip>
                 )}
                 <ActionIcon
                   variant="subtle"
                   color="red"
-                  disabled={!!defaultTemplateId && t.id === defaultTemplateId}
+                  disabled={isDefault(t)}
                   onClick={() => remove(t)}
                   aria-label="delete"
                 >

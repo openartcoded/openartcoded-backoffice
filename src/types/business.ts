@@ -124,6 +124,8 @@ export interface FreemarkerTemplate {
   name?: string;
   templateUploadId?: string;
   dateCreation?: string;
+  /** invoice templates only: used for new invoices when set */
+  defaultTemplate?: boolean;
 }
 
 // ---------- fees / expenses ----------
@@ -269,6 +271,8 @@ export interface PersonalInfo {
   organizationBankAccount?: string;
   organizationBankBIC?: string;
   organizationPhoneNumber?: string;
+  /** optional, empty by default */
+  organizationSecondPhoneNumber?: string;
   organizationEmailAddress?: string;
   financeCharge?: number;
   ceoFullName?: string;

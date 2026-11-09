@@ -12,8 +12,13 @@ function Settings({ initialTab }: { initialTab: SettingsTab }) {
   const isAdmin = useIsAdmin();
   const [tab, setTab] = useState<string | null>(initialTab);
   return (
-    <Tabs value={tab} onChange={setTab} keepMounted={false}>
-      <Tabs.List mb="md">
+    <Tabs
+      value={tab}
+      onChange={setTab}
+      keepMounted={false}
+      classNames={{ root: 'settings-tabs', list: 'settings-tabs-list', panel: 'settings-tabs-panel' }}
+    >
+      <Tabs.List>
         <Tabs.Tab value="personal-info">Personal info</Tabs.Tab>
         {isAdmin && <Tabs.Tab value="menu">Menu</Tabs.Tab>}
         {isAdmin && <Tabs.Tab value="cache">Cache</Tabs.Tab>}

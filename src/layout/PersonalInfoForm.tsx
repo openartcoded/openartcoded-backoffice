@@ -122,6 +122,7 @@ function PersonalInfoFormContent({ info }: { info: PersonalInfo }) {
       countryCode: info.countryCode ?? '',
       organizationEmailAddress: info.organizationEmailAddress ?? '',
       organizationPhoneNumber: info.organizationPhoneNumber ?? '',
+      organizationSecondPhoneNumber: info.organizationSecondPhoneNumber ?? '',
       organizationBankAccount: info.organizationBankAccount ?? '',
       organizationBankBIC: info.organizationBankBIC ?? '',
       financeCharge: info.financeCharge ?? 0,
@@ -219,7 +220,10 @@ function PersonalInfoFormContent({ info }: { info: PersonalInfo }) {
             {field('organizationPostCode', 'Post Code')}
             {field('countryCode', 'Country code', 'e.g BE')}
             {field('organizationEmailAddress', 'Email')}
-            {field('organizationPhoneNumber', 'Phone Number')}
+            <SimpleGrid cols={{ base: 1, sm: 2 }}>
+              {field('organizationPhoneNumber', 'Phone Number')}
+              {field('organizationSecondPhoneNumber', 'Second Phone Number', 'Optional')}
+            </SimpleGrid>
             {field('organizationBankAccount', 'Bank Account')}
             {field('organizationBankBIC', 'Bank Account BIC', 'BIC')}
             <NumberInput
@@ -307,7 +311,7 @@ function PersonalInfoFormContent({ info }: { info: PersonalInfo }) {
         </Tabs.Panel>
       </Tabs>
       {isAdmin && (
-        <Group justify="flex-end" mt="md">
+        <Group justify="flex-end" className="settings-form-actions">
           <Button type="submit" disabled={!form.isValid()}>
             Submit
           </Button>

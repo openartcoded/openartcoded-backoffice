@@ -124,6 +124,7 @@ export interface ActionResult {
   finishedDate?: DateLike;
   startedDate?: DateLike;
   messages?: string[];
+  parameters?: ActionParameter[];
 }
 
 // ---------- reports ----------

@@ -1,3 +1,17 @@
+#### 2027.0.0
+
+- Switch from Angular to React (React 19, TypeScript, Vite, Mantine)
+- Design refresh: light sidebar (collapsible), slim header, consistent page headers with visible actions
+- Command palette with `Ctrl+K` to jump to any page
+- Details (invoice, expense, client, dossier...) open in a side drawer, the list stays visible
+- Cleaner tables: status badges, aligned amounts, empty states, grouped row actions, filters above the lists
+- The page never scrolls, only the lists and panels do (filters and pagination stay visible)
+- Home: key figures, to do / next tasks / activity / toolbox... as tabs, post-its on the right, quick links as icons (`Ctrl+&`, `Ctrl+é`, `Ctrl+"`...)
+- Tasks: new action results and notifications tabs
+- Settings (personal info, menu, cache) in a modal from the user menu, menu reordered by drag & drop
+- PDFs rendered with pdf.js, errors (download, preview...) are now shown
+- `Alt+N` creates a new item on the current page (was `Ctrl+K`)
+
 #### 2026.5.9
 
 - retry send mail

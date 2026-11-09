@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { LineChart } from '@mantine/charts';
-import { ActionIcon, Alert, Anchor, Button, Checkbox, Group, Loader, Menu, NavLink, Paper, Progress, Select, Stack, Table, Tabs, Text, TextInput, Title } from '@mantine/core';
+import { ActionIcon, Alert, Anchor, Button, Checkbox, Group, Loader, NavLink, Paper, Progress, Select, Stack, Table, Tabs, Text, TextInput, Title } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
-import { PageTitle } from '@/components/common';
-import { openModal } from '@/components/modal';
+import { PageHeader, RowActions } from '@/components/ui';
+import { openDrawer } from '@/components/drawer';
 import { financeApi, portfolioApi } from '@/api/misc';
 import { errorMessage } from '@/api/http';
 import { dayjs, fmtDate, fmtDateTime, fmtNumber } from '@/lib/format';
@@ -90,7 +90,7 @@ export function PortfolioTab() {
   const errors = rows.filter((r) => r.error);
 
   const edit = (portfolio: Portfolio = { name: '' }) =>
-    openModal({
+    openDrawer({
       title: `Portfolio (${portfolio.name || 'New'})`,
       size: 'lg',
       render: (close) => (
@@ -137,24 +137,17 @@ export function PortfolioTab() {
       ))}
       <Group justify="space-between">
         <PortfolioSelect portfolios={portfolios} value={selected?.id} onChange={setSelectedId} />
-        <Menu position="bottom-end">
-          <Menu.Target>
-            <Button variant="outline" leftSection={<Icon icon="exclamation" />}>
-              Actions
-            </Button>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item leftSection={<Icon icon="plus" />} onClick={() => edit()}>
-              New
-            </Menu.Item>
-            <Menu.Item leftSection={<Icon icon="edit" />} disabled={!selected} onClick={() => selected && edit(selected)}>
-              Edit
-            </Menu.Item>
-            <Menu.Item leftSection={<Icon icon="times" />} disabled={!selected} onClick={() => selected && remove(selected)}>
-              Delete
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
+        <Group gap="xs">
+          {selected && (
+            <RowActions
+              inline={[{ label: 'Edit portfolio', icon: 'edit', onClick: () => edit(selected) }]}
+              groups={[[{ label: 'Delete portfolio', icon: 'trash', color: 'red', onClick: () => remove(selected) }]]}
+            />
+          )}
+          <Button leftSection={<Icon icon="plus" />} onClick={() => edit()}>
+            New portfolio
+          </Button>
+        </Group>
       </Group>
       {selected && (
         <>
@@ -266,28 +259,21 @@ export function TicksTab() {
         <>
           <Group justify="space-between">
             {portfolios.length > 0 && <PortfolioSelect portfolios={portfolios} value={portfolio?.id} onChange={setPortfolioId} />}
-            <Menu position="bottom-end">
-              <Menu.Target>
-                <Button variant="outline" leftSection={<Icon icon="exclamation" />}>
-                  Actions
+            <Group gap="xs">
+              <Button variant="default" leftSection={<Icon icon="sync" />} onClick={() => detail.refetch()}>
+                Reload
+              </Button>
+              {portfolio && !inPortfolio && (
+                <Button leftSection={<Icon icon="plus" />} onClick={add}>
+                  Add to portfolio
                 </Button>
-              </Menu.Target>
-              <Menu.Dropdown>
-                <Menu.Item leftSection={<Icon icon="sync" />} onClick={() => detail.refetch()}>
-                  Reload
-                </Menu.Item>
-                {portfolio && !inPortfolio && (
-                  <Menu.Item leftSection={<Icon icon="plus" />} onClick={add}>
-                    Add to portfolio
-                  </Menu.Item>
-                )}
-                {portfolio && inPortfolio && (
-                  <Menu.Item leftSection={<Icon icon="check" />} onClick={removeTick}>
-                    Remove from portfolio
-                  </Menu.Item>
-                )}
-              </Menu.Dropdown>
-            </Menu>
+              )}
+              {portfolio && inPortfolio && (
+                <Button variant="default" color="red" leftSection={<Icon icon="times" />} onClick={removeTick}>
+                  Remove from portfolio
+                </Button>
+              )}
+            </Group>
           </Group>
           <Paper withBorder p="md">
             <Group justify="space-between" align="flex-start">
@@ -330,21 +316,18 @@ export function TicksTab() {
 export function FinancePage() {
   const { name = 'portfolio' } = useParams();
   const navigate = useNavigate();
-  useEffect(() => {
-    document.title = 'Finance';
-  }, []);
   return (
     <>
-      <PageTitle title="Finance" />
-      <Tabs value={name} onChange={(v) => v && navigate(`/finance/${v}`)} keepMounted={false}>
-        <Tabs.List>
+      <PageHeader title="Finance" description="Portfolios and market quotes." />
+      <Tabs className="page-tabs" value={name} onChange={(v) => v && navigate(`/finance/${v}`)} keepMounted={false}>
+        <Tabs.List mb="md">
           <Tabs.Tab value="portfolio">Portfolio</Tabs.Tab>
           <Tabs.Tab value="ticks">Ticks</Tabs.Tab>
         </Tabs.List>
-        <Tabs.Panel value="portfolio" pt="sm">
+        <Tabs.Panel value="portfolio">
           <PortfolioTab />
         </Tabs.Panel>
-        <Tabs.Panel value="ticks" pt="sm">
+        <Tabs.Panel value="ticks">
           <TicksTab />
         </Tabs.Panel>
       </Tabs>

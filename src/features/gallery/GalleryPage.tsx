@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ActionIcon, Button, Card, Checkbox, Group, Image, Pagination, SimpleGrid, Stack, Text, TextInput, Textarea } from '@mantine/core';
+import { ActionIcon, Button, Card, Paper, Checkbox, Group, Image, Pagination, SimpleGrid, Stack, Text, TextInput, Textarea } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
-import { AuthImage, PageTitle } from '@/components/common';
+import { AuthImage } from '@/components/common';
+import { EmptyState, PageHeader } from '@/components/ui';
 import { FilePicker } from '@/components/files';
-import { openModal } from '@/components/modal';
+import { openDrawer } from '@/components/drawer';
 import { memzApi } from '@/api/misc';
 import { filesApi } from '@/api/files';
 import { useNotificationListener } from '@/hooks/notifications';
@@ -90,7 +91,7 @@ export function GalleryPage() {
   useNotificationListener([RegisteredEvent.MEMZ_SET_VISIBLE, RegisteredEvent.MEMZ_ADDED, RegisteredEvent.MEMZ_DELETED], () => refetch());
 
   const edit = (memz: Memz = { title: '', description: '', visible: false }) =>
-    openModal({
+    openDrawer({
       title: memz.title ? `${titleCase(memz.title)} (${memz.viewsCount ?? 0} views)` : 'New',
       size: 'xl',
       render: (close) => <MemzEditor memz={memz} onSaved={close} />,
@@ -102,20 +103,21 @@ export function GalleryPage() {
 
   return (
     <>
-      <PageTitle title="Gallery">
-        <Group gap="xs">
-          <ActionIcon variant="default" onClick={() => edit()} aria-label="add">
-            <Icon icon="plus" />
-          </ActionIcon>
-          <ActionIcon variant="default" onClick={() => refetch()} aria-label="reload">
-            <Icon icon="sync" />
-          </ActionIcon>
-        </Group>
-      </PageTitle>
+      <PageHeader
+        title="Gallery"
+        documentTitle="Memz"
+        actions={
+          <Button leftSection={<Icon icon="plus" />} onClick={() => edit()}>
+            Add image
+          </Button>
+        }
+      />
       {!data?.content.length ? (
-        <Text>No content.</Text>
+        <Paper withBorder>
+          <EmptyState icon="images" title="No image" />
+        </Paper>
       ) : (
-        <>
+        <div>
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
             {data.content.map((m) => (
               <Card key={m.id} withBorder shadow="sm">
@@ -146,7 +148,7 @@ export function GalleryPage() {
               <Pagination value={page} onChange={setPage} total={data.page.totalPages} />
             </Group>
           )}
-        </>
+        </div>
       )}
     </>
   );

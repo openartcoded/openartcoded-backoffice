@@ -1,46 +1,99 @@
-import { useEffect, useState } from 'react';
-import { Accordion, Box, Divider, Grid, Group, Loader, Paper, ScrollArea, Stack, Tabs, Text } from '@mantine/core';
+import { useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router';
+import { Center, Grid, Group, Loader, Paper, ScrollArea, SegmentedControl, SimpleGrid, Stack, Tabs, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
-import { infoApi } from '@/api/misc';
-import { invoicesApi } from '@/api/billing';
+import { infoApi, timesheetApi } from '@/api/misc';
+import { dossiersApi, feesApi, invoicesApi } from '@/api/billing';
 import { useIsAdmin, useMe, usePersonalInfo } from '@/auth/session';
 import { Markdown } from '@/components/markdown';
-import { bytesToHuman, fmtDateTime } from '@/lib/format';
+import { KpiCard, PageHeader, Panel, StatusBadge } from '@/components/ui';
+import { bytesToHuman, dayjs, fmtCurrency, fmtDateTime, trim } from '@/lib/format';
 import { ToolboxPanel } from '@/features/toolbox/ToolboxPanel';
-import {
-  DossierSummaryChart,
-  FeeSummaryChart,
-  InvoiceStatsPanel,
-  InvoicesPerClientChart,
-  InvoicesPerMonthChart,
-} from './charts';
+import { CHART_HEIGHT, DossierSummaryChart, FeeSummaryChart, InvoiceStatsPanel, InvoicesPerClientChart, InvoicesPerMonthChart } from './charts';
 import { LogsPanel, ScriptConsole } from './console';
 import { computeInvoiceStats } from './summary';
-import {
-  ActiveDossierLink,
-  CompanyStamp,
-  LoadedScripts,
-  MostClickedMenu,
-  NextTasks,
-  PendingItems,
-  PostitBoard,
-  TodoList,
-} from './widgets';
+import { CompanyStamp, LoadedScripts, MostClickedMenu, NextTasks, PostitBoard, TodoList } from './widgets';
 
-function StatusRow({ label, value }: { label: string; value?: string | number }) {
+function greeting(now = new Date()) {
+  const h = now.getHours();
+  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+}
+
+/** key figures: to invoice, revenue of the year, unprocessed expenses, active dossier */
+function Kpis({ isAdmin, revenue, invoices }: { isAdmin: boolean; revenue?: number; invoices?: number }) {
+  const navigate = useNavigate();
+  const { data: estimate } = useQuery({ queryKey: ['timesheet-estimate'], queryFn: timesheetApi.estimateThisMonth, enabled: isAdmin });
+  const { data: fees } = useQuery({
+    queryKey: ['home-unpaid-fees'],
+    queryFn: () => feesApi.search({ archived: false, bookmarked: false }, 0, 1),
+  });
+  const { data: dossier } = useQuery({ queryKey: ['active-dossier'], queryFn: dossiersApi.activeDossier });
+  const latestFee = fees?.content[0];
+
   return (
-    <Group justify="space-between">
-      <Text fw={700} tt="uppercase" size="sm">
-        {label}
-      </Text>
-      <Text fw={700} size="sm">
-        {value}
-      </Text>
-    </Group>
+    <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }}>
+      {isAdmin && (
+        <KpiCard label="To invoice this month" icon="clock" value={fmtCurrency(estimate ?? 0)} hint="Based on the open timesheets" onClick={() => navigate('/timesheets')} />
+      )}
+      <KpiCard
+        label={`Revenue ${new Date().getFullYear()} (excl. VAT)`}
+        icon="file-invoice-dollar"
+        value={revenue === undefined ? undefined : fmtCurrency(revenue)}
+        hint={invoices === undefined ? undefined : `${invoices} invoice(s)`}
+        onClick={() => navigate('/invoice')}
+      />
+      <KpiCard
+        label="Unprocessed expenses"
+        icon="money-bill-wave"
+        value={fees?.page.totalElements}
+        hint={latestFee ? `Latest: ${trim(latestFee.subject, 30)}` : 'All processed'}
+        onClick={() => navigate('/fee/unprocessed')}
+      />
+      <KpiCard
+        label="Active dossier"
+        icon="folder-open"
+        value={dossier?.name ?? 'None'}
+        hint={dossier ? `VAT estimate ${fmtCurrency(dossier.tvaToBePaid)}` : 'Open one to process expenses'}
+        onClick={() => navigate('/dossier')}
+      />
+    </SimpleGrid>
   );
 }
 
-function AdminHome() {
+type ChartView = 'month' | 'client' | 'dossiers' | 'expenses' | 'stats';
+
+function Charts({ stats }: { stats?: ReturnType<typeof computeInvoiceStats> }) {
+  const [view, setView] = useState<ChartView>('month');
+  const loading = (
+    <Center h={CHART_HEIGHT}>
+      <Loader size="sm" />
+    </Center>
+  );
+  return (
+    <Stack gap="md">
+      <SegmentedControl
+        size="xs"
+        w="fit-content"
+        value={view}
+        onChange={(v) => setView(v as ChartView)}
+        data={[
+          { value: 'month', label: 'Per month' },
+          { value: 'client', label: 'Per client' },
+          { value: 'dossiers', label: 'Dossiers' },
+          { value: 'expenses', label: 'Expenses' },
+          { value: 'stats', label: 'Totals' },
+        ]}
+      />
+      {view === 'month' && (stats ? <InvoicesPerMonthChart stats={stats} /> : loading)}
+      {view === 'client' && (stats ? <InvoicesPerClientChart stats={stats} /> : loading)}
+      {view === 'dossiers' && <DossierSummaryChart />}
+      {view === 'expenses' && <FeeSummaryChart />}
+      {view === 'stats' && (stats ? <InvoiceStatsPanel stats={stats} /> : loading)}
+    </Stack>
+  );
+}
+
+function SystemPanel() {
   const { data: news } = useQuery({
     queryKey: ['news'],
     queryFn: async () => {
@@ -54,64 +107,105 @@ function AdminHome() {
   const { data: buildInfo } = useQuery({ queryKey: ['build-info'], queryFn: infoApi.buildInfo });
   const { data: health } = useQuery({ queryKey: ['health'], queryFn: infoApi.health });
   const components = health?.components;
-  const statusItems = (['jms', 'mail', 'mongo', 'redis'] as const)
-    .map((k) => ({ key: k, label: k === 'jms' ? 'Artemis' : k[0].toUpperCase() + k.slice(1), value: components?.[k] }))
-    .filter((i) => i.value);
+  const services = (['jms', 'mail', 'mongo', 'redis'] as const)
+    .map((k) => ({ key: k, label: k === 'jms' ? 'Artemis' : k[0].toUpperCase() + k.slice(1), status: components?.[k]?.status }))
+    .filter((s) => s.status);
 
   return (
-    <ScrollArea h="85vh">
-      <Accordion multiple defaultValue={['news', 'postits', 'scripts', 'buildInfo', 'diskSpace', ...statusItems.map((s) => s.key)]} variant="contained">
-        {news && (
-          <Accordion.Item value="news">
-            <Accordion.Control>What's new</Accordion.Control>
-            <Accordion.Panel>
-              <ScrollArea h="40vh">
-                <Markdown source={news} />
-              </ScrollArea>
-            </Accordion.Panel>
-          </Accordion.Item>
-        )}
-        <Accordion.Item value="postits">
-          <Accordion.Control>Post it</Accordion.Control>
-          <Accordion.Panel>
-            <PostitBoard />
-          </Accordion.Panel>
-        </Accordion.Item>
-        <Accordion.Item value="scripts">
-          <Accordion.Control>Scripts</Accordion.Control>
-          <Accordion.Panel>
+    <Grid>
+      <Grid.Col span={{ base: 12, md: 7 }}>
+        <Panel title="What's new">
+          <ScrollArea.Autosize mah={420}>{news ? <Markdown source={news} /> : <Loader size="sm" />}</ScrollArea.Autosize>
+        </Panel>
+      </Grid.Col>
+      <Grid.Col span={{ base: 12, md: 5 }}>
+        <Stack>
+          <Panel title="Backend">
+            <Stack gap={6}>
+              <Row label="Version" value={buildInfo?.build?.version} />
+              <Row label="Build time" value={fmtDateTime(buildInfo?.build?.time)} />
+              <Row label="Uptime" value={String(buildInfo?.['camel.uptime'] ?? '')} />
+              {components?.diskSpace?.details && (
+                <Row
+                  label="Disk space"
+                  value={`${bytesToHuman(components.diskSpace.details.free, true)} free of ${bytesToHuman(components.diskSpace.details.total, true)}`}
+                />
+              )}
+              {services.map((s) => (
+                <Row key={s.key} label={s.label} value={<StatusBadge value={s.status === 'UP' ? 'SUCCESS' : 'FAILURE'} label={s.status} />} />
+              ))}
+            </Stack>
+          </Panel>
+          <Panel title="Scripts">
             <LoadedScripts />
-          </Accordion.Panel>
-        </Accordion.Item>
-        {buildInfo && (
-          <Accordion.Item value="buildInfo">
-            <Accordion.Control>Backend Info</Accordion.Control>
-            <Accordion.Panel>
-              <StatusRow label="Build Time" value={fmtDateTime(buildInfo.build?.time)} />
-              <StatusRow label="Version" value={buildInfo.build?.version} />
-              <StatusRow label="Uptime" value={String(buildInfo['camel.uptime'] ?? '')} />
-            </Accordion.Panel>
-          </Accordion.Item>
-        )}
-        {components?.diskSpace?.details && (
-          <Accordion.Item value="diskSpace">
-            <Accordion.Control>Disk Space</Accordion.Control>
-            <Accordion.Panel>
-              <StatusRow label="Total" value={bytesToHuman(components.diskSpace.details.total, true)} />
-              <StatusRow label="Free" value={bytesToHuman(components.diskSpace.details.free, true)} />
-            </Accordion.Panel>
-          </Accordion.Item>
-        )}
-        {statusItems.map((s) => (
-          <Accordion.Item key={s.key} value={s.key}>
-            <Accordion.Control>{s.label}</Accordion.Control>
-            <Accordion.Panel>
-              <StatusRow label="Status" value={s.value?.status} />
-            </Accordion.Panel>
-          </Accordion.Item>
-        ))}
-      </Accordion>
-    </ScrollArea>
+          </Panel>
+        </Stack>
+      </Grid.Col>
+    </Grid>
+  );
+}
+
+function Row({ label, value }: { label: string; value?: ReactNode }) {
+  return (
+    <Group justify="space-between" wrap="nowrap">
+      <Text size="sm" c="dimmed">
+        {label}
+      </Text>
+      <Text size="sm" fw={500} ta="right">
+        {value || '—'}
+      </Text>
+    </Group>
+  );
+}
+
+function Workspace({ isAdmin, stats }: { isAdmin: boolean; stats?: ReturnType<typeof computeInvoiceStats> }) {
+  const [tab, setTab] = useState<string | null>(isAdmin ? 'todo' : 'activity');
+  const { data: logs } = useQuery({ queryKey: ['logs'], queryFn: infoApi.logs, enabled: isAdmin && tab === 'logs' });
+  return (
+    <Tabs value={tab} onChange={setTab} keepMounted={false} className="home-tabs" h="100%">
+      <Tabs.List mb="md">
+        {isAdmin && <Tabs.Tab value="todo">To do</Tabs.Tab>}
+        {isAdmin && <Tabs.Tab value="next-tasks">Next tasks</Tabs.Tab>}
+        <Tabs.Tab value="activity">Activity</Tabs.Tab>
+        <Tabs.Tab value="toolbox">Toolbox</Tabs.Tab>
+        {isAdmin && <Tabs.Tab value="console">Console</Tabs.Tab>}
+        {isAdmin && <Tabs.Tab value="company">Company card</Tabs.Tab>}
+        {isAdmin && <Tabs.Tab value="system">System</Tabs.Tab>}
+        {isAdmin && <Tabs.Tab value="logs">Logs</Tabs.Tab>}
+      </Tabs.List>
+      {isAdmin && (
+        <Tabs.Panel value="todo">
+          <TodoList />
+        </Tabs.Panel>
+      )}
+      {isAdmin && (
+        <Tabs.Panel value="next-tasks">
+          <NextTasks />
+        </Tabs.Panel>
+      )}
+      <Tabs.Panel value="activity">
+        <Charts stats={stats} />
+      </Tabs.Panel>
+      <Tabs.Panel value="toolbox">
+        <ToolboxPanel />
+      </Tabs.Panel>
+      {isAdmin && (
+        <Tabs.Panel value="console">
+          <ScriptConsole />
+        </Tabs.Panel>
+      )}
+      {isAdmin && (
+        <Tabs.Panel value="company">
+          <CompanyStamp />
+        </Tabs.Panel>
+      )}
+      {isAdmin && (
+        <Tabs.Panel value="system">
+          <SystemPanel />
+        </Tabs.Panel>
+      )}
+      {isAdmin && <Tabs.Panel value="logs">{logs !== undefined ? <LogsPanel logs={logs} /> : <Loader />}</Tabs.Panel>}
+    </Tabs>
   );
 }
 
@@ -119,79 +213,32 @@ export function HomePage() {
   const { data: user } = useMe();
   const { data: personalInfo } = usePersonalInfo();
   const isAdmin = useIsAdmin();
-  const [tab, setTab] = useState<string | null>(null);
   const { data: invoiceSummaries } = useQuery({ queryKey: ['invoice-summaries'], queryFn: invoicesApi.findAllSummaries });
-  const { data: logs } = useQuery({ queryKey: ['logs'], queryFn: infoApi.logs, enabled: isAdmin && tab === 'logs' });
   const stats = invoiceSummaries ? computeInvoiceStats(invoiceSummaries) : undefined;
-
-  useEffect(() => {
-    document.title = 'Artcoded BackOffice';
-  }, []);
-
-  useEffect(() => {
-    if (user && tab === null) setTab(isAdmin ? 'home' : 'invoices-month');
-  }, [user, isAdmin, tab]);
+  const thisYear = stats?.perYear[new Date().getFullYear()];
 
   if (!user || !personalInfo) return <Loader />;
 
-  const loadingStats = !stats && <Text>loading...</Text>;
-
   return (
-    <Box className={personalInfo.demoMode ? 'blur' : undefined}>
-      <Grid gutter="sm">
+    <div className={`home-page${personalInfo.demoMode ? ' blur' : ''}`}>
+      <PageHeader
+        title={`${greeting()}${user.username ? `, ${user.username}` : ''}`}
+        documentTitle="Artcoded BackOffice"
+        description={dayjs().format('dddd D MMMM YYYY')}
+        actions={isAdmin && <MostClickedMenu />}
+        mb={0}
+      />
+      <Kpis isAdmin={isAdmin} revenue={stats ? (thisYear?.totalExclVat ?? 0) : undefined} invoices={stats ? (thisYear?.numberOfInvoices ?? 0) : undefined} />
+      <div className={isAdmin ? 'home-main' : 'home-main home-main-single'}>
+        <Paper withBorder p="md" className="home-panel">
+          <Workspace isAdmin={isAdmin} stats={stats} />
+        </Paper>
         {isAdmin && (
-          <Grid.Col span={{ base: 12, lg: 2 }}>
-            <Paper withBorder p="xs">
-              <Stack gap="sm">
-                <CompanyStamp />
-                <ActiveDossierLink />
-                <PendingItems />
-                <Divider />
-                <MostClickedMenu />
-                <Divider />
-                <NextTasks />
-              </Stack>
-            </Paper>
-          </Grid.Col>
+          <ScrollArea className="home-panel" type="auto" offsetScrollbars>
+            <PostitBoard />
+          </ScrollArea>
         )}
-        <Grid.Col span={{ base: 12, lg: isAdmin ? 7 : 12 }}>
-          <Tabs value={tab} onChange={setTab} keepMounted={false}>
-            <Tabs.List grow>
-              {isAdmin && <Tabs.Tab value="home">Home</Tabs.Tab>}
-              {isAdmin && <Tabs.Tab value="console">Console</Tabs.Tab>}
-              <Tabs.Tab value="toolbox">Toolbox</Tabs.Tab>
-              <Tabs.Tab value="invoices-month">Invoices/Months</Tabs.Tab>
-              <Tabs.Tab value="invoices-client">Invoices/Client</Tabs.Tab>
-              <Tabs.Tab value="dossiers">Dossiers</Tabs.Tab>
-              <Tabs.Tab value="expenses">Expenses</Tabs.Tab>
-              <Tabs.Tab value="stats">Stats</Tabs.Tab>
-              {isAdmin && <Tabs.Tab value="logs">Logs</Tabs.Tab>}
-            </Tabs.List>
-            <Box pt="sm">
-              {isAdmin && <Tabs.Panel value="home"><AdminHome /></Tabs.Panel>}
-              {isAdmin && <Tabs.Panel value="console"><ScriptConsole /></Tabs.Panel>}
-              <Tabs.Panel value="toolbox">
-                <ToolboxPanel />
-              </Tabs.Panel>
-              <Tabs.Panel value="invoices-month">{stats ? <InvoicesPerMonthChart stats={stats} /> : loadingStats}</Tabs.Panel>
-              <Tabs.Panel value="invoices-client">{stats ? <InvoicesPerClientChart stats={stats} /> : loadingStats}</Tabs.Panel>
-              <Tabs.Panel value="dossiers">
-                <DossierSummaryChart />
-              </Tabs.Panel>
-              <Tabs.Panel value="expenses">
-                <FeeSummaryChart />
-              </Tabs.Panel>
-              <Tabs.Panel value="stats">{stats ? <InvoiceStatsPanel stats={stats} /> : loadingStats}</Tabs.Panel>
-              {isAdmin && <Tabs.Panel value="logs">{logs !== undefined ? <LogsPanel logs={logs} /> : <Loader />}</Tabs.Panel>}
-            </Box>
-          </Tabs>
-        </Grid.Col>
-        {isAdmin && (
-          <Grid.Col span={{ base: 12, lg: 3 }}>
-            <TodoList />
-          </Grid.Col>
-        )}
-      </Grid>
-    </Box>
+      </div>
+    </div>
   );
 }

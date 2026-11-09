@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { theme } from './theme';
 import { NotificationsProvider } from './hooks/notifications';
 import { AppRoutes } from './routes';
+import { DrawerHost } from './components/drawer';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,6 +23,7 @@ export function App() {
           <NotificationsProvider>
             <ModalsProvider>
               <AppRoutes />
+              <DrawerHost />
             </ModalsProvider>
           </NotificationsProvider>
         </BrowserRouter>

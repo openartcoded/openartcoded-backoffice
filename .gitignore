@@ -7,3 +7,6 @@ coverage
 .idea
 .vscode
 public/assets/config/config.json
+
+.env.local
+.env.*.local

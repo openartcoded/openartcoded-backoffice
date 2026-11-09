@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { PageTitle } from '@/components/common';
+import { PageHeader } from '@/components/ui';
 import { getConfig } from '@/config';
 import { getToken } from '@/auth/keycloak';
 import '@zazuko/yasgui/build/yasgui.min.css';
@@ -57,7 +57,7 @@ export function SparqlPage() {
 
   return (
     <>
-      <PageTitle title="Sparql Endpoint" />
+      <PageHeader title="SPARQL" documentTitle="Sparql endpoint" description="Query the triplestore." />
       <div ref={ref} />
     </>
   );

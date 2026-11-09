@@ -1,21 +1,19 @@
-import { Fragment, useEffect } from 'react';
+import { Fragment } from 'react';
 import { ActionIcon, Table, Textarea } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
-import { PageTitle } from '@/components/common';
+import { EmptyState, PageHeader } from '@/components/ui';
+import { confirm } from '@/lib/ui';
 import { contactApi } from '@/api/misc';
 import { fmtDateTime } from '@/lib/format';
 
 export function ProspectsPage() {
   const { data: contacts, refetch } = useQuery({ queryKey: ['prospects'], queryFn: contactApi.findAll });
 
-  useEffect(() => {
-    document.title = 'Prospects';
-  }, []);
 
   return (
     <>
-      <PageTitle title="Prospects" />
+      <PageHeader title="Prospects" description="Messages received through the contact form of the website." />
       <Table>
         <Table.Thead>
           <Table.Tr>
@@ -24,13 +22,15 @@ export function ProspectsPage() {
             <Table.Th>Email</Table.Th>
             <Table.Th visibleFrom="md">Phone number</Table.Th>
             <Table.Th visibleFrom="md">Date received</Table.Th>
-            <Table.Th w={60}>Action</Table.Th>
+            <Table.Th w={60} />
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
           {contacts && !contacts.length && (
             <Table.Tr>
-              <Table.Td colSpan={6}>No content</Table.Td>
+              <Table.Td colSpan={6}>
+                <EmptyState icon="envelope" title="No message" />
+              </Table.Td>
             </Table.Tr>
           )}
           {contacts?.map((fc) => (
@@ -47,6 +47,7 @@ export function ProspectsPage() {
                     color="red"
                     aria-label="delete"
                     onClick={async () => {
+                      if (!(await confirm(`Delete the message of ${fc.fullName ?? ''}?`))) return;
                       await contactApi.delete(fc.id!);
                       refetch();
                     }}

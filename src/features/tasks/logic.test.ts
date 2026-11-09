@@ -59,4 +59,12 @@ describe('task filtering', () => {
     const clone = cloneTask(task({ id: '9', nextDate: 'x', lastExecutionDate: 'y', dateCreation: 'z', title: 'keep' }));
     expect(clone).toMatchObject({ id: undefined, nextDate: undefined, lastExecutionDate: undefined, dateCreation: undefined, title: 'keep' });
   });
+
+  it('enables the clone and clears a specific date already passed', () => {
+    const now = new Date(2026, 10, 9, 12);
+    const executed = task({ id: '1', disabled: true, specificDate: new Date(2026, 10, 1), calendarDate: new Date(2026, 10, 1) });
+    expect(cloneTask(executed, now)).toMatchObject({ disabled: false, specificDate: null, calendarDate: null });
+    const future = new Date(2026, 11, 1);
+    expect(cloneTask(task({ disabled: true, specificDate: future }), now)).toMatchObject({ disabled: false, specificDate: future });
+  });
 });

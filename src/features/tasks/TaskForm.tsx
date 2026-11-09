@@ -4,6 +4,7 @@ import { useForm } from '@mantine/form';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
 import { openModal } from '@/components/modal';
+import { openDrawer } from '@/components/drawer';
 import { tasksApi } from '@/api/misc';
 import { fmtDate, fromInput, toInputDateTime } from '@/lib/format';
 import { confirm, toast } from '@/lib/ui';
@@ -121,6 +122,8 @@ export function TaskForm({ task, actions, blur, onSave, onDelete, onClone }: Tas
     },
   });
   const v = form.values;
+  // the quick date shown in the select, cleared when the date is changed by hand
+  const [quick, setQuick] = useState<string | null>(null);
   const action = actions.find((a) => a.key === v.actionKey);
   const allowed = (key: string) => action?.allowedParameters?.find((p) => p.key === key);
 
@@ -152,6 +155,7 @@ export function TaskForm({ task, actions, blur, onSave, onDelete, onClone }: Tas
   };
 
   const applyQuickDate = (option: string | null) => {
+    setQuick(option);
     if (!option) return;
     form.setValues({ hasSpecificDate: true, cronExpression: '', specificDate: toInputDateTime(quickDate(option)) });
   };
@@ -253,8 +257,16 @@ export function TaskForm({ task, actions, blur, onSave, onDelete, onClone }: Tas
 
         {v.hasSpecificDate ? (
           <>
-            <Select label="Quick date select" placeholder="Select quick date..." data={QUICK_DATES} value={null} onChange={applyQuickDate} />
-            <TextInput type="datetime-local" label="Specific Time" {...form.getInputProps('specificDate')} />
+            <Select label="Quick date" placeholder="Pick a date quickly..." data={QUICK_DATES} value={quick} onChange={applyQuickDate} clearable />
+            <TextInput
+              type="datetime-local"
+              label="Specific time"
+              {...form.getInputProps('specificDate')}
+              onChange={(e) => {
+                setQuick(null);
+                form.setFieldValue('specificDate', e.currentTarget.value);
+              }}
+            />
             <TextInput type="datetime-local" label="Calendar time" {...form.getInputProps('calendarDate')} />
           </>
         ) : (
@@ -316,7 +328,7 @@ function TaskFormLoader(props: Omit<TaskFormProps, 'actions'>) {
 
 /** opens the task form (new task when no task given). onChange is called after save/delete */
 export function openTaskForm(task: ReminderTask = emptyTask(), onChange?: () => void, blur?: boolean) {
-  openModal({
+  openDrawer({
     title: task.customActionName || task.title || 'New Task',
     size: 'xl',
     closeOnClickOutside: false,

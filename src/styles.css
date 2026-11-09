@@ -1,23 +1,112 @@
 /* global helpers, everything else is styled with mantine props */
 
-.app-header {
-  background-color: var(--mantine-color-artcoded-7);
-  border-bottom: none;
-}
-
-.app-navbar {
-  background-color: var(--mantine-color-dark-7);
-}
-
+/* shell */
 .app-navlink {
-  color: var(--mantine-color-gray-2);
-  text-transform: uppercase;
-  font-weight: 600;
+  border-radius: var(--mantine-radius-sm);
 }
 
-.brand {
-  letter-spacing: 0.04em;
-  text-shadow: 0 0 2px #202220;
+.app-navbar-footer {
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+/*
+ * the browser window never scrolls: every page fits the screen and its body scrolls inside.
+ * Page = header (title, filters...) + body (the last block). When the body is a set of tabs,
+ * the tab list stays and the panel scrolls.
+ */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* main = the screen below the header, never taller */
+.app-main {
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-content {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-content > * {
+  flex-shrink: 0;
+}
+
+.app-content > :last-child {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/*
+ * a body with its own toolbar (filters) and footer (pagination): only the .scroll-body part scrolls.
+ * Works as the body of a page or as the content of a page tab.
+ */
+.app-content > .fill-column:last-child,
+.page-tabs > [role='tabpanel'] > .fill-column {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.page-tabs > [role='tabpanel'] > .fill-column {
+  height: 100%;
+}
+
+.page-tabs > [role='tabpanel']:has(> .fill-column) {
+  overflow: hidden;
+}
+
+.fill-column > * {
+  flex-shrink: 0;
+}
+
+.fill-column > .scroll-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.app-content > .mantine-Tabs-root:last-child,
+.app-content > .page-tabs:last-child {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-content > .mantine-Tabs-root:last-child > .mantine-Tabs-panel,
+.app-content > .page-tabs:last-child > [role='tabpanel'] {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.search-trigger {
+  width: min(420px, 45vw);
+  padding: 6px 10px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-gray-0);
+  color: var(--mantine-color-dimmed);
+}
+
+.search-trigger:hover {
+  background: var(--mantine-color-gray-1);
+}
+
+/* tables: numbers line up, clickable rows */
+.clickable-rows tbody tr {
+  cursor: pointer;
 }
 
 /* demo mode */
@@ -58,8 +147,238 @@
   overflow-y: auto;
 }
 
+/* post-its: soft paper notes, the empty one invites to add a note */
 .postit {
-  min-width: 220px;
-  max-width: 260px;
-  background: var(--mantine-color-yellow-0);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #fff8db;
+  border: 1px solid #f5e6a8;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.postit-new {
+  background: transparent;
+  border: 1px dashed var(--mantine-color-gray-4);
+  box-shadow: none;
+}
+
+/* actions of a form in a drawer stay visible */
+.sticky-footer {
+  position: sticky;
+  bottom: calc(-1 * var(--mantine-spacing-md));
+  z-index: 2;
+  margin-top: var(--mantine-spacing-lg);
+  padding: var(--mantine-spacing-sm) 0 var(--mantine-spacing-md);
+  background: var(--mantine-color-body);
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.post-cover img {
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  border-radius: var(--mantine-radius-md);
+}
+
+.kpi-card.clickable:hover {
+  border-color: var(--mantine-color-artcoded-3);
+}
+
+/* rows of the dashboard lists */
+.list-row {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--mantine-radius-sm);
+}
+
+.list-row:hover {
+  background: var(--mantine-color-gray-0);
+}
+
+/* menu editor: drag & drop */
+.menu-row {
+  cursor: grab;
+}
+
+.menu-row-over {
+  border-top: 2px solid var(--mantine-color-artcoded-5);
+}
+
+.menu-row-dragged {
+  opacity: 0.4;
+}
+
+/*
+ * home: the page fits the screen, only the content of the tabs and the post-its scroll.
+ * On small screens the page scrolls normally and the panels get a fixed height.
+ */
+.home-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-lg);
+  height: 100%;
+}
+
+.home-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--mantine-spacing-lg);
+}
+
+.home-main-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.home-panel {
+  min-height: 0;
+  height: 100%;
+}
+
+@media (max-width: 62em) {
+  .home-page {
+    height: auto;
+  }
+
+  .home-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-panel {
+    height: 560px;
+  }
+}
+
+.home-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.home-tabs .mantine-Tabs-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* to do: one line per item, delete on hover */
+.todo-row {
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--mantine-color-gray-2);
+}
+
+.todo-row .todo-delete {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.todo-row:hover .todo-delete,
+.todo-row .todo-delete:focus-visible {
+  opacity: 1;
+}
+
+.unseen-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mantine-color-artcoded-6);
+}
+
+/* image upload (logo, signature...): the preview is the drop zone, "replace" on hover */
+.image-field {
+  position: relative;
+  overflow: hidden;
+  background: var(--mantine-color-gray-0);
+}
+
+.image-field img {
+  max-width: 100%;
+  max-height: 116px;
+  object-fit: contain;
+}
+
+.image-field-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.85);
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+.image-field:hover .image-field-overlay {
+  opacity: 1;
+}
+
+/* business card: 85 x 55 mm, fixed pixel sizes so the downloaded image is always the same */
+.company-card {
+  width: 340px;
+  height: 220px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  color: #1f2937;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.company-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.company-card-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.company-card-org {
+  margin-top: 2px;
+  color: #6b7280;
+}
+
+.company-card-logo {
+  max-width: 110px;
+  flex-shrink: 0;
+}
+
+.company-card-logo img {
+  max-height: 40px;
+  object-fit: contain;
+}
+
+.company-card-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 2px solid var(--mantine-color-artcoded-7);
+  padding-top: 10px;
+}
+
+.company-card-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.company-card-line svg {
+  width: 11px;
+  color: var(--mantine-color-artcoded-7);
 }

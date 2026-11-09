@@ -1,6 +1,6 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ActionIcon, Badge, Button, Card, Group, Kbd, Paper, ScrollArea, Stack, Text, Textarea, TextInput } from '@mantine/core';
+import { ActionIcon, Badge, Button, Checkbox, Group, Kbd, Paper, Stack, Text, Textarea, TextInput, Tooltip, UnstyledButton } from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import html2canvas from 'html2canvas';
@@ -8,25 +8,15 @@ import { Icon } from '@/components/Icon';
 import { AuthImage } from '@/components/common';
 import { hasOpenModal } from '@/components/modal';
 import { postItApi, scriptApi, settingsApi, tasksApi, todoApi } from '@/api/misc';
-import { dossiersApi, feesApi, invoicesApi } from '@/api/billing';
 import { usePersonalInfo } from '@/auth/session';
 import { menuPath } from '@/layout/menu';
 import { fmtDate, trim } from '@/lib/format';
 import { toast } from '@/lib/ui';
 import { openTaskForm } from '@/features/tasks/TaskForm';
-import { openFeeDetail } from '@/features/fee/FeeDetail';
-import { openInvoiceDetail } from '@/features/invoice/InvoiceDetail';
 import type { PostIt, ReminderTask, Todo } from '@/types';
 
-export function SectionLabel({ children }: { children: ReactNode }) {
-  return (
-    <Text size="xs" c="dimmed" fw={700} tt="uppercase" mb={4}>
-      {children}
-    </Text>
-  );
-}
-
 /** company card (logo + contact) that can be downloaded as a png */
+/** a business card (85 x 55 mm) with the company info, downloadable as a png (print quality) */
 export function CompanyStamp() {
   const { data: info } = usePersonalInfo();
   const ref = useRef<HTMLDivElement>(null);
@@ -37,167 +27,133 @@ export function CompanyStamp() {
     if (!ref.current) return;
     setDownloading(true);
     try {
-      const canvas = await html2canvas(ref.current, { backgroundColor: null });
+      // 340 x 220 css px rendered at 4x: 1360 x 880 px, ~400 dpi at 85 x 55 mm
+      const canvas = await html2canvas(ref.current, { backgroundColor: '#ffffff', scale: 4 });
       const a = document.createElement('a');
       a.href = canvas.toDataURL('image/png');
-      a.download = 'company_stamp.png';
+      a.download = 'company_card.png';
       a.click();
     } finally {
       setDownloading(false);
     }
   };
 
+  const address = [info.organizationAddress, [info.organizationPostCode, info.organizationCity].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const line = (icon: string, value?: string) =>
+    value && (
+      <div className="company-card-line">
+        <Icon icon={icon} />
+        <span>{value}</span>
+      </div>
+    );
+
   return (
-    <Stack gap="xs" mb="sm">
-      <Card withBorder shadow="sm" p="xs" ref={ref}>
-        <AuthImage id={info.logoUploadId} alt="logo" />
-        <Stack gap={2} mt="xs" fz="xs" fw={700}>
-          <Group gap={6} wrap="nowrap">
-            <Icon icon="vcard" />
-            <span>
-              {info.organizationName} ({info.vatNumber})
-            </span>
-          </Group>
-          <Group gap={6} wrap="nowrap">
-            <Icon icon="phone" />
-            <span>{info.organizationPhoneNumber}</span>
-          </Group>
-          <Group gap={6} wrap="nowrap">
-            <Icon icon="mail-bulk" />
-            <span className="text-break">{info.organizationEmailAddress}</span>
-          </Group>
-        </Stack>
-      </Card>
-      <Button variant="outline" size="xs" onClick={downloadImage} loading={downloading} fullWidth>
-        Download
+    <Stack gap="md" align="center" py="lg">
+      <div className="company-card" ref={ref}>
+        <div className="company-card-top">
+          <div>
+            <div className="company-card-name">{info.ceoFullName || info.organizationName}</div>
+            {info.ceoFullName && <div className="company-card-org">{info.organizationName}</div>}
+          </div>
+          {info.logoUploadId && (
+            <div className="company-card-logo">
+              <AuthImage id={info.logoUploadId} alt="logo" />
+            </div>
+          )}
+        </div>
+        <div className="company-card-contact">
+          {line('phone', info.organizationPhoneNumber)}
+          {line('envelope', info.organizationEmailAddress)}
+          {line('map-marker-alt', address)}
+          {line('vcard', info.vatNumber && `VAT ${info.vatNumber}`)}
+        </div>
+      </div>
+      <Text size="xs" c="dimmed">
+        Business card size (85 × 55 mm)
+      </Text>
+      <Button variant="default" leftSection={<Icon icon="download" />} onClick={downloadImage} loading={downloading}>
+        Download as image
       </Button>
     </Stack>
   );
 }
 
-export function ActiveDossierLink() {
-  const navigate = useNavigate();
-  const { data: dossier } = useQuery({ queryKey: ['active-dossier'], queryFn: dossiersApi.activeDossier });
-  if (!dossier) return null;
-  return (
-    <div>
-      <SectionLabel>Active Dossier</SectionLabel>
-      <Button variant="default" c="red" fullWidth leftSection={<Icon icon="folder" />} onClick={() => navigate('/dossier')}>
-        {dossier.name}
-      </Button>
-    </div>
-  );
-}
+/** keys of the number row of an azerty keyboard (1..5 without shift) */
+export const QUICK_LINK_KEYS = ['&', 'é', '"', "'", '('];
 
-/** the latest unprocessed expense and invoice */
-export function PendingItems() {
-  const { data: fees } = useQuery({
-    queryKey: ['home-unpaid-fees'],
-    queryFn: () => feesApi.search({ archived: false, bookmarked: false }, 0, 1),
-  });
-  const { data: invoices } = useQuery({
-    queryKey: ['home-open-invoices'],
-    queryFn: () =>
-      invoicesApi.search({ archived: false, logical: false, page: 0, size: 1, sort: { property: 'dateOfInvoice', direction: 'DESC' } }),
-  });
-  return (
-    <Stack gap="sm">
-      <div>
-        <SectionLabel>Unpaid expenses</SectionLabel>
-        {fees?.content.map((f) => (
-          <Button key={f.id} variant="default" size="xs" fullWidth mb={4} onClick={() => openFeeDetail(f)}>
-            {trim(f.subject, 20)}
-          </Button>
-        ))}
-        {fees && !fees.content.length && <Text c="dimmed" size="sm">No content</Text>}
-      </div>
-      <div>
-        <SectionLabel>Open invoices</SectionLabel>
-        {invoices?.content.map((i) => (
-          <Button key={i.id} variant="default" size="xs" fullWidth mb={4} onClick={() => openInvoiceDetail(i)}>
-            {trim(i.id, 20)}
-          </Button>
-        ))}
-        {invoices && !invoices.content.length && <Text c="dimmed" size="sm">No content</Text>}
-      </div>
-    </Stack>
-  );
-}
-
-/** top 3 menu links, reachable with ctrl+1..3 */
+/** most clicked menu links, reachable with ctrl+& ctrl+é ctrl+" ... */
 export function MostClickedMenu() {
   const navigate = useNavigate();
   const { data: links = [] } = useQuery({ queryKey: ['menu-top3'], queryFn: settingsApi.top3 });
   useHotkeys(
-    [1, 2, 3, 4, 5].map((n) => [
-      `ctrl+${n}`,
+    QUICK_LINK_KEYS.map((key, i) => [
+      `ctrl+${key}`,
       () => {
-        const link = links[n - 1];
+        const link = links[i];
         if (link && !hasOpenModal()) navigate(menuPath(link));
       },
     ]),
   );
   if (!links.length) return null;
   return (
-    <div>
-      <SectionLabel>Most Clicked</SectionLabel>
-      <Stack gap={4}>
-        {links.map((l, i) => (
-          <Button
-            key={l.id ?? l.title}
-            variant="default"
-            size="xs"
-            justify="space-between"
-            leftSection={<Icon icon={l.icon} />}
-            rightSection={<Kbd size="xs">ctrl+{i + 1}</Kbd>}
-            onClick={() => navigate(menuPath(l))}
-          >
-            {l.title}
-          </Button>
-        ))}
-      </Stack>
-    </div>
+    <Group gap="xs">
+      {links.map((l, i) => (
+        <Tooltip key={l.id ?? l.title} label={`${l.title} · Ctrl+${QUICK_LINK_KEYS[i]}`} withArrow>
+          <ActionIcon variant="light" size="xl" radius="md" onClick={() => navigate(menuPath(l))} aria-label={l.title}>
+            <Icon icon={l.icon} />
+          </ActionIcon>
+        </Tooltip>
+      ))}
+    </Group>
   );
 }
 
 export function taskName(task: ReminderTask) {
-  return trim(task.customActionName || task.title, 15);
+  return trim(task.customActionName || task.title, 40);
 }
 
+/** next ten tasks, content of a home tab */
 export function NextTasks() {
   const client = useQueryClient();
   const { data: tasks = [] } = useQuery({ queryKey: ['next-tasks'], queryFn: tasksApi.nextTen });
-  const open = (task?: ReminderTask) =>
-    openTaskForm(task, () => client.invalidateQueries({ queryKey: ['next-tasks'] }));
+  const open = (task?: ReminderTask) => openTaskForm(task, () => client.invalidateQueries({ queryKey: ['next-tasks'] }));
   return (
-    <div>
-      <SectionLabel>Next Tasks</SectionLabel>
-      <ScrollArea h="26vh">
-        <Stack gap={4}>
-          <Button variant="outline" color="yellow" c="dark" leftSection={<Icon icon="plus" />} onClick={() => open()}>
-            New Task
-          </Button>
-          {tasks.map((t, i) => (
-            <Button
-              key={t.id}
-              variant={i < 3 ? 'light' : 'default'}
-              color={i < 3 ? 'yellow' : 'gray'}
-              c="dark"
-              h="auto"
-              py={4}
-              onClick={() => open(t)}
-            >
-              <Stack gap={0} align="center">
-                <Text size="xs">{fmtDate(t.nextDate, 'DD/MM @ HH:mm')}</Text>
-                <Text size="xs" fw={700}>
+    <Stack gap="xs">
+      <Group justify="space-between">
+        <Text size="sm" c="dimmed">
+          The next 10 runs.
+        </Text>
+        <Button size="xs" variant="default" leftSection={<Icon icon="plus" />} onClick={() => open()}>
+          New task
+        </Button>
+      </Group>
+      {!tasks.length && (
+        <Text size="sm" c="dimmed" ta="center" py="xl">
+          Nothing planned.
+        </Text>
+      )}
+      <Stack gap={0}>
+        {tasks.map((t) => (
+          <UnstyledButton key={t.id} className="list-row border-bottom" onClick={() => open(t)}>
+            <Group justify="space-between" wrap="nowrap" gap="sm">
+              <div style={{ minWidth: 0 }}>
+                <Text size="sm" fw={500} truncate>
                   {taskName(t)}
                 </Text>
-              </Stack>
-            </Button>
-          ))}
-        </Stack>
-      </ScrollArea>
-    </div>
+                {t.actionKey && (
+                  <Text size="xs" c="dimmed">
+                    Action {t.actionKey}
+                  </Text>
+                )}
+              </div>
+              <Text size="sm" c="dimmed" style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                {fmtDate(t.nextDate, 'ddd DD/MM HH:mm')}
+              </Text>
+            </Group>
+          </UnstyledButton>
+        ))}
+      </Stack>
+    </Stack>
   );
 }
 
@@ -207,9 +163,9 @@ export function TodoList() {
     queryKey: ['todos'],
     queryFn: async () => (await todoApi.findAll()).sort((a, b) => Number(a.done) - Number(b.done)),
   });
-  const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState('');
-  useHotkeys([['ctrl+k', () => setAdding((a) => !a)]]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useHotkeys([['alt+n', () => inputRef.current?.focus()]]);
 
   const setTodos = (updater: (list: Todo[]) => Todo[]) =>
     client.setQueryData<Todo[]>(['todos'], (list) => updater(list ?? []));
@@ -218,7 +174,6 @@ export function TodoList() {
     if (title.trim().length < 2) return;
     const saved = await todoApi.save({ title: title.trim(), done: false });
     setTodos((list) => [saved, ...list]);
-    setAdding(false);
     setTitle('');
     toast.success('todo saved');
   };
@@ -237,61 +192,63 @@ export function TodoList() {
   };
 
   if (!todos) return null;
+  const pending = todos.filter((t) => !t.done);
+  const done = todos.filter((t) => t.done);
+
+  const row = (todo: Todo) => (
+    <Group key={todo.id} gap="sm" wrap="nowrap" className="todo-row">
+      <Checkbox checked={!!todo.done} onChange={() => toggle(todo)} aria-label="toggle done" radius="xl" />
+      <Text size="sm" style={{ flex: 1 }} td={todo.done ? 'line-through' : undefined} c={todo.done ? 'dimmed' : undefined}>
+        {todo.title}
+      </Text>
+      <ActionIcon variant="subtle" color="gray" size="sm" className="todo-delete" onClick={() => remove(todo)} aria-label="delete todo">
+        <Icon icon="trash" />
+      </ActionIcon>
+    </Group>
+  );
+
   return (
-    <Paper withBorder>
-      <Group justify="space-between" p="xs" bg="gray.0">
-        <Text fw={600} c="dimmed">
-          Todo List (ctrl+k)
+    <Stack gap="md">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          save();
+        }}
+      >
+        <TextInput
+          ref={inputRef}
+          placeholder="New todo..."
+          aria-label="new todo"
+          leftSection={<Icon icon="plus" />}
+          rightSectionWidth={70}
+          rightSection={
+            title.trim().length >= 2 ? (
+              <Button type="submit" size="compact-xs" variant="light" aria-label="save todo">
+                Add
+              </Button>
+            ) : (
+              <Kbd size="xs">Alt+N</Kbd>
+            )
+          }
+          value={title}
+          onChange={(e) => setTitle(e.currentTarget.value)}
+        />
+      </form>
+      {!todos.length && (
+        <Text c="dimmed" ta="center" py="xl" size="sm">
+          Nothing to do.
         </Text>
-        <ActionIcon variant="default" onClick={() => setAdding((a) => !a)} aria-label="add todo">
-          <Icon icon={adding ? 'times' : 'plus'} />
-        </ActionIcon>
-      </Group>
-      {adding && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            save();
-          }}
-        >
-          <Group p="xs" wrap="nowrap">
-            <TextInput
-              style={{ flex: 1 }}
-              placeholder="New todo..."
-              data-autofocus
-              autoFocus
-              value={title}
-              onChange={(e) => setTitle(e.currentTarget.value)}
-            />
-            <ActionIcon type="submit" variant="subtle" disabled={title.trim().length < 2} aria-label="save todo">
-              <Icon icon="save" />
-            </ActionIcon>
-          </Group>
-        </form>
       )}
-      <ScrollArea h="80vh">
-        {!todos.length && (
-          <Text c="dimmed" ta="center" p="sm">
-            Nothing to do.
+      {!!pending.length && <Stack gap={0}>{pending.map(row)}</Stack>}
+      {!!done.length && (
+        <Stack gap={0}>
+          <Text size="xs" c="dimmed" fw={500} mb={4}>
+            Completed ({done.length})
           </Text>
-        )}
-        {todos.map((todo) => (
-          <Group key={todo.id} justify="space-between" wrap="nowrap" px="sm" py={6} className="border-bottom" opacity={todo.done ? 0.5 : 1}>
-            <Text fw={700} td={todo.done ? 'line-through' : undefined} style={{ flex: 1 }}>
-              {todo.title}
-            </Text>
-            <Group gap={2} wrap="nowrap">
-              <ActionIcon variant="subtle" color={todo.done ? 'green' : 'gray'} onClick={() => toggle(todo)} aria-label="toggle done">
-                <Icon icon={todo.done ? 'check' : 'times'} />
-              </ActionIcon>
-              <ActionIcon variant="subtle" color="gray" onClick={() => remove(todo)} aria-label="delete todo">
-                <Icon icon="trash" />
-              </ActionIcon>
-            </Group>
-          </Group>
-        ))}
-      </ScrollArea>
-    </Paper>
+          {done.map(row)}
+        </Stack>
+      )}
+    </Stack>
   );
 }
 
@@ -338,13 +295,12 @@ function PostitBoardContent({ initial }: { initial: PostIt[] }) {
   };
 
   return (
-    <ScrollArea type="auto">
-      <Group wrap="nowrap" align="stretch" p={4}>
+    <Stack gap="sm">
         {rows.map((row, i) => (
-          <Paper key={row.key} withBorder shadow="xs" p="xs" className="postit">
+          <Paper key={row.key} p="sm" className={row.id ? 'postit' : 'postit postit-new'}>
             <Textarea
               variant="unstyled"
-              placeholder="New postIt..."
+              placeholder="New note..."
               autosize
               minRows={4}
               value={row.note}
@@ -357,11 +313,11 @@ function PostitBoardContent({ initial }: { initial: PostIt[] }) {
                 </Text>
               )}
               <Group gap={2}>
-                <ActionIcon variant="subtle" color="gray" onClick={() => save(row, i)} aria-label="save postit">
+                <ActionIcon variant="subtle" color="dark" size="sm" disabled={!row.note.trim()} onClick={() => save(row, i)} aria-label="save postit">
                   <Icon icon="save" />
                 </ActionIcon>
                 {row.id && (
-                  <ActionIcon variant="subtle" color="red" onClick={() => remove(row)} aria-label="delete postit">
+                  <ActionIcon variant="subtle" color="dark" size="sm" onClick={() => remove(row)} aria-label="delete postit">
                     <Icon icon="trash" />
                   </ActionIcon>
                 )}
@@ -369,8 +325,7 @@ function PostitBoardContent({ initial }: { initial: PostIt[] }) {
             </Group>
           </Paper>
         ))}
-      </Group>
-    </ScrollArea>
+    </Stack>
   );
 }
 

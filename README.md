@@ -10,6 +10,20 @@ Backoffice of [openartcoded](https://github.com/openartcoded): invoices, expense
 - keycloak-js for authentication
 - Vitest + Testing Library for the unit tests (API modules are mocked, no e2e)
 
+## UI conventions
+
+Plain Mantine, no custom design system. A few shared pieces keep the pages consistent (`src/components/ui.tsx`):
+
+- `PageHeader`: title, short description and the main actions as visible buttons
+- details (invoice, expense, client, dossier...) open in a right side drawer (`openDrawer`), small forms and confirmations in modals
+- tables: `StatusBadge` for backend enums, `MoneyCell` for amounts, `EmptyRow`/`EmptyState`, `RowActions` (frequent actions inline, the others in a grouped menu)
+- filters sit above the tables, rare filters in "More filters"
+- the browser window never scrolls: a page is its header + one body block that scrolls inside
+  (tabs: the tab list stays, the panel scrolls). Lists use `.fill-column`: filters and pagination stay,
+  only the `.scroll-body` (the table) scrolls
+
+Shortcuts: `Ctrl+K` command palette, `Alt+N` new item on the current page, `Ctrl+&`, `Ctrl+é`, `Ctrl+"`, `Ctrl+'`, `Ctrl+(` most clicked links (home, azerty number row), `Ctrl+²` home.
+
 ## Development
 
 ```sh
@@ -19,6 +33,16 @@ npm test           # unit tests
 npm run typecheck
 npm run lint
 npm run build      # output in dist/
+```
+
+### Dev proxy
+
+Like `proxy.conf.json` in the Angular app, `npm run dev` proxies `/api`, `/sparql` and `/proxy` to the backend
+(`server.proxy` in `vite.config.ts`), so `config.dev.json` keeps `BACKEND_URL=http://localhost:4200`.
+The target defaults to `https://backoffice.somehost.org`; to use another one, copy `.env.example` to `.env.local`:
+
+```sh
+PROXY_TARGET=http://localhost:9000
 ```
 
 ## Configuration

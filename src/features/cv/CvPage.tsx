@@ -1,9 +1,8 @@
-import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { ActionIcon, Button, Group, Loader, Menu, Tabs } from '@mantine/core';
+import { ActionIcon, Button, Group, Loader, Tabs } from '@mantine/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
-import { PageTitle } from '@/components/common';
+import { PageHeader } from '@/components/ui';
 import { openModal } from '@/components/modal';
 import { TemplatesManager } from '@/components/TemplatesManager';
 import { cvApi } from '@/api/misc';
@@ -15,9 +14,6 @@ export function CvPage() {
   const client = useQueryClient();
   const { data: cv } = useQuery({ queryKey: ['cv'], queryFn: cvApi.full });
 
-  useEffect(() => {
-    document.title = 'Curriculum Vitae';
-  }, []);
 
   /** every section updates the whole curriculum */
   const update = async (patch: Partial<Curriculum>) => {
@@ -47,28 +43,26 @@ export function CvPage() {
 
   return (
     <>
-      <PageTitle title="Curriculum">
-        <Menu position="bottom-end">
-          <Menu.Target>
-            <Button variant="outline">Actions</Button>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item leftSection={<Icon icon="download" />} onClick={() => cvApi.downloadAsAdmin()}>
-              Download
-            </Menu.Item>
-            <Menu.Item leftSection={<Icon icon="eye" />} onClick={() => navigate('/cv/download-requests')}>
-              Requests
-            </Menu.Item>
-            <Menu.Item leftSection={<Icon icon="edit" />} onClick={() => navigate('/cv/editor')}>
-              Import/Export
-            </Menu.Item>
-            <Menu.Item leftSection={<Icon icon="envelope" />} onClick={openTemplates}>
+      <PageHeader
+        title="Curriculum"
+        actions={
+          <>
+            <Button variant="default" leftSection={<Icon icon="envelope" />} onClick={openTemplates}>
               Templates
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
-      </PageTitle>
-      <Tabs defaultValue="about">
+            </Button>
+            <Button variant="default" leftSection={<Icon icon="eye" />} onClick={() => navigate('/cv/download-requests')}>
+              Requests
+            </Button>
+            <Button variant="default" leftSection={<Icon icon="edit" />} onClick={() => navigate('/cv/editor')}>
+              Import / export
+            </Button>
+            <Button leftSection={<Icon icon="download" />} onClick={() => cvApi.downloadAsAdmin()}>
+              Download
+            </Button>
+          </>
+        }
+      />
+      <Tabs className="page-tabs" defaultValue="about">
         <Tabs.List>
           <Tabs.Tab value="about">About</Tabs.Tab>
           <Tabs.Tab value="person">Personal Info</Tabs.Tab>

@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { ActionIcon, Badge, Button, Checkbox, FileInput, Group, Loader, NumberInput, Select, Stack, Tabs, Text, TextInput, Textarea } from '@mantine/core';
+import { Badge, Button, Checkbox, FileInput, Group, Loader, NumberInput, Paper, Select, SimpleGrid, Stack, Text, TextInput, Textarea } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
 import { ImportedInfo, useUploads } from '@/components/common';
 import { AttachmentList, FileActions } from '@/components/files';
 import { openModal } from '@/components/modal';
+import { openDrawer } from '@/components/drawer';
+import { FormSection, StatusBadge } from '@/components/ui';
 import { feesApi, labelsApi } from '@/api/billing';
 import { useDemoMode, useIsAdmin } from '@/auth/session';
 import { fmtCurrency, fmtDateTime, titleCase } from '@/lib/format';
@@ -31,7 +33,8 @@ export function TagForm({
   return (
     <Stack gap="sm">
       <Select
-        label="Select a tag"
+        label="Tag"
+        searchable
         data={tags.map((t) => ({ value: t.name ?? '', label: titleCase(t.name) }))}
         value={value}
         onChange={setValue}
@@ -39,8 +42,8 @@ export function TagForm({
       />
       {isAdmin && (
         <Group justify="flex-end">
-          <Button leftSection={<Icon icon="check" />} disabled={!value || disabled} onClick={() => onSubmit(tags.find((t) => t.name === value) ?? null)}>
-            Set
+          <Button size="xs" variant="light" disabled={!value || disabled} onClick={() => onSubmit(tags.find((t) => t.name === value) ?? null)}>
+            Set tag
           </Button>
           {!hideCancel && (
             <Button variant="outline" color="red" leftSection={<Icon icon="times" />} disabled={disabled} onClick={() => onSubmit(null)}>
@@ -60,18 +63,20 @@ export function UpdatePrice({ fee, onSubmit }: { fee: Fee; onSubmit: (priceHVAT:
   const disabled = !!fee.archived || !isAdmin;
   return (
     <Stack gap="sm">
-      <NumberInput label="Price HVAT" decimalScale={2} value={price} onChange={setPrice} disabled={disabled} />
-      <NumberInput label="VAT" decimalScale={2} value={vat} onChange={setVat} disabled={disabled} />
-      <Text ta="right" c="red">
-        Total VAT incl.: {fmtCurrency(Number(price) + Number(vat))}
-      </Text>
-      {isAdmin && (
-        <Group justify="flex-end">
-          <Button disabled={disabled || price === '' || vat === ''} onClick={() => onSubmit(Number(price), Number(vat))}>
-            Submit
+      <SimpleGrid cols={2}>
+        <NumberInput label="Amount excl. VAT" suffix=" €" decimalScale={2} value={price} onChange={setPrice} disabled={disabled} />
+        <NumberInput label="VAT" suffix=" €" decimalScale={2} value={vat} onChange={setVat} disabled={disabled} />
+      </SimpleGrid>
+      <Group justify="space-between">
+        <Text size="sm" c="dimmed">
+          Total incl. VAT: <b>{fmtCurrency(Number(price) + Number(vat))}</b>
+        </Text>
+        {isAdmin && (
+          <Button size="xs" variant="light" disabled={disabled || price === '' || vat === ''} onClick={() => onSubmit(Number(price), Number(vat))}>
+            Save amount
           </Button>
-        </Group>
-      )}
+        )}
+      </Group>
     </Stack>
   );
 }
@@ -133,25 +138,25 @@ export function FeeEdit({ fee: initial, onUpdated }: { fee: Fee; onUpdated: (f: 
               file={a}
               extra={
                 <Button size="compact-xs" variant="subtle" disabled={!isAdmin} onClick={() => setFee({ ...fee, paymentProofUploadId: a.id })}>
-                  {fee.paymentProofUploadId === a.id ? '✔ Proof' : 'Proof'}
+                  {fee.paymentProofUploadId === a.id ? 'Payment proof ✓' : 'Mark as proof'}
                 </Button>
               }
             />
           </Group>
         ))}
       </Stack>
-      <Stack gap="xs" p="sm" bg="gray.0">
+      <Stack gap="xs" p="sm" bg="gray.0" style={{ borderRadius: 'var(--mantine-radius-md)' }}>
         <FileInput label="New attachment" value={file} onChange={setFile} />
         <Checkbox label="Mark as payment proof" checked={isPaymentProof} onChange={(e) => setIsPaymentProof(e.currentTarget.checked)} />
         <Group>
-          <Button variant="outline" color="green" onClick={upload} disabled={!file || busy}>
-            {busy ? 'Uploading...' : 'Upload'}
+          <Button variant="default" leftSection={<Icon icon="upload" />} onClick={upload} loading={busy} disabled={!file}>
+            Upload
           </Button>
         </Group>
       </Stack>
       <Group justify="flex-end">
         <Button onClick={save} disabled={busy || !isAdmin}>
-          Save Changes
+          Save
         </Button>
       </Group>
     </Stack>
@@ -173,65 +178,44 @@ export function FeeDetail({ fee: initial, onUpdated }: { fee: Fee; onUpdated?: (
 
   if (!labels) return <Loader />;
 
+  const edit = () => openModal({ title: 'Edit expense', size: 'xl', render: () => <FeeEdit fee={fee} onUpdated={updated} /> });
+
   return (
-    <Stack className={demoMode ? 'blur' : undefined}>
-      <Group gap="xs">
-        {fee.tag && <Icon icon="circle" color={tagColor(labels, fee.tag)} />}
-        <Text fw={600}>{titleCase(fee.subject)}</Text>
-        <ActionIcon
-          variant="subtle"
-          color="gray"
-          aria-label="edit fee"
-          onClick={() => openModal({ title: `Edit ${titleCase(fee.subject)}`, size: 'xl', render: () => <FeeEdit fee={fee} onUpdated={updated} /> })}
-        >
-          <Icon icon="edit" />
-        </ActionIcon>
-        <ImportedInfo imported={fee.imported} date={fee.importedDate} />
-      </Group>
-      <Tabs defaultValue="metadata">
-        <Tabs.List>
-          <Tabs.Tab value="metadata">Metadata</Tabs.Tab>
-          <Tabs.Tab value="body">Body</Tabs.Tab>
-          <Tabs.Tab value="attachments">Attachments</Tabs.Tab>
-          <Tabs.Tab value="costs">Costs</Tabs.Tab>
-          <Tabs.Tab value="tag">Tag</Tabs.Tab>
-        </Tabs.List>
-        <Tabs.Panel value="metadata" pt="sm">
-          <Stack gap="sm">
-            <TextInput label="Id" value={fee.id} disabled />
-            <TextInput label="Date received" value={fmtDateTime(fee.date)} disabled />
-            <TextInput label="Updated Date" value={fmtDateTime(fee.updatedDate)} disabled />
-            {fee.archivedDate && <TextInput label="Archived Date" value={fmtDateTime(fee.archivedDate)} disabled />}
-          </Stack>
-        </Tabs.Panel>
-        <Tabs.Panel value="body" pt="sm">
-          <Textarea value={fee.body} autosize minRows={4} readOnly />
-        </Tabs.Panel>
-        <Tabs.Panel value="attachments" pt="sm">
-          <AttachmentList
-            files={attachments}
-            badge={(a) => fee.paymentProofUploadId === a.id && <Badge color="yellow">proof</Badge>}
-            canRemove={() => fee.attachmentIds.length > 1 && !fee.archived}
-            onRemove={
-              isAdmin
-                ? async (a) => {
-                    updated(await feesApi.removeAttachment(fee.id, a.id));
-                    toast.success(`Attachment ${a.id} removed`);
-                  }
-                : undefined
-            }
-          />
-        </Tabs.Panel>
-        <Tabs.Panel value="costs" pt="sm">
+    <Stack gap="xl" className={demoMode ? 'blur' : undefined}>
+      <Stack gap={6}>
+        <Group justify="space-between" wrap="nowrap" align="flex-start">
+          <Text fw={600} size="lg">
+            {titleCase(fee.subject)}
+          </Text>
+          {isAdmin && (
+            <Button size="xs" variant="default" leftSection={<Icon icon="edit" />} onClick={edit}>
+              Edit
+            </Button>
+          )}
+        </Group>
+        <Group gap="xs">
+          <TagBadgeInline labels={labels} tag={fee.tag} />
+          {fee.archived && <StatusBadge value="PROCESSED" label="Processed" color="green" />}
+          {fee.paymentProofUploadId && <StatusBadge value="PROOF" label="Payment proof" color="teal" />}
+          <ImportedInfo imported={fee.imported} date={fee.importedDate} />
+        </Group>
+        <Text size="xs" c="dimmed">
+          Received {fmtDateTime(fee.date)}
+          {fee.archivedDate ? ` · processed ${fmtDateTime(fee.archivedDate)}` : ''} · id {fee.id}
+        </Text>
+      </Stack>
+
+      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xl">
+        <FormSection title="Amount">
           <UpdatePrice
             fee={fee}
             onSubmit={async (price, vat) => {
               updated(await feesApi.updatePrice(fee.id, price, vat));
-              toast.success('Price updated');
+              toast.success('Amount updated');
             }}
           />
-        </Tabs.Panel>
-        <Tabs.Panel value="tag" pt="sm">
+        </FormSection>
+        <FormSection title="Classification">
           <TagForm
             tags={labels}
             selected={fee.tag}
@@ -244,14 +228,47 @@ export function FeeDetail({ fee: initial, onUpdated }: { fee: Fee; onUpdated?: (
               toast.success('Tag updated');
             }}
           />
-        </Tabs.Panel>
-      </Tabs>
+        </FormSection>
+      </SimpleGrid>
+
+      <FormSection title={`Attachments (${attachments.length})`}>
+        <AttachmentList
+          files={attachments}
+          badge={(a) => fee.paymentProofUploadId === a.id && <StatusBadge value="PROOF" label="Payment proof" color="teal" />}
+          canRemove={() => fee.attachmentIds.length > 1 && !fee.archived}
+          onRemove={
+            isAdmin
+              ? async (a) => {
+                  updated(await feesApi.removeAttachment(fee.id, a.id));
+                  toast.success('Attachment removed');
+                }
+              : undefined
+          }
+        />
+      </FormSection>
+
+      <FormSection title="Message">
+        <Paper withBorder p="sm" bg="gray.0">
+          <Text size="sm" className="pre-wrap">
+            {fee.body || '—'}
+          </Text>
+        </Paper>
+      </FormSection>
     </Stack>
   );
 }
 
+function TagBadgeInline({ labels, tag }: { labels: Label[]; tag?: string }) {
+  if (!tag) return <StatusBadge value="NO_TAG" label="No tag" color="gray" />;
+  return (
+    <Badge variant="dot" color={tagColor(labels, tag)} radius="sm" tt="none" fw={500}>
+      {titleCase(tag)}
+    </Badge>
+  );
+}
+
 export function openFeeDetail(fee: Fee, onUpdated?: (f: Fee) => void) {
-  openModal({
+  openDrawer({
     title: 'Expense',
     size: 'xl',
     closeOnClickOutside: false,

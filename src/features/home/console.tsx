@@ -177,7 +177,7 @@ export function ScriptConsole() {
           <Text p="xs" c="dimmed" fw={600}>
             Bindings
           </Text>
-          <ScrollArea h="78vh">
+          <ScrollArea.Autosize mah={480}>
             <Table>
               <Table.Tbody>
                 {Object.keys(bindings).map((b) => (
@@ -194,7 +194,7 @@ export function ScriptConsole() {
                 )}
               </Table.Tbody>
             </Table>
-          </ScrollArea>
+          </ScrollArea.Autosize>
         </Paper>
       </Grid.Col>
     </Grid>
@@ -203,11 +203,11 @@ export function ScriptConsole() {
 
 export function LogsPanel({ logs }: { logs: string }) {
   return (
-    <Stack gap="xs">
+    <Stack gap="xs" h="100%">
       <Group justify="flex-end">
         <CopyButton text={logs} />
       </Group>
-      <ScrollArea h="80vh" viewportRef={(el) => el && el.scrollTo({ top: el.scrollHeight })}>
+      <ScrollArea style={{ flex: 1, minHeight: 0 }} viewportRef={(el) => el && el.scrollTo({ top: el.scrollHeight })}>
         <Code block className="pre-wrap">
           {logs}
         </Code>

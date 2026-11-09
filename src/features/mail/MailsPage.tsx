@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ActionIcon, Badge, Button, Checkbox, Group, Menu, Pagination, Stack, Table, Tabs, TagsInput, TextInput, Textarea } from '@mantine/core';
+import { Alert, Button, Group, Pagination, Stack, Table, TagsInput, Text, TextInput, Textarea } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
-import { PageTitle, useUploads } from '@/components/common';
+import { useUploads } from '@/components/common';
+import { EmptyRow, FormSection, PageHeader, RowActions, StatusBadge, StickyFooter } from '@/components/ui';
 import { AttachmentList } from '@/components/files';
-import { openModal } from '@/components/modal';
+import { openDrawer } from '@/components/drawer';
 import { mailApi } from '@/api/misc';
 import { useDemoMode } from '@/auth/session';
 import { fmtDate, fmtDateTime } from '@/lib/format';
@@ -20,38 +21,40 @@ export function MailDetail({ mail, onUpdate, onRetry }: { mail: MailJob; onUpdat
   const [to, setTo] = useState(mail.to ?? []);
   const { data: uploads = [] } = useUploads(mail.uploadIds ?? []);
   return (
-    <Tabs defaultValue="general" className={demoMode ? 'blur' : undefined}>
-      <Tabs.List>
-        <Tabs.Tab value="general">General</Tabs.Tab>
-        <Tabs.Tab value="attachments">Attachments</Tabs.Tab>
-      </Tabs.List>
-      <Tabs.Panel value="general" pt="sm">
-        <Stack gap="sm">
-          <TextInput label="Id" value={mail.id} disabled />
-          <TagsInput label="To" value={to} onChange={setTo} disabled={mail.sent} splitChars={[',']} />
-          <TextInput label="Subject" value={subject} onChange={(e) => setSubject(e.currentTarget.value)} disabled={mail.sent} />
-          <Textarea label="Body" autosize minRows={4} value={body} onChange={(e) => setBody(e.currentTarget.value)} disabled={mail.sent} />
-          <TextInput label="Total Attachments" value={String(mail.uploadIds?.length ?? 0)} disabled />
-          <TextInput label="Creation Date" value={fmtDateTime(mail.createdDate)} disabled />
-          <TextInput label="Updated Date" value={fmtDateTime(mail.updatedDate)} disabled />
-          <TextInput label="Failed" value={mail.markedFailed ? 'Yes' : 'No'} disabled />
-          <Textarea label="Failed Message" placeholder="N/A" autosize value={mail.markedFailedMessage ?? ''} disabled />
-          <TextInput label="Sent" value={mail.sent ? 'Yes' : 'No'} disabled />
-          {mail.sendingDate && <TextInput label="Sending Date" value={fmtDateTime(mail.sendingDate)} disabled />}
-          <Group justify="flex-end">
-            <Button disabled={mail.sent} onClick={() => onUpdate({ ...mail, subject, body, to })}>
-              Submit
-            </Button>
-            <Button color="yellow" disabled={mail.sent || !mail.markedFailed} onClick={() => onRetry(mail)}>
-              Retry
-            </Button>
-          </Group>
-        </Stack>
-      </Tabs.Panel>
-      <Tabs.Panel value="attachments" pt="sm">
+    <Stack gap="xl" className={demoMode ? 'blur' : undefined}>
+      <Stack gap={6}>
+        <Group gap="xs">
+          {mail.sent ? <StatusBadge value="SUCCESS" label="Sent" /> : mail.markedFailed ? <StatusBadge value="FAILURE" label="Failed" /> : <StatusBadge value="PENDING" label="Scheduled" />}
+        </Group>
+        <Text size="xs" c="dimmed">
+          Created {fmtDateTime(mail.createdDate)} · updated {fmtDateTime(mail.updatedDate)}
+          {mail.sendingDate ? ` · sending ${fmtDateTime(mail.sendingDate)}` : ''} · id {mail.id}
+        </Text>
+      </Stack>
+      {mail.markedFailed && (
+        <Alert color="red" title="Sending failed">
+          <Text size="sm" className="pre-wrap">
+            {mail.markedFailedMessage || 'No details.'}
+          </Text>
+        </Alert>
+      )}
+      <FormSection title="Message">
+        <TagsInput label="To" value={to} onChange={setTo} disabled={mail.sent} splitChars={[',']} />
+        <TextInput label="Subject" value={subject} onChange={(e) => setSubject(e.currentTarget.value)} disabled={mail.sent} />
+        <Textarea label="Body" autosize minRows={4} value={body} onChange={(e) => setBody(e.currentTarget.value)} disabled={mail.sent} />
+      </FormSection>
+      <FormSection title={`Attachments (${mail.uploadIds?.length ?? 0})`}>
         <AttachmentList files={uploads} />
-      </Tabs.Panel>
-    </Tabs>
+      </FormSection>
+      {!mail.sent && (
+        <StickyFooter>
+          <Button variant="default" leftSection={<Icon icon="sync" />} disabled={!mail.markedFailed} onClick={() => onRetry(mail)}>
+            Retry
+          </Button>
+          <Button onClick={() => onUpdate({ ...mail, subject, body, to })}>Save</Button>
+        </StickyFooter>
+      )}
+    </Stack>
   );
 }
 
@@ -61,8 +64,8 @@ export function MailsPage() {
   const { data: mails, refetch } = useQuery({ queryKey: ['mails', page], queryFn: () => mailApi.findAll(page - 1, PAGE_SIZE) });
 
   const open = (mail: MailJob) =>
-    openModal({
-      title: `Mail Job #${mail.id}`,
+    openDrawer({
+      title: mail.subject || 'Mail',
       size: 'xl',
       closeOnClickOutside: false,
       render: () => (
@@ -83,82 +86,63 @@ export function MailsPage() {
     });
 
   const remove = async (m: MailJob) => {
-    if (await confirm('Are you sure you want to delete this mail?')) {
+    if (await confirm('Delete this scheduled mail?')) {
       await mailApi.delete(m.id);
       refetch();
     }
   };
 
+  const status = (m: MailJob) =>
+    m.sent ? (
+      <StatusBadge value="SUCCESS" label="Sent" />
+    ) : m.markedFailed ? (
+      <StatusBadge value="FAILURE" label="Failed" />
+    ) : (
+      <StatusBadge value="PENDING" label="Scheduled" />
+    );
+
   return (
     <>
-      <PageTitle title="Mails" />
+      <PageHeader title="Mails" description="Emails sent or scheduled by the backoffice." />
       {mails && (
-        <>
-          <Table className={demoMode ? 'blur' : undefined}>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Sending Date</Table.Th>
-                <Table.Th>Subject</Table.Th>
-                <Table.Th visibleFrom="md">To</Table.Th>
-                <Table.Th>Sent</Table.Th>
-                <Table.Th>Failed</Table.Th>
-                <Table.Th w={60}>Actions</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {!mails.content.length && (
+        <div>
+          <Table.ScrollContainer minWidth={560}>
+            <Table className={`clickable-rows ${demoMode ? 'blur' : ''}`}>
+              <Table.Thead>
                 <Table.Tr>
-                  <Table.Td colSpan={6}>No Content</Table.Td>
+                  <Table.Th>Subject</Table.Th>
+                  <Table.Th visibleFrom="md">To</Table.Th>
+                  <Table.Th>Sending date</Table.Th>
+                  <Table.Th>Status</Table.Th>
+                  <Table.Th w={60} />
                 </Table.Tr>
-              )}
-              {mails.content.map((m) => (
-                <Table.Tr key={m.id} className="clickable" onClick={() => open(m)}>
-                  <Table.Td>{fmtDate(m.sendingDate)}</Table.Td>
-                  <Table.Td>{m.subject}</Table.Td>
-                  <Table.Td visibleFrom="md">
-                    <Group gap={4}>
-                      {m.to?.map((t) => (
-                        <Badge key={t} variant="light" tt="none">
-                          {t}
-                        </Badge>
-                      ))}
-                    </Group>
-                  </Table.Td>
-                  <Table.Td>
-                    <Checkbox checked={!!m.sent} readOnly aria-label="sent" />
-                  </Table.Td>
-                  <Table.Td>
-                    <Checkbox checked={!!m.markedFailed} readOnly aria-label="failed" color="red" />
-                  </Table.Td>
-                  <Table.Td onClick={(e) => e.stopPropagation()}>
-                    <Menu position="bottom-end">
-                      <Menu.Target>
-                        <ActionIcon variant="default" aria-label="mail actions">
-                          <Icon icon="ellipsis-v" />
-                        </ActionIcon>
-                      </Menu.Target>
-                      <Menu.Dropdown>
-                        <Menu.Item leftSection={<Icon icon="eye" />} onClick={() => open(m)}>
-                          Open
-                        </Menu.Item>
-                        {!m.sent && (
-                          <Menu.Item leftSection={<Icon icon="trash" />} color="red" onClick={() => remove(m)}>
-                            Delete
-                          </Menu.Item>
-                        )}
-                      </Menu.Dropdown>
-                    </Menu>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+              </Table.Thead>
+              <Table.Tbody>
+                {!mails.content.length && <EmptyRow colSpan={5} icon="envelope" title="No mail" />}
+                {mails.content.map((m) => (
+                  <Table.Tr key={m.id} onClick={() => open(m)}>
+                    <Table.Td fw={500}>{m.subject}</Table.Td>
+                    <Table.Td visibleFrom="md" c="dimmed">
+                      <Text size="sm" lineClamp={1}>
+                        {m.to?.join(', ')}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>{fmtDate(m.sendingDate)}</Table.Td>
+                    <Table.Td>{status(m)}</Table.Td>
+                    <Table.Td>
+                      <RowActions groups={[[{ label: 'Delete', icon: 'trash', color: 'red', hidden: !!m.sent, onClick: () => remove(m) }]]} />
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
           {mails.page.totalPages > 1 && (
             <Group justify="flex-end" mt="sm">
               <Pagination value={page} onChange={setPage} total={mails.page.totalPages} />
             </Group>
           )}
-        </>
+        </div>
       )}
     </>
   );

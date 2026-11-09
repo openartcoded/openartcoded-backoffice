@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ActionIcon, Alert, Button, Checkbox, Collapse, ColorInput, Grid, Group, Menu, NumberInput, Pagination, Paper, Select, Stack, Table, Tabs, Text, TextInput, Textarea, UnstyledButton } from '@mantine/core';
+import { ActionIcon, Alert, Badge, Button, Checkbox, ColorInput, Group, NumberInput, Pagination, Paper, Popover, Select, Stack, Switch, Table, Tabs, Text, TextInput, Textarea, Tooltip } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
-import { BookmarkButton, FullscreenSection, ImportedInfo, PageTitle } from '@/components/common';
+import { BookmarkButton, ImportedInfo } from '@/components/common';
+import { EmptyRow, MoneyCell, PageHeader, RowActions } from '@/components/ui';
 import { FilePicker } from '@/components/files';
 import { openMailForm } from '@/components/forms';
 import { openModal } from '@/components/modal';
@@ -13,7 +14,7 @@ import { filesApi } from '@/api/files';
 import { useDemoMode, useIsAdmin } from '@/auth/session';
 import { useNotificationListener } from '@/hooks/notifications';
 import { RegisteredEvent } from '@/lib/notificationBus';
-import { dayjs, fmtCurrency, fmtDateTime, titleCase } from '@/lib/format';
+import { dayjs, fmtDate, titleCase } from '@/lib/format';
 import { confirm, toast } from '@/lib/ui';
 import type { Dossier, Fee, FeeManualForm, FeeSearchCriteria, Label } from '@/types';
 import { openFeeDetail, TagForm, tagColor } from './FeeDetail';
@@ -37,44 +38,57 @@ export function toCriteria(v: SearchValues, base: FeeSearchCriteria): FeeSearchC
   };
 }
 
+/** filters above the table: the common ones visible, the rare ones in "More filters" */
 export function FeeSearchForm({ tags, onSearch }: { tags: Label[]; onSearch: (v: SearchValues) => void }) {
-  const [opened, setOpened] = useState(true);
   const form = useForm({ initialValues: emptySearch });
+  const extra = [form.values.id, form.values.body, form.values.hasPaymentProof].filter(Boolean).length;
+  const dirty = form.isDirty();
   return (
-    <Paper withBorder>
-      <UnstyledButton w="100%" p="sm" onClick={() => setOpened((o) => !o)}>
-        <Group justify="space-between">
-          <Text fw={700}>Search Form</Text>
-          <Icon icon={opened ? 'ellipsis-h' : 'eye'} />
-        </Group>
-      </UnstyledButton>
-      <Collapse in={opened}>
-        <form onSubmit={form.onSubmit(onSearch)}>
-          <Stack gap="xs" p="sm" pt={0}>
-            <Select label="Tag" placeholder="--Select--" data={tags.map((t) => ({ value: t.name ?? '', label: titleCase(t.name) }))} clearable {...form.getInputProps('tag')} />
-            <TextInput label="Id" placeholder="Fee Id" {...form.getInputProps('id')} />
-            <TextInput label="Subject like" {...form.getInputProps('subject')} />
-            <TextInput label="Body like" {...form.getInputProps('body')} />
-            <TextInput type="date" label="From" {...form.getInputProps('dateAfter')} />
-            <TextInput type="date" label="To" {...form.getInputProps('dateBefore')} />
-            <Checkbox label="Has Payment proof" {...form.getInputProps('hasPaymentProof', { type: 'checkbox' })} />
-            <Group justify="flex-end">
-              <Button type="submit">Submit</Button>
-              <Button
-                variant="outline"
-                color="red"
-                onClick={() => {
-                  form.reset();
-                  onSearch(emptySearch);
-                }}
-              >
-                Reset
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Collapse>
-    </Paper>
+    <form onSubmit={form.onSubmit(onSearch)}>
+      <Group gap="xs" align="flex-end" mb="md" wrap="wrap">
+        <Select
+          w={180}
+          placeholder="All tags"
+          aria-label="Tag"
+          data={tags.map((t) => ({ value: t.name ?? '', label: titleCase(t.name) }))}
+          clearable
+          searchable
+          {...form.getInputProps('tag')}
+        />
+        <TextInput w={220} placeholder="Subject" aria-label="Subject" leftSection={<Icon icon="search" />} {...form.getInputProps('subject')} />
+        <TextInput w={150} type="date" aria-label="From" {...form.getInputProps('dateAfter')} />
+        <TextInput w={150} type="date" aria-label="To" {...form.getInputProps('dateBefore')} />
+        <Popover position="bottom-start" shadow="md" width={280}>
+          <Popover.Target>
+            <Button variant="default" rightSection={extra ? <Badge size="xs" circle>{extra}</Badge> : undefined}>
+              More filters
+            </Button>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <Stack gap="xs">
+              <TextInput label="Id" {...form.getInputProps('id')} />
+              <TextInput label="Body contains" {...form.getInputProps('body')} />
+              <Switch label="Has a payment proof" {...form.getInputProps('hasPaymentProof', { type: 'checkbox' })} />
+            </Stack>
+          </Popover.Dropdown>
+        </Popover>
+        <Button type="submit" variant="light">
+          Search
+        </Button>
+        {dirty && (
+          <Button
+            variant="subtle"
+            color="gray"
+            onClick={() => {
+              form.reset();
+              onSearch(emptySearch);
+            }}
+          >
+            Reset
+          </Button>
+        )}
+      </Group>
+    </form>
   );
 }
 
@@ -82,7 +96,9 @@ function ProcessValidation({ fees: initial, labels, dossier, onSubmit }: { fees:
   const [fees, setFees] = useState(initial);
   return (
     <Stack>
-      <Text fw={500}>Selected Fees (Dossier {dossier?.name})</Text>
+      <Text size="sm" c="dimmed">
+        These expenses will be added to the dossier {dossier?.name}.
+      </Text>
       <Stack gap={0} className="bordered-list">
         {fees.map((f) => (
           <Group key={f.id} justify="space-between" px="sm" py={4}>
@@ -98,7 +114,7 @@ function ProcessValidation({ fees: initial, labels, dossier, onSubmit }: { fees:
       </Stack>
       <Group justify="flex-end">
         <Button disabled={!fees.length} onClick={() => onSubmit(fees)}>
-          Submit
+          Process {fees.length} expense(s)
         </Button>
       </Group>
     </Stack>
@@ -174,7 +190,7 @@ export function FeeTable({ archived, bookmarked }: { archived?: boolean; bookmar
 
   const process = () =>
     openModal({
-      title: `Processing Validation (Dossier ${activeDossier?.name ?? ''})`,
+      title: `Process into dossier ${activeDossier?.name ?? ''}`,
       size: 'lg',
       closeOnClickOutside: false,
       render: (close) => (
@@ -194,177 +210,137 @@ export function FeeTable({ archived, bookmarked }: { archived?: boolean; bookmar
     });
 
   const deleteSelected = async () => {
-    if (!(await confirm('Are you sure you want to delete the selected fees?'))) return;
+    if (!(await confirm(`Delete ${selected.length} expense(s)?`))) return;
     for (const f of selected) await feesApi.delete(f.id);
     search(criteria);
     refetch();
   };
 
-  const manualSubmit = () =>
-    openModal({
-      title: 'Manual Submit',
-      size: 'lg',
-      closeOnClickOutside: false,
-      render: (close) => (
-        <ManualSubmitForm
-          onSubmit={async (form) => {
-            close();
-            await feesApi.manualSubmit(form);
-            setSelected([]);
-            refetch();
-          }}
-        />
-      ),
-    });
-
   const sendMail = async (fee: Fee) => openMailForm({ attachments: await filesApi.findByIds(fee.attachmentIds) });
 
   const toggleBookmark = async (fee: Fee) => {
     await feesApi.toggleBookmarked(fee.id);
-    toast.success('Bookmark toggled. Reload...');
+    toast.success(fee.bookmarked ? 'Bookmark removed' : 'Bookmarked');
     refetch();
   };
 
   return (
-    <>
-      {!archived && !bookmarked && !activeDossier && (
-        <Alert color="red" icon={<Icon icon="times" />} mb="sm">
-          No active dossier!
-        </Alert>
-      )}
-      <Group justify="space-between" mb="sm">
-        {isAdmin && (
-          <Text>
-            Total Elements: <Text span c="red">{fees?.page.totalElements ?? 0}</Text>
-          </Text>
-        )}
-        {!archived && isAdmin && (
-          <Menu position="bottom-end">
-            <Menu.Target>
-              <Button variant="outline" leftSection={<Icon icon="exclamation" />}>
-                Actions
-              </Button>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item leftSection={<Icon icon="dot-circle" />} disabled={showTagForm || !selected.length} onClick={() => setShowTagForm(true)}>
-                Set Tag
-              </Menu.Item>
-              <Menu.Item leftSection={<Icon icon="cog" />} disabled={showTagForm || !selected.length || !activeDossier} onClick={process}>
-                Process
-              </Menu.Item>
-              <Menu.Item leftSection={<Icon icon="times" />} disabled={showTagForm || !selected.length} onClick={deleteSelected}>
+    <div className="fill-column">
+      <FeeSearchForm tags={tags} onSearch={(v) => search(toCriteria(v, base))} />
+
+      {!!selected.length && (
+        <Paper withBorder p="xs" mb="sm" bg="artcoded.0">
+          <Group justify="space-between" gap="xs">
+            <Text size="sm" fw={500}>
+              {selected.length} selected
+            </Text>
+            <Group gap="xs">
+              <Popover opened={showTagForm} onChange={setShowTagForm} position="bottom-end" shadow="md" width={280}>
+                <Popover.Target>
+                  <Button size="xs" variant="default" leftSection={<Icon icon="tag" />} onClick={() => setShowTagForm((o) => !o)}>
+                    Set tag
+                  </Button>
+                </Popover.Target>
+                <Popover.Dropdown>
+                  <TagForm tags={tags} onSubmit={saveTag} hideCancel />
+                </Popover.Dropdown>
+              </Popover>
+              <Tooltip label="No active dossier" disabled={!!activeDossier}>
+                <Button size="xs" variant="default" leftSection={<Icon icon="check" />} disabled={!activeDossier} onClick={process}>
+                  Process
+                </Button>
+              </Tooltip>
+              <Button size="xs" variant="default" color="red" leftSection={<Icon icon="trash" />} onClick={deleteSelected}>
                 Delete
-              </Menu.Item>
-              <Menu.Item leftSection={<Icon icon="sync" />} onClick={() => refetch()}>
-                Reload
-              </Menu.Item>
-              <Menu.Item leftSection={<Icon icon="upload" />} disabled={showTagForm || selected.length > 0} onClick={manualSubmit}>
-                Manual Submit
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        )}
-      </Group>
-      {showTagForm && !!selected.length && (
-        <Paper withBorder p="sm" mb="sm">
-          <TagForm tags={tags} onSubmit={saveTag} />
+              </Button>
+              <Button size="xs" variant="subtle" color="gray" onClick={() => setSelected([])}>
+                Clear
+              </Button>
+            </Group>
+          </Group>
         </Paper>
       )}
-      <Grid>
-        <Grid.Col span={{ base: 12, lg: 3 }}>
-          <FeeSearchForm tags={tags} onSearch={(v) => search(toCriteria(v, base))} />
-        </Grid.Col>
-        <Grid.Col span={{ base: 12, lg: 9 }}>
-          <Table.ScrollContainer minWidth={500}>
-            <Table className={demoMode ? 'blur' : undefined}>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th w={30} />
-                  <Table.Th>Subject</Table.Th>
-                  <Table.Th visibleFrom="md">Date received</Table.Th>
-                  <Table.Th visibleFrom="md">Date archived</Table.Th>
-                  <Table.Th visibleFrom="md">Price HVAT</Table.Th>
-                  <Table.Th visibleFrom="md">Files</Table.Th>
-                  {isAdmin && <Table.Th w={80} />}
-                  {selectable && (
-                    <Table.Th w={40}>
-                      <Checkbox aria-label="select all" checked={allSelected} disabled={!content.length} onChange={toggleAll} />
-                    </Table.Th>
-                  )}
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {!content.length && (
-                  <Table.Tr>
-                    <Table.Td colSpan={8}>No entries</Table.Td>
-                  </Table.Tr>
+
+      <div className="scroll-body">
+        <Table.ScrollContainer minWidth={640}>
+        <Table className="clickable-rows">
+          <Table.Thead>
+            <Table.Tr>
+              {selectable && (
+                <Table.Th w={40}>
+                  <Checkbox aria-label="select all" checked={allSelected} indeterminate={!allSelected && content.some(isSelected)} disabled={!content.length} onChange={toggleAll} />
+                </Table.Th>
+              )}
+              <Table.Th>Subject</Table.Th>
+              <Table.Th w={150}>Tag</Table.Th>
+              <Table.Th visibleFrom="md">Received</Table.Th>
+              {archived && <Table.Th visibleFrom="md">Processed</Table.Th>}
+              <Table.Th ta="right" visibleFrom="sm">
+                Amount excl. VAT
+              </Table.Th>
+              <Table.Th visibleFrom="md" ta="center">
+                Files
+              </Table.Th>
+              {isAdmin && <Table.Th w={80} />}
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody className={demoMode ? 'blur' : undefined}>
+            {!content.length && <EmptyRow colSpan={8} icon="money-bill-wave" title="No expenses" description="Expenses received by mail or submitted manually show up here." />}
+            {content.map((f) => (
+              <Table.Tr key={f.id} onClick={() => openFeeDetail(f, () => refetch())} bg={isSelected(f) ? 'artcoded.0' : undefined}>
+                {selectable && (
+                  <Table.Td onClick={(e) => e.stopPropagation()}>
+                    <Checkbox aria-label="select" checked={isSelected(f)} onChange={() => toggle(f)} />
+                  </Table.Td>
                 )}
-                {content.map((f) => (
-                  <Table.Tr key={f.id} className="clickable" onClick={() => openFeeDetail(f, () => refetch())}>
-                    <Table.Td>
-                      <Icon icon="circle" color={tagColor(tags, f.tag)} />
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap={4} wrap="nowrap" justify="space-between">
-                        <span>{f.subject}</span>
-                        <ImportedInfo imported={f.imported} date={f.importedDate} />
-                      </Group>
-                    </Table.Td>
-                    <Table.Td visibleFrom="md">{fmtDateTime(f.date)}</Table.Td>
-                    <Table.Td visibleFrom="md">{fmtDateTime(f.archivedDate)}</Table.Td>
-                    <Table.Td visibleFrom="md">{fmtCurrency(f.priceHVAT)}</Table.Td>
-                    <Table.Td visibleFrom="md" ta="center">
-                      {f.attachmentIds?.length}
-                    </Table.Td>
-                    {isAdmin && (
-                      <Table.Td onClick={(e) => e.stopPropagation()}>
-                        <Group gap={0} wrap="nowrap">
-                          <ActionIcon variant="subtle" aria-label="send by mail" onClick={() => sendMail(f)}>
-                            <Icon icon="mail-bulk" />
-                          </ActionIcon>
-                          <BookmarkButton bookmarked={f.bookmarked} onToggle={() => toggleBookmark(f)} />
-                        </Group>
-                      </Table.Td>
-                    )}
-                    {selectable && (
-                      <Table.Td onClick={(e) => e.stopPropagation()}>
-                        <Checkbox aria-label="select" checked={isSelected(f)} onChange={() => toggle(f)} />
-                      </Table.Td>
-                    )}
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-              <Table.Tfoot visibleFrom="md">
-                <Table.Tr>
-                  <Table.Td colSpan={8}>
-                    <Group gap="xs">
-                      {tags
-                        .filter((t) => !t.hidden)
-                        .map((t) => (
-                          <Button
-                            key={t.id ?? t.name}
-                            variant="subtle"
-                            size="compact-sm"
-                            leftSection={<Icon icon="circle" color={t.colorHex} />}
-                            onClick={() => search({ archived: !!archived, tag: t.name })}
-                          >
-                            {t.name?.toLowerCase()}
-                          </Button>
-                        ))}
+                <Table.Td>
+                  <Group gap={4} wrap="nowrap">
+                    <Text size="sm" lineClamp={1}>
+                      {f.subject}
+                    </Text>
+                    <ImportedInfo imported={f.imported} date={f.importedDate} />
+                  </Group>
+                </Table.Td>
+                <Table.Td>
+                  <TagBadge tags={tags} tag={f.tag} />
+                </Table.Td>
+                <Table.Td visibleFrom="md">{fmtDate(f.date)}</Table.Td>
+                {archived && <Table.Td visibleFrom="md">{fmtDate(f.archivedDate)}</Table.Td>}
+                <MoneyCell value={f.priceHVAT} visibleFrom="sm" />
+                <Table.Td visibleFrom="md" ta="center" c="dimmed">
+                  {f.attachmentIds?.length || '—'}
+                </Table.Td>
+                {isAdmin && (
+                  <Table.Td>
+                    <Group gap={2} wrap="nowrap" justify="flex-end">
+                      <RowActions inline={[{ label: 'Send by email', icon: 'envelope', onClick: () => sendMail(f) }]} />
+                      <BookmarkButton bookmarked={f.bookmarked} onToggle={() => toggleBookmark(f)} />
                     </Group>
                   </Table.Td>
-                </Table.Tr>
-              </Table.Tfoot>
-            </Table>
-          </Table.ScrollContainer>
-          {fees && fees.page.totalPages > 1 && (
-            <Group justify="flex-end" mt="sm">
-              <Pagination value={page} onChange={setPage} total={fees.page.totalPages} />
-            </Group>
-          )}
-        </Grid.Col>
-      </Grid>
-    </>
+                )}
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
+      </div>
+      <Group justify="space-between" mt="sm">
+        <Text size="sm" c="dimmed">
+          {fees?.page.totalElements ?? 0} expense(s)
+        </Text>
+        {fees && fees.page.totalPages > 1 && <Pagination value={page} onChange={setPage} total={fees.page.totalPages} />}
+      </Group>
+    </div>
+  );
+}
+
+/** tag of an expense, in the color of its label */
+export function TagBadge({ tags, tag }: { tags: Label[]; tag?: string }) {
+  if (!tag) return <Text size="sm" c="dimmed">—</Text>;
+  return (
+    <Badge variant="dot" color={tagColor(tags, tag)} radius="sm" tt="none" fw={500}>
+      {titleCase(tag)}
+    </Badge>
   );
 }
 
@@ -418,13 +394,18 @@ function LabelsForm({ labels, isAdmin, onSaved }: { labels: Label[]; isAdmin: bo
   return (
     <form onSubmit={submit}>
       {isAdmin && (
-        <Group justify="flex-end" mb="sm">
-          <Button variant="outline" leftSection={<Icon icon="plus" />} onClick={() => form.insertListItem('labels', toRow({}))}>
-            Add
-          </Button>
-          <Button type="submit" disabled={!form.isValid()}>
-            Submit
-          </Button>
+        <Group justify="space-between" mb="sm">
+          <Text size="sm" c="dimmed">
+            Default price and VAT applied when an expense gets the label.
+          </Text>
+          <Group gap="xs">
+            <Button variant="default" leftSection={<Icon icon="plus" />} onClick={() => form.insertListItem('labels', toRow({}))}>
+              Add label
+            </Button>
+            <Button type="submit" disabled={!form.isValid()}>
+              Save
+            </Button>
+          </Group>
         </Group>
       )}
       <Table>
@@ -473,44 +454,68 @@ function LabelsForm({ labels, isAdmin, onSaved }: { labels: Label[]; isAdmin: bo
 export function FeePage() {
   const { name } = useParams();
   const navigate = useNavigate();
+  const client = useQueryClient();
   const isAdmin = useIsAdmin();
   const tab = name ?? (isAdmin ? 'unprocessed' : 'processed');
+  const { data: activeDossier } = useQuery({ queryKey: ['active-dossier'], queryFn: dossiersApi.activeDossier });
 
-  useEffect(() => {
-    document.title = 'Expenses';
-  }, []);
+  const manualSubmit = () =>
+    openModal({
+      title: 'Add an expense',
+      size: 'lg',
+      closeOnClickOutside: false,
+      render: (close) => (
+        <ManualSubmitForm
+          onSubmit={async (form) => {
+            close();
+            await feesApi.manualSubmit(form);
+            toast.success('Expense added');
+            client.invalidateQueries({ queryKey: ['fees'] });
+          }}
+        />
+      ),
+    });
 
   return (
     <>
-      <PageTitle title="Expenses" />
-      <Tabs value={tab} onChange={(v) => v && navigate(`/fee/${v}`)} keepMounted={false}>
-        <Tabs.List>
+      <PageHeader
+        title="Expenses"
+        description={activeDossier ? `Active dossier: ${activeDossier.name}` : undefined}
+        actions={
+          isAdmin && (
+            <Button leftSection={<Icon icon="plus" />} onClick={manualSubmit}>
+              Add expense
+            </Button>
+          )
+        }
+      />
+      {isAdmin && !activeDossier && (
+        <Alert color="yellow" icon={<Icon icon="exclamation-triangle" />} mb="md" title="No active dossier">
+          Expenses can't be processed until a dossier is opened.
+        </Alert>
+      )}
+      <Tabs className="page-tabs" value={tab} onChange={(v) => v && navigate(`/fee/${v}`)} keepMounted={false}>
+        <Tabs.List mb="md">
           <Tabs.Tab value="unprocessed">Unprocessed</Tabs.Tab>
           <Tabs.Tab value="processed">Processed</Tabs.Tab>
-          <Tabs.Tab value="bookmarks" leftSection={<Icon icon="star" color="orange" />}>
-            Bookmarks
+          <Tabs.Tab value="bookmarks" leftSection={<Icon icon="star" />}>
+            Bookmarked
           </Tabs.Tab>
-          <Tabs.Tab value="labels">Labels</Tabs.Tab>
+          <Tabs.Tab value="labels" ml="auto" leftSection={<Icon icon="tag" />}>
+            Labels
+          </Tabs.Tab>
         </Tabs.List>
-        <Tabs.Panel value="unprocessed" pt="sm">
-          <FullscreenSection>
-            <FeeTable archived={false} />
-          </FullscreenSection>
+        <Tabs.Panel value="unprocessed">
+          <FeeTable archived={false} />
         </Tabs.Panel>
-        <Tabs.Panel value="processed" pt="sm">
-          <FullscreenSection>
-            <FeeTable archived />
-          </FullscreenSection>
+        <Tabs.Panel value="processed">
+          <FeeTable archived />
         </Tabs.Panel>
-        <Tabs.Panel value="bookmarks" pt="sm">
-          <FullscreenSection>
-            <FeeTable bookmarked />
-          </FullscreenSection>
+        <Tabs.Panel value="bookmarks">
+          <FeeTable bookmarked />
         </Tabs.Panel>
-        <Tabs.Panel value="labels" pt="sm">
-          <FullscreenSection>
-            <LabelsEditor />
-          </FullscreenSection>
+        <Tabs.Panel value="labels">
+          <LabelsEditor />
         </Tabs.Panel>
       </Tabs>
     </>

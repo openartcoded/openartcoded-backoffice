@@ -82,8 +82,8 @@ export function rateLabel(r: ClientRate, index: number): string {
 /** rates of a client. A client not migrated yet (only the legacy rate/rateType) is exposed as a single default rate */
 export function clientRates(client?: BillableClient): ClientRate[] {
   if (client?.rates?.length) return client.rates;
-  if (client?.rate !== null && client?.rate !== undefined && client?.rateType) {
-    return [{ id: 'default', rate: client.rate, rateType: client.rateType }];
+  if (client?.rate) {
+    return [{ id: 'default', rate: client.rate, rateType: client.rateType ?? 'DAYS' }];
   }
   return [];
 }

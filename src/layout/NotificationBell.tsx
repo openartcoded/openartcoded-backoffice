@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ActionIcon, Badge, Group, Popover, ScrollArea, Stack, Text, UnstyledButton } from '@mantine/core';
+import { ActionIcon, Group, Indicator, Popover, ScrollArea, Stack, Text, UnstyledButton } from '@mantine/core';
 import { Icon } from '@/components/Icon';
 import { useNotifications } from '@/hooks/notifications';
 import { notificationRoute } from '@/lib/notificationBus';
@@ -22,11 +22,11 @@ export function NotificationBell() {
   return (
     <Popover opened={opened} onChange={setOpened} width={340} position="bottom-end" shadow="md">
       <Popover.Target>
-        <UnstyledButton onClick={() => setOpened((o) => !o)} aria-label="notifications" px={6}>
-          <Badge color={unseenCount > 0 ? 'red' : 'gray'} variant={unseenCount > 0 ? 'filled' : 'light'} circle size="lg">
-            {unseenCount}
-          </Badge>
-        </UnstyledButton>
+        <Indicator label={unseenCount} size={16} color="red" disabled={unseenCount === 0} offset={4}>
+          <ActionIcon variant="subtle" color="gray" size="lg" onClick={() => setOpened((o) => !o)} aria-label="notifications">
+            <Icon icon="bell" />
+          </ActionIcon>
+        </Indicator>
       </Popover.Target>
       <Popover.Dropdown p={0}>
         <Group justify="space-between" px="sm" py={6} className="border-bottom">

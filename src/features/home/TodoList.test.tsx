@@ -30,7 +30,6 @@ describe('TodoList', () => {
     vi.mocked(todoApi.save).mockResolvedValue({ id: '3', title: 'new one', done: false });
     renderWithProviders(<TodoList />);
     await screen.findByText('open task');
-    await userEvent.click(screen.getByLabelText('add todo'));
     await userEvent.type(screen.getByPlaceholderText('New todo...'), 'new one');
     await userEvent.click(screen.getByLabelText('save todo'));
     expect(todoApi.save).toHaveBeenCalledWith({ title: 'new one', done: false });
@@ -56,13 +55,13 @@ describe('PostitBoard', () => {
     vi.mocked(postItApi.save).mockResolvedValue({ id: 'p2', note: 'second', updatedDate: '2026-11-08T10:00:00' });
     renderWithProviders(<PostitBoard />);
     expect(await screen.findByDisplayValue('remember')).toBeInTheDocument();
-    const empty = screen.getAllByPlaceholderText('New postIt...').find((el) => (el as HTMLTextAreaElement).value === '')!;
+    const empty = screen.getAllByPlaceholderText('New note...').find((el) => (el as HTMLTextAreaElement).value === '')!;
     await userEvent.type(empty, 'second');
     const saveButtons = screen.getAllByLabelText('save postit');
     await userEvent.click(saveButtons[saveButtons.length - 1]);
     expect(postItApi.save).toHaveBeenCalledWith({ id: undefined, note: 'second' });
     // a new empty post-it is added after saving the last one
-    await waitFor(() => expect(screen.getAllByPlaceholderText('New postIt...')).toHaveLength(3));
+    await waitFor(() => expect(screen.getAllByPlaceholderText('New note...')).toHaveLength(3));
     expect(within(document.body).getAllByLabelText('delete postit')).toHaveLength(2);
   });
 });

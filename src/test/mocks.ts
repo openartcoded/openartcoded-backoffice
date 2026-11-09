@@ -16,6 +16,6 @@ export function sessionMock(user: User, demoMode = false) {
 /** notification hooks doing nothing */
 export const notificationsMock = () => ({
   useNotificationListener: vi.fn(),
-  useNotifications: vi.fn(),
+  useNotifications: () => ({ notifications: [], unseenCount: 0, toggleSeen: vi.fn(), markAllSeen: vi.fn() }),
   NotificationsProvider: ({ children }: { children: unknown }) => children,
 });

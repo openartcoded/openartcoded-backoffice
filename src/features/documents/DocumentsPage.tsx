@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ActionIcon, Badge, Button, Collapse, FileInput, Grid, Group, Menu, Pagination, Paper, Stack, Table, Tabs, TagsInput, Text, TextInput, UnstyledButton } from '@mantine/core';
+import { Badge, Button, FileInput, Group, Pagination, Popover, Stack, Table, Tabs, TagsInput, Text, TextInput, Tooltip } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useHotkeys } from '@mantine/hooks';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
-import { BookmarkButton, FullscreenSection, PageTitle, ThumbnailPreview, useUploads } from '@/components/common';
-import { canPreview, FileMenuItems, openFileViewer } from '@/components/files';
+import { BookmarkButton, ThumbnailPreview, useUploads } from '@/components/common';
+import { EmptyRow, PageHeader, RowActions, StatusBadge } from '@/components/ui';
+import { canPreview, downloadUpload, openFileViewer } from '@/components/files';
 import { openMailForm } from '@/components/forms';
 import { openModal } from '@/components/modal';
 import { documentsApi, dossiersApi, pdfApi } from '@/api/billing';
@@ -22,41 +23,44 @@ const PAGE_SIZE = 10;
 const emptySearch = { title: '', description: '', tags: [] as string[], dateAfter: '', dateBefore: '' };
 
 function SearchForm({ onSearch }: { onSearch: (v: typeof emptySearch) => void }) {
-  const [opened, setOpened] = useState(true);
   const form = useForm({ initialValues: emptySearch });
+  const extra = [form.values.description, form.values.tags.length].filter(Boolean).length;
   return (
-    <Paper withBorder>
-      <UnstyledButton w="100%" p="sm" onClick={() => setOpened((o) => !o)}>
-        <Group justify="space-between">
-          <Text fw={700}>Search Form</Text>
-          <Icon icon={opened ? 'ellipsis-h' : 'eye'} />
-        </Group>
-      </UnstyledButton>
-      <Collapse in={opened}>
-        <form onSubmit={form.onSubmit(onSearch)}>
-          <Stack gap="xs" p="sm" pt={0}>
-            <TextInput label="Title" {...form.getInputProps('title')} />
-            <TextInput label="Description" {...form.getInputProps('description')} />
-            <TagsInput label="Tags" splitChars={[',']} {...form.getInputProps('tags')} />
-            <TextInput type="date" label="From" {...form.getInputProps('dateAfter')} />
-            <TextInput type="date" label="To" {...form.getInputProps('dateBefore')} />
-            <Group justify="flex-end">
-              <Button type="submit">Submit</Button>
-              <Button
-                variant="outline"
-                color="red"
-                onClick={() => {
-                  form.reset();
-                  onSearch(emptySearch);
-                }}
-              >
-                Reset
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Collapse>
-    </Paper>
+    <form onSubmit={form.onSubmit(onSearch)}>
+      <Group gap="xs" mb="md" wrap="wrap">
+        <TextInput w={240} placeholder="Title" aria-label="Title" leftSection={<Icon icon="search" />} {...form.getInputProps('title')} />
+        <TextInput w={150} type="date" aria-label="From" {...form.getInputProps('dateAfter')} />
+        <TextInput w={150} type="date" aria-label="To" {...form.getInputProps('dateBefore')} />
+        <Popover position="bottom-start" shadow="md" width={300}>
+          <Popover.Target>
+            <Button variant="default" rightSection={extra ? <Badge size="xs" circle>{extra}</Badge> : undefined}>
+              More filters
+            </Button>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <Stack gap="xs">
+              <TextInput label="Description contains" {...form.getInputProps('description')} />
+              <TagsInput label="Tags" splitChars={[',']} {...form.getInputProps('tags')} />
+            </Stack>
+          </Popover.Dropdown>
+        </Popover>
+        <Button type="submit" variant="light">
+          Search
+        </Button>
+        {form.isDirty() && (
+          <Button
+            variant="subtle"
+            color="gray"
+            onClick={() => {
+              form.reset();
+              onSearch(emptySearch);
+            }}
+          >
+            Reset
+          </Button>
+        )}
+      </Group>
+    </form>
   );
 }
 
@@ -64,7 +68,10 @@ function SplitPdf() {
   const [file, setFile] = useState<File | null>(null);
   return (
     <Stack>
-      <FileInput value={file} onChange={setFile} accept=".pdf" placeholder="Select a pdf" />
+      <Text size="sm" c="dimmed">
+        Splits a PDF into one file per page.
+      </Text>
+      <FileInput value={file} onChange={setFile} accept=".pdf" placeholder="Select a PDF" />
       <Button leftSection={<Icon icon="arrows-split-up-and-left" />} disabled={!file} onClick={() => file && pdfApi.split(file)}>
         Split
       </Button>
@@ -95,7 +102,6 @@ export function DocumentTable({ bookmarked }: { bookmarked: boolean }) {
         toast.success('document will be uploaded');
       },
     });
-  useHotkeys(isAdmin ? [['ctrl+k', () => edit()]] : []);
 
   const openRow = (doc: AdministrativeDocument) => {
     const attachment = attachmentOf(doc);
@@ -104,14 +110,14 @@ export function DocumentTable({ bookmarked }: { bookmarked: boolean }) {
   };
 
   const remove = async (doc: AdministrativeDocument) => {
-    if (await confirm('Are you sure you want to delete this document?')) {
+    if (await confirm(`Delete the document ${doc.title ?? ''}?`)) {
       await documentsApi.delete(doc.id!);
       refetch();
     }
   };
 
   const addToDossier = async (doc: AdministrativeDocument) => {
-    if (await confirm('Add document to dossier?', { danger: false })) {
+    if (await confirm(`Add this document to the dossier ${activeDossier?.name ?? ''}?`, { danger: false })) {
       await dossiersApi.addDocument(doc.id!);
       refetch();
       queryClient.invalidateQueries({ queryKey: ['active-dossier'] });
@@ -120,153 +126,158 @@ export function DocumentTable({ bookmarked }: { bookmarked: boolean }) {
 
   const toggleBookmark = async (doc: AdministrativeDocument) => {
     await documentsApi.toggleBookmarked(doc.id!);
-    toast.success('Bookmark toggled. Reload...');
+    toast.success(doc.bookmarked ? 'Bookmark removed' : 'Bookmarked');
     refetch();
   };
 
   return (
-    <>
-      {isAdmin && (
-        <Group justify="flex-end" mb="sm">
-          <Button variant="outline" leftSection={<Icon icon="plus" />} onClick={() => edit()}>
-            Add (ctrl+k)
-          </Button>
-          <Button
-            variant="outline"
-            leftSection={<Icon icon="arrows-split-up-and-left" />}
-            onClick={() => openModal({ title: 'Split PDF', size: 'sm', render: () => <SplitPdf /> })}
-          >
-            Split
-          </Button>
-        </Group>
-      )}
-      <Grid>
-        <Grid.Col span={{ base: 12, lg: 3 }}>
-          <SearchForm
-            onSearch={(v) => {
-              setPage(1);
-              setCriteria({
-                bookmarked,
-                title: v.title.trim() || null,
-                description: v.description.trim() || null,
-                tags: v.tags.length ? v.tags : null,
-                dateBefore: v.dateBefore ? dayjs(v.dateBefore).hour(23).minute(59).toDate() : null,
-                dateAfter: v.dateAfter ? dayjs(v.dateAfter).hour(1).minute(0).toDate() : null,
-              });
-            }}
-          />
-        </Grid.Col>
-        <Grid.Col span={{ base: 12, lg: 9 }}>
-          {docs && (
-            <>
-              <Table className={demoMode ? 'blur' : undefined}>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Title</Table.Th>
-                    <Table.Th visibleFrom="md">Creation Date</Table.Th>
-                    <Table.Th visibleFrom="md">Size</Table.Th>
-                    {isAdmin && <Table.Th w={90}>Actions</Table.Th>}
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {!docs.content.length && (
-                    <Table.Tr>
-                      <Table.Td colSpan={5}>No content</Table.Td>
-                    </Table.Tr>
-                  )}
-                  {docs.content.map((doc) => {
-                    const attachment = attachmentOf(doc);
-                    return (
-                      <Table.Tr key={doc.id} className="clickable" onClick={() => openRow(doc)}>
+    <div className="fill-column">
+      <SearchForm
+        onSearch={(v) => {
+          setPage(1);
+          setCriteria({
+            bookmarked,
+            title: v.title.trim() || null,
+            description: v.description.trim() || null,
+            tags: v.tags.length ? v.tags : null,
+            dateBefore: v.dateBefore ? dayjs(v.dateBefore).hour(23).minute(59).toDate() : null,
+            dateAfter: v.dateAfter ? dayjs(v.dateAfter).hour(1).minute(0).toDate() : null,
+          });
+        }}
+      />
+      {docs && (
+        <>
+          <div className="scroll-body">
+            <Table.ScrollContainer minWidth={560}>
+            <Table className="clickable-rows">
+              <Table.Thead>
+                <Table.Tr>
+                  {isAdmin && <Table.Th w={40} />}
+                  <Table.Th>Title</Table.Th>
+                  <Table.Th visibleFrom="md">Created</Table.Th>
+                  <Table.Th visibleFrom="md" ta="right">
+                    Size
+                  </Table.Th>
+                  <Table.Th w={110} />
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody className={demoMode ? 'blur' : undefined}>
+                {!docs.content.length && <EmptyRow colSpan={5} icon="file-lines" title="No documents" description="Contracts, certificates, statements... anything administrative." />}
+                {docs.content.map((doc) => {
+                  const attachment = attachmentOf(doc);
+                  return (
+                    <Table.Tr key={doc.id} onClick={() => openRow(doc)}>
+                      {isAdmin && (
                         <Table.Td>
-                          <Group gap={4} wrap="nowrap">
-                            <Text size="sm">{trim(doc.title, 40)}</Text>
-                            {doc.tags?.map((t) => (
-                              <Badge key={t} size="xs" variant="light">
-                                {t}
-                              </Badge>
-                            ))}
-                            <ThumbnailPreview thumbnailId={attachment?.thumbnailId} />
-                          </Group>
+                          <BookmarkButton bookmarked={doc.bookmarked} onToggle={() => toggleBookmark(doc)} />
                         </Table.Td>
-                        <Table.Td visibleFrom="md">{fmtDate(doc.dateCreation)}</Table.Td>
-                        <Table.Td visibleFrom="md">{bytesToHuman(attachment?.size)}</Table.Td>
-                        {isAdmin && (
-                          <Table.Td onClick={(e) => e.stopPropagation()}>
-                            <Group gap={0} wrap="nowrap">
-                              <BookmarkButton bookmarked={doc.bookmarked} onToggle={() => toggleBookmark(doc)} />
-                              <Menu position="bottom-end">
-                                <Menu.Target>
-                                  <ActionIcon variant="default" aria-label="document actions">
-                                    <Icon icon="ellipsis-v" />
-                                  </ActionIcon>
-                                </Menu.Target>
-                                <Menu.Dropdown>
-                                  <Menu.Item leftSection={<Icon icon="edit" />} onClick={() => edit(doc)}>
-                                    Edit
-                                  </Menu.Item>
-                                  <Menu.Item leftSection={<Icon icon="trash" />} color="red" disabled={doc.locked} onClick={() => remove(doc)}>
-                                    Delete
-                                  </Menu.Item>
-                                  {attachment && <FileMenuItems file={attachment} />}
-                                  {attachment && (
-                                    <Menu.Item leftSection={<Icon icon="mail-bulk" />} onClick={() => openMailForm({ attachments: [attachment] })}>
-                                      Send
-                                    </Menu.Item>
-                                  )}
-                                  {activeDossier && !doc.locked && (
-                                    <Menu.Item leftSection={<Icon icon="cog" />} onClick={() => addToDossier(doc)}>
-                                      Add to dossier
-                                    </Menu.Item>
-                                  )}
-                                </Menu.Dropdown>
-                              </Menu>
-                            </Group>
-                          </Table.Td>
-                        )}
-                      </Table.Tr>
-                    );
-                  })}
-                </Table.Tbody>
-              </Table>
-              {docs.page.totalPages > 1 && (
-                <Group justify="flex-end" mt="sm">
-                  <Pagination value={page} onChange={setPage} total={docs.page.totalPages} />
-                </Group>
-              )}
-            </>
+                      )}
+                      <Table.Td>
+                        <Group gap={6} wrap="nowrap">
+                          <ThumbnailPreview thumbnailId={attachment?.thumbnailId}>
+                            <Text size="sm" fw={500}>
+                              {trim(doc.title, 50)}
+                            </Text>
+                          </ThumbnailPreview>
+                          {doc.locked && <StatusBadge value="LOCKED" label="In a dossier" color="gray" />}
+                          {doc.tags?.map((t) => (
+                            <Badge key={t} size="sm" variant="default" radius="sm" tt="none" fw={400}>
+                              {t}
+                            </Badge>
+                          ))}
+                        </Group>
+                      </Table.Td>
+                      <Table.Td visibleFrom="md">{fmtDate(doc.dateCreation)}</Table.Td>
+                      <Table.Td visibleFrom="md" ta="right" c="dimmed">
+                        {bytesToHuman(attachment?.size)}
+                      </Table.Td>
+                      <Table.Td>
+                        <RowActions
+                          inline={[
+                            { label: 'Open', icon: 'eye', hidden: !attachment || !canPreview(attachment), onClick: () => attachment && openFileViewer(attachment, { blur: demoMode }) },
+                            { label: 'Download', icon: 'download', hidden: !attachment, onClick: () => attachment && downloadUpload(attachment.id, attachment.originalFilename) },
+                          ]}
+                          groups={
+                            isAdmin
+                              ? [
+                                  [
+                                    { label: 'Edit', icon: 'edit', onClick: () => edit(doc) },
+                                    { label: 'Send by email', icon: 'envelope', hidden: !attachment, onClick: () => attachment && openMailForm({ attachments: [attachment] }) },
+                                    { label: 'Add to dossier', icon: 'folder-open', hidden: !activeDossier || !!doc.locked, onClick: () => addToDossier(doc) },
+                                  ],
+                                  [{ label: 'Delete', icon: 'trash', color: 'red', disabled: doc.locked, onClick: () => remove(doc) }],
+                                ]
+                              : []
+                          }
+                        />
+                      </Table.Td>
+                    </Table.Tr>
+                  );
+                })}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
+          </div>
+          {docs.page.totalPages > 1 && (
+            <Group justify="flex-end" mt="sm">
+              <Pagination value={page} onChange={setPage} total={docs.page.totalPages} />
+            </Group>
           )}
-        </Grid.Col>
-      </Grid>
-    </>
+        </>
+      )}
+    </div>
   );
 }
 
 export function DocumentsPage() {
   const { name = 'home' } = useParams();
   const navigate = useNavigate();
-  useEffect(() => {
-    document.title = 'Administrative Documents';
-  }, []);
+  const isAdmin = useIsAdmin();
+  const edit = () =>
+    openDocumentEditor(
+      { title: '' },
+      {
+        onSubmit: async (form) => {
+          await documentsApi.save(form);
+          toast.success('Document will be uploaded');
+        },
+      },
+    );
+  useHotkeys(isAdmin ? [['alt+n', edit]] : []);
+
   return (
     <>
-      <PageTitle title="Documents" />
-      <Tabs value={name} onChange={(v) => v && navigate(`/documents/${v}`)} keepMounted={false}>
-        <Tabs.List>
-          <Tabs.Tab value="home">Search</Tabs.Tab>
-          <Tabs.Tab value="bookmarks" leftSection={<Icon icon="star" color="orange" />}>
-            Bookmarks
+      <PageHeader
+        title="Documents"
+        documentTitle="Administrative documents"
+        description="Administrative documents, searchable and attachable to a dossier."
+        actions={
+          isAdmin && (
+            <>
+              <Button variant="default" leftSection={<Icon icon="arrows-split-up-and-left" />} onClick={() => openModal({ title: 'Split a PDF', size: 'sm', render: () => <SplitPdf /> })}>
+                Split PDF
+              </Button>
+              <Tooltip label="Alt+N">
+                <Button leftSection={<Icon icon="plus" />} onClick={edit}>
+                  New document
+                </Button>
+              </Tooltip>
+            </>
+          )
+        }
+      />
+      <Tabs className="page-tabs" value={name} onChange={(v) => v && navigate(`/documents/${v}`)} keepMounted={false}>
+        <Tabs.List mb="md">
+          <Tabs.Tab value="home">All</Tabs.Tab>
+          <Tabs.Tab value="bookmarks" leftSection={<Icon icon="star" />}>
+            Bookmarked
           </Tabs.Tab>
         </Tabs.List>
-        <Tabs.Panel value="home" pt="sm">
-          <FullscreenSection>
-            <DocumentTable bookmarked={false} />
-          </FullscreenSection>
+        <Tabs.Panel value="home">
+          <DocumentTable bookmarked={false} />
         </Tabs.Panel>
-        <Tabs.Panel value="bookmarks" pt="sm">
-          <FullscreenSection>
-            <DocumentTable bookmarked />
-          </FullscreenSection>
+        <Tabs.Panel value="bookmarks">
+          <DocumentTable bookmarked />
         </Tabs.Panel>
       </Tabs>
     </>

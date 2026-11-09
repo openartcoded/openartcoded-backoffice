@@ -1,69 +1,74 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ActionIcon, Alert, Anchor, Button, Collapse, Grid, Group, Loader, Menu, Pagination, Paper, Select, SimpleGrid, Stack, Table, Tabs, Text, TextInput, UnstyledButton } from '@mantine/core';
+import { Alert, Anchor, Badge, Button, Group, Loader, Pagination, Paper, Popover, Select, SimpleGrid, Stack, Table, Tabs, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Icon } from '@/components/Icon';
-import { BookmarkButton, CopyButton, FullscreenSection, PageTitle, ThumbnailPreview } from '@/components/common';
-import { FileMenuItems } from '@/components/files';
+import { BookmarkButton, CopyButton, ThumbnailPreview } from '@/components/common';
+import { EmptyRow, PageHeader, RowActions, StatusBadge } from '@/components/ui';
+import { canPreview, downloadUpload, openFileViewer } from '@/components/files';
 import { filesApi } from '@/api/files';
 import { fileSearchApi } from '@/api/misc';
 import { useDemoMode, useIsAdmin } from '@/auth/session';
 import { bytesToHuman, dayjs, fmtDateTime, trim } from '@/lib/format';
 import { toast } from '@/lib/ui';
-import type { FileUploadSearchCriteria } from '@/types';
+import type { FileUpload, FileUploadSearchCriteria } from '@/types';
 import { searchErrorMessage, skippedFiles, snippet, SNIPPET_LENGTH, toDisplayHit, uploadIdFromFileName, type DisplayHit } from './fileSearch';
 
 const PAGE_SIZE = 10;
 const emptySearch = { id: '', correlationId: '', originalFilename: '', dateAfter: '', dateBefore: '', publicResource: null as string | null };
 
 function SearchForm({ isAdmin, onSearch }: { isAdmin: boolean; onSearch: (v: typeof emptySearch) => void }) {
-  const [opened, setOpened] = useState(true);
   const form = useForm({ initialValues: emptySearch });
+  const extra = [form.values.id, form.values.correlationId, form.values.publicResource].filter(Boolean).length;
   return (
-    <Paper withBorder>
-      <UnstyledButton w="100%" p="sm" onClick={() => setOpened((o) => !o)}>
-        <Group justify="space-between">
-          <Text fw={700}>Search Form</Text>
-          <Icon icon={opened ? 'ellipsis-h' : 'eye'} />
-        </Group>
-      </UnstyledButton>
-      <Collapse in={opened}>
-        <form onSubmit={form.onSubmit(onSearch)}>
-          <Stack gap="xs" p="sm" pt={0}>
-            <TextInput label="Id" {...form.getInputProps('id')} />
-            {isAdmin && <TextInput label="Correlation Id" {...form.getInputProps('correlationId')} />}
-            <TextInput label="FileName" {...form.getInputProps('originalFilename')} />
-            <TextInput type="date" label="From" {...form.getInputProps('dateAfter')} />
-            <TextInput type="date" label="To" {...form.getInputProps('dateBefore')} />
-            <Select
-              label="Public"
-              placeholder="Select option..."
-              data={[
-                { value: 'true', label: 'Yes' },
-                { value: 'false', label: 'No' },
-              ]}
-              clearable
-              {...form.getInputProps('publicResource')}
-            />
-            <Group justify="flex-end">
-              <Button type="submit">Submit</Button>
-              <Button
-                variant="outline"
-                color="red"
-                onClick={() => {
-                  form.reset();
-                  onSearch(emptySearch);
-                }}
-              >
-                Reset
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Collapse>
-    </Paper>
+    <form onSubmit={form.onSubmit(onSearch)}>
+      <Group gap="xs" mb="md" wrap="wrap">
+        <TextInput w={240} placeholder="File name" aria-label="File name" leftSection={<Icon icon="search" />} {...form.getInputProps('originalFilename')} />
+        <TextInput w={150} type="date" aria-label="From" {...form.getInputProps('dateAfter')} />
+        <TextInput w={150} type="date" aria-label="To" {...form.getInputProps('dateBefore')} />
+        <Popover position="bottom-start" shadow="md" width={300}>
+          <Popover.Target>
+            <Button variant="default" rightSection={extra ? <Badge size="xs" circle>{extra}</Badge> : undefined}>
+              More filters
+            </Button>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <Stack gap="xs">
+              <TextInput label="Id" {...form.getInputProps('id')} />
+              {isAdmin && <TextInput label="Correlation id" {...form.getInputProps('correlationId')} />}
+              <Select
+                label="Visibility"
+                placeholder="Any"
+                data={[
+                  { value: 'true', label: 'Public' },
+                  { value: 'false', label: 'Private' },
+                ]}
+                clearable
+                comboboxProps={{ withinPortal: false }}
+                {...form.getInputProps('publicResource')}
+              />
+            </Stack>
+          </Popover.Dropdown>
+        </Popover>
+        <Button type="submit" variant="light">
+          Search
+        </Button>
+        {form.isDirty() && (
+          <Button
+            variant="subtle"
+            color="gray"
+            onClick={() => {
+              form.reset();
+              onSearch(emptySearch);
+            }}
+          >
+            Reset
+          </Button>
+        )}
+      </Group>
+    </form>
   );
 }
 
@@ -75,116 +80,103 @@ export function UploadTable({ bookmarked }: { bookmarked: boolean }) {
   const { data: uploads, refetch } = useQuery({ queryKey: ['uploads-search', criteria, page], queryFn: () => filesApi.search(criteria, page - 1, PAGE_SIZE) });
   const { data: links = {} } = useQuery({ queryKey: ['correlation-links'], queryFn: filesApi.correlationLinks });
 
-  const toggleBookmark = async (id: string) => {
-    await filesApi.toggleBookmarked(id);
-    toast.success('Bookmark toggled. Reload...');
+  const toggleBookmark = async (u: FileUpload) => {
+    await filesApi.toggleBookmarked(u.id);
+    toast.success(u.bookmarked ? 'Bookmark removed' : 'Bookmarked');
     refetch();
   };
 
   return (
-    <>
-      {uploads && isAdmin && (
-        <Text fw={700} ta="right" mb="sm">
-          Total: {uploads.page.totalElements}
-        </Text>
-      )}
-      <Grid>
-        <Grid.Col span={{ base: 12, lg: 3 }}>
-          <SearchForm
-            isAdmin={isAdmin}
-            onSearch={(v) => {
-              setPage(1);
-              setCriteria({
-                bookmarked,
-                id: v.id.trim() || null,
-                correlationId: v.correlationId.trim() || null,
-                originalFilename: v.originalFilename || null,
-                publicResource: v.publicResource === null ? null : v.publicResource === 'true',
-                dateBefore: v.dateBefore ? dayjs(v.dateBefore).hour(23).minute(59).toDate() : null,
-                dateAfter: v.dateAfter ? dayjs(v.dateAfter).hour(1).minute(0).toDate() : null,
-              });
-            }}
-          />
-        </Grid.Col>
-        <Grid.Col span={{ base: 12, lg: 9 }}>
-          {uploads && (
-            <>
-              <Table.ScrollContainer minWidth={600}>
-                <Table className={demoMode ? 'blur' : undefined}>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>Creation Date</Table.Th>
-                      <Table.Th>Filename</Table.Th>
-                      {isAdmin && <Table.Th>Correlation</Table.Th>}
-                      <Table.Th>Public</Table.Th>
-                      <Table.Th>Size</Table.Th>
-                      {isAdmin && <Table.Th w={90}>Actions</Table.Th>}
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {!uploads.content.length && (
-                      <Table.Tr>
-                        <Table.Td colSpan={6}>No content</Table.Td>
-                      </Table.Tr>
+    <div className="fill-column">
+      <SearchForm
+        isAdmin={isAdmin}
+        onSearch={(v) => {
+          setPage(1);
+          setCriteria({
+            bookmarked,
+            id: v.id.trim() || null,
+            correlationId: v.correlationId.trim() || null,
+            originalFilename: v.originalFilename || null,
+            publicResource: v.publicResource === null ? null : v.publicResource === 'true',
+            dateBefore: v.dateBefore ? dayjs(v.dateBefore).hour(23).minute(59).toDate() : null,
+            dateAfter: v.dateAfter ? dayjs(v.dateAfter).hour(1).minute(0).toDate() : null,
+          });
+        }}
+      />
+      {uploads && (
+        <>
+          <div className="scroll-body">
+            <Table.ScrollContainer minWidth={640}>
+            <Table>
+              <Table.Thead>
+                <Table.Tr>
+                  {isAdmin && <Table.Th w={40} />}
+                  <Table.Th>File</Table.Th>
+                  {isAdmin && <Table.Th visibleFrom="md">Linked to</Table.Th>}
+                  <Table.Th visibleFrom="sm">Uploaded</Table.Th>
+                  <Table.Th visibleFrom="sm" ta="right">
+                    Size
+                  </Table.Th>
+                  <Table.Th w={110} />
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody className={demoMode ? 'blur' : undefined}>
+                {!uploads.content.length && <EmptyRow colSpan={6} icon="upload" title="No files" />}
+                {uploads.content.map((u) => (
+                  <Table.Tr key={u.id}>
+                    {isAdmin && (
+                      <Table.Td>
+                        <BookmarkButton bookmarked={u.bookmarked} onToggle={() => toggleBookmark(u)} />
+                      </Table.Td>
                     )}
-                    {uploads.content.map((u) => (
-                      <Table.Tr key={u.id}>
-                        <Table.Td>{fmtDateTime(u.creationDate)}</Table.Td>
-                        <Table.Td>
-                          <Group gap={4} wrap="nowrap">
-                            <Text size="sm" className="text-break">
-                              {trim(u.originalFilename, 40)}
-                            </Text>
-                            <ThumbnailPreview thumbnailId={u.thumbnailId} />
-                          </Group>
-                        </Table.Td>
-                        {isAdmin && (
-                          <Table.Td>
-                            <CopyButton
-                              variant="subtle"
-                              text={u.correlationId}
-                              label={(u.correlationId && links[u.correlationId]) || 'N/A'}
-                              successMessage="Correlation Id copied"
-                            />
-                          </Table.Td>
+                    <Table.Td>
+                      <Group gap={6} wrap="nowrap">
+                        <ThumbnailPreview thumbnailId={u.thumbnailId}>
+                          <Text size="sm" fw={500} className="text-break">
+                            {trim(u.originalFilename, 50)}
+                          </Text>
+                        </ThumbnailPreview>
+                        {u.publicResource && <StatusBadge value="PUBLIC" label="Public" color="blue" />}
+                      </Group>
+                    </Table.Td>
+                    {isAdmin && (
+                      <Table.Td visibleFrom="md">
+                        {u.correlationId ? (
+                          <CopyButton variant="subtle" color="gray" text={u.correlationId} label={links[u.correlationId] || 'Copy id'} successMessage="Correlation id copied" />
+                        ) : (
+                          <Text size="sm" c="dimmed">
+                            —
+                          </Text>
                         )}
-                        <Table.Td>{u.publicResource ? 'Yes' : 'No'}</Table.Td>
-                        <Table.Td>{bytesToHuman(u.size)}</Table.Td>
-                        {isAdmin && (
-                          <Table.Td>
-                            <Group gap={0} wrap="nowrap">
-                              <BookmarkButton bookmarked={u.bookmarked} onToggle={() => toggleBookmark(u.id)} />
-                              <Menu position="bottom-end">
-                                <Menu.Target>
-                                  <ActionIcon variant="default" aria-label="upload actions">
-                                    <Icon icon="ellipsis-v" />
-                                  </ActionIcon>
-                                </Menu.Target>
-                                <Menu.Dropdown>
-                                  <FileMenuItems file={u} />
-                                  <Menu.Item leftSection={<Icon icon="trash" />} disabled>
-                                    Delete (disabled)
-                                  </Menu.Item>
-                                </Menu.Dropdown>
-                              </Menu>
-                            </Group>
-                          </Table.Td>
-                        )}
-                      </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
-              </Table.ScrollContainer>
-              {uploads.page.totalPages > 1 && (
-                <Group justify="flex-end" mt="sm">
-                  <Pagination value={page} onChange={setPage} total={uploads.page.totalPages} />
-                </Group>
-              )}
-            </>
-          )}
-        </Grid.Col>
-      </Grid>
-    </>
+                      </Table.Td>
+                    )}
+                    <Table.Td visibleFrom="sm">{fmtDateTime(u.creationDate)}</Table.Td>
+                    <Table.Td visibleFrom="sm" ta="right" c="dimmed">
+                      {bytesToHuman(u.size)}
+                    </Table.Td>
+                    <Table.Td>
+                      <RowActions
+                        inline={[
+                          { label: 'Open', icon: 'eye', hidden: !canPreview(u), onClick: () => openFileViewer(u) },
+                          { label: 'Download', icon: 'download', onClick: () => downloadUpload(u.id, u.originalFilename) },
+                        ]}
+                      />
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
+          </div>
+          <Group justify="space-between" mt="sm">
+            <Text size="sm" c="dimmed">
+              {uploads.page.totalElements} file(s)
+            </Text>
+            {uploads.page.totalPages > 1 && <Pagination value={page} onChange={setPage} total={uploads.page.totalPages} />}
+          </Group>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -320,32 +312,27 @@ export function FuzzySearch() {
 export function UploadsPage() {
   const { name = 'home' } = useParams();
   const navigate = useNavigate();
-  useEffect(() => {
-    document.title = 'Uploads';
-  }, []);
   return (
     <>
-      <PageTitle title="Uploads" />
-      <Tabs value={name} onChange={(v) => v && navigate(`/file-upload/${v}`)} keepMounted={false}>
-        <Tabs.List>
-          <Tabs.Tab value="home">Search</Tabs.Tab>
-          <Tabs.Tab value="fuzzy-search">Fuzzy search</Tabs.Tab>
-          <Tabs.Tab value="bookmarks" leftSection={<Icon icon="star" color="orange" />}>
-            Bookmarks
+      <PageHeader title="Uploads" description="Every file stored by the backoffice: attachments, generated PDFs, images..." />
+      <Tabs className="page-tabs" value={name} onChange={(v) => v && navigate(`/file-upload/${v}`)} keepMounted={false}>
+        <Tabs.List mb="md">
+          <Tabs.Tab value="home">All files</Tabs.Tab>
+          <Tabs.Tab value="bookmarks" leftSection={<Icon icon="star" />}>
+            Bookmarked
+          </Tabs.Tab>
+          <Tabs.Tab value="fuzzy-search" leftSection={<Icon icon="search" />}>
+            Search in content
           </Tabs.Tab>
         </Tabs.List>
-        <Tabs.Panel value="home" pt="sm">
-          <FullscreenSection>
-            <UploadTable bookmarked={false} />
-          </FullscreenSection>
+        <Tabs.Panel value="home">
+          <UploadTable bookmarked={false} />
         </Tabs.Panel>
-        <Tabs.Panel value="fuzzy-search" pt="sm">
+        <Tabs.Panel value="fuzzy-search">
           <FuzzySearch />
         </Tabs.Panel>
-        <Tabs.Panel value="bookmarks" pt="sm">
-          <FullscreenSection>
-            <UploadTable bookmarked />
-          </FullscreenSection>
+        <Tabs.Panel value="bookmarks">
+          <UploadTable bookmarked />
         </Tabs.Panel>
       </Tabs>
     </>

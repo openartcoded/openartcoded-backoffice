@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ActionIcon, Button, Code, FileInput, Group, Loader, ScrollArea, Stack } from '@mantine/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
-import { PageTitle } from '@/components/common';
+import { PageHeader } from '@/components/ui';
 import { cvApi } from '@/api/misc';
 import { saveBlob } from '@/api/http';
 import { toast } from '@/lib/ui';
@@ -15,9 +15,6 @@ export function CvEditorPage() {
   const { data: cv } = useQuery({ queryKey: ['cv'], queryFn: cvApi.full });
   const [file, setFile] = useState<File | null>(null);
 
-  useEffect(() => {
-    document.title = 'Cv Editor';
-  }, []);
 
   if (!cv) return <Loader />;
   const json = JSON.stringify(cv, null, 2);
@@ -35,7 +32,7 @@ export function CvEditorPage() {
 
   return (
     <>
-      <PageTitle title="Import/Export" />
+      <PageHeader title="Import / export" description="The whole curriculum as JSON." back={{ to: '/cv', label: 'Curriculum' }} />
       <Stack>
         <Group align="flex-end">
           <FileInput style={{ flex: 1 }} label="Import" accept="application/json" value={file} onChange={setFile} />
@@ -46,7 +43,7 @@ export function CvEditorPage() {
             <Icon icon="download" />
           </ActionIcon>
         </Group>
-        <ScrollArea h="75vh">
+        <ScrollArea>
           <Code block>{json}</Code>
         </ScrollArea>
       </Stack>

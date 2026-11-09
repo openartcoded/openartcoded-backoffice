@@ -1,26 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ActionIcon, Box, Button, Divider, Group, Loader, Text, Title, Tooltip, type ButtonProps } from '@mantine/core';
-import { useHotkeys } from '@mantine/hooks';
+import { ActionIcon, Button, Loader, Text, Tooltip, type ButtonProps } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from './Icon';
 import { filesApi } from '@/api/files';
 import { copyToClipboard } from '@/lib/ui';
 import { fmtDateTime } from '@/lib/format';
 import type { DateLike, FileUpload } from '@/types';
-
-export function PageTitle({ title, order = 2, children }: { title: string; order?: 2 | 3 | 4; children?: ReactNode }) {
-  return (
-    <Box mb="md" pt="xs">
-      <Group justify="space-between" align="center">
-        <Title order={order} c="dimmed" tt="uppercase" fw={600}>
-          {title}
-        </Title>
-        {children}
-      </Group>
-      <Divider mt={4} size="sm" />
-    </Box>
-  );
-}
 
 export function CopyButton({
   text,
@@ -80,40 +65,57 @@ export function Blur({ active, children }: { active?: boolean; children: ReactNo
 /** loads an authenticated image (upload id) */
 export function AuthImage({ id, alt = '', width, className }: { id?: string; alt?: string; width?: number | string; className?: string }) {
   const [src, setSrc] = useState<string>();
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
     if (!id) return;
     let url: string | undefined;
     let cancelled = false;
+    setSrc(undefined);
+    setFailed(false);
     filesApi
       .objectUrl(id)
       .then((u) => {
         url = u;
-        if (!cancelled) setSrc(u);
+        if (cancelled) URL.revokeObjectURL(u);
+        else setSrc(u);
       })
-      .catch(() => setSrc(undefined));
+      .catch(() => !cancelled && setFailed(true));
     return () => {
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
   }, [id]);
   if (!id) return null;
+  if (failed) {
+    return (
+      <Text size="xs" c="dimmed">
+        Image unavailable
+      </Text>
+    );
+  }
   if (!src) return <Loader size="sm" />;
   return <img src={src} alt={alt} width={width} className={className} style={{ maxWidth: '100%' }} />;
 }
 
-/** small info icon showing the thumbnail of an upload on hover */
-export function ThumbnailPreview({ thumbnailId }: { thumbnailId?: string }) {
+/** shows the thumbnail of an upload when hovering the children (or a small icon when there are no children) */
+export function ThumbnailPreview({ thumbnailId, children }: { thumbnailId?: string; children?: ReactNode }) {
   return (
     <Tooltip
       disabled={!thumbnailId}
-      label={<AuthImage id={thumbnailId} width={300} />}
+      label={<AuthImage id={thumbnailId} width={280} />}
       color="white"
       withArrow
+      openDelay={200}
+      styles={{ tooltip: { boxShadow: 'var(--mantine-shadow-md)', border: '1px solid var(--mantine-color-default-border)', padding: 4 } }}
       events={{ hover: true, focus: false, touch: true }}
     >
-      <ActionIcon variant="subtle" color="gray" size="sm" disabled={!thumbnailId} onClick={(e) => e.stopPropagation()}>
-        <Icon icon="info-circle" />
-      </ActionIcon>
+      {children ? (
+        <span>{children}</span>
+      ) : (
+        <ActionIcon variant="subtle" color="gray" size="sm" disabled={!thumbnailId} onClick={(e) => e.stopPropagation()} aria-label="preview">
+          <Icon icon="eye" />
+        </ActionIcon>
+      )}
     </Tooltip>
   );
 }
@@ -126,22 +128,6 @@ export function useUploads(ids: string[] | undefined) {
     queryFn: () => filesApi.findByIds(ids ?? [], false),
     enabled: !!ids,
   });
-}
-
-/** wraps a section that can be expanded to the whole screen (esc to exit) */
-export function FullscreenSection({ children }: { children: ReactNode }) {
-  const [fullscreen, setFullscreen] = useState(false);
-  useHotkeys([['Escape', () => setFullscreen(false)]]);
-  return (
-    <Box className={fullscreen ? 'fullscreen' : undefined} p={fullscreen ? 'md' : 0}>
-      <Group justify="flex-end" mb={4}>
-        <ActionIcon variant="subtle" color="dark" onClick={() => setFullscreen((f) => !f)} aria-label="fullscreen">
-          <Icon icon="expand-arrows-alt" />
-        </ActionIcon>
-      </Group>
-      {children}
-    </Box>
-  );
 }
 
 export function NoContent({ children = 'No content.' }: { children?: ReactNode }) {

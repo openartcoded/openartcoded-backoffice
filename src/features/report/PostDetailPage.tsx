@@ -1,15 +1,17 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ActionIcon, Badge, Box, Button, Group, Image, Loader, Paper, Stack, Tabs, Text, Title } from '@mantine/core';
+import { Badge, Box, Button, Group, Loader, Stack, Tabs, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
 import { AuthImage } from '@/components/common';
 import { Markdown } from '@/components/markdown';
+import { EmptyState, humanize, PageHeader, StatusBadge } from '@/components/ui';
 import { reportApi } from '@/api/misc';
 import { useMe } from '@/auth/session';
 import { fmtDateTime, titleCase } from '@/lib/format';
 import { ChannelPanel, PostAttachments, ScrumBoard, useChannel } from './components';
-import { priorityEmoji, statusEmoji, unreadMessages } from './logic';
+import { unreadMessages } from './logic';
+import { postUrl } from './ReportsPage';
 
 export function PostDetailPage() {
   const { id = '' } = useParams();
@@ -28,63 +30,79 @@ export function PostDetailPage() {
   const unread = unreadMessages(channel?.messages, me?.email);
 
   return (
-    <Stack>
-      <Group>
-        <Button variant="outline" leftSection={<Icon icon="arrow-left" />} onClick={() => navigate('/report')}>
-          Back
-        </Button>
-      </Group>
-      <Box maw={900}>
-        {post.coverId ? <AuthImage id={post.coverId} alt="Cover image" /> : <Image src="/assets/img/no-cover.png" alt="No cover available" h={200} fit="contain" />}
-      </Box>
-      <Tabs defaultValue="metadata" keepMounted={false}>
-        <Tabs.List>
-          <Tabs.Tab value="metadata">Metadata</Tabs.Tab>
-          {!!post.content?.length && <Tabs.Tab value="content">Content</Tabs.Tab>}
-          {!!post.attachmentIds?.length && <Tabs.Tab value="attachments">Attachments</Tabs.Tab>}
+    <>
+      <PageHeader
+        title={titleCase(post.title)}
+        documentTitle={post.title}
+        back={{ to: '/report', label: 'Reports' }}
+        description={
+          <Group gap={6} component="span">
+            <StatusBadge value={post.status} />
+            <StatusBadge value={post.priority} label={`${humanize(post.priority)} priority`} />
+            {post.tags?.map((t) => (
+              <Badge key={t} size="sm" variant="default" radius="sm" tt="none" fw={400}>
+                #{t}
+              </Badge>
+            ))}
+            <Text span size="xs" c="dimmed">
+              Updated {fmtDateTime(post.updatedDate)}
+            </Text>
+          </Group>
+        }
+        actions={
+          <>
+            <Button variant="default" leftSection={<Icon icon="file-pdf" />} onClick={() => reportApi.generatePdf(post.id!)}>
+              PDF
+            </Button>
+            <Button leftSection={<Icon icon="edit" />} onClick={() => navigate(postUrl(post, true))}>
+              Edit
+            </Button>
+          </>
+        }
+      />
+      <Tabs className="page-tabs" defaultValue="overview" keepMounted={false}>
+        <Tabs.List mb="md">
+          <Tabs.Tab value="overview">Overview</Tabs.Tab>
+          <Tabs.Tab value="tasks">Board</Tabs.Tab>
           {me && (
-            <Tabs.Tab value="channel" rightSection={<Badge size="xs" color={unread ? 'red' : 'gray'}>{unread}</Badge>}>
-              Channel
+            <Tabs.Tab
+              value="channel"
+              rightSection={
+                !!unread && (
+                  <Badge size="xs" color="red" circle>
+                    {unread}
+                  </Badge>
+                )
+              }
+            >
+              Discussion
             </Tabs.Tab>
           )}
-          <Tabs.Tab value="tasks">Tasks</Tabs.Tab>
+          {!!post.attachmentIds?.length && <Tabs.Tab value="attachments">Attachments ({post.attachmentIds.length})</Tabs.Tab>}
         </Tabs.List>
-        <Tabs.Panel value="metadata" pt="sm">
-          <Paper withBorder p="md">
-            <Group justify="space-between">
-              <Title order={4}>
-                {priorityEmoji(post.priority)} {statusEmoji(post.status)} {titleCase(post.title)}
-              </Title>
-              <ActionIcon variant="subtle" color="red" onClick={() => reportApi.generatePdf(post.id!)} aria-label="generate pdf">
-                <Icon icon="file-pdf" />
-              </ActionIcon>
-            </Group>
-            <Text size="xs" c="dimmed">
-              Last updated: {fmtDateTime(post.updatedDate)}
-            </Text>
-            <Text mt="sm">{post.description}</Text>
-            <Group gap={4} mt="sm">
-              {post.tags?.map((t) => (
-                <Badge key={t} variant="light" tt="none">
-                  #{t}
-                </Badge>
-              ))}
-            </Group>
-          </Paper>
+        <Tabs.Panel value="overview">
+          <Stack gap="lg" maw={960}>
+            {post.coverId && (
+              <Box className="post-cover">
+                <AuthImage id={post.coverId} alt="Cover image" />
+              </Box>
+            )}
+            {post.description && (
+              <Text c="dimmed" fs="italic">
+                {post.description}
+              </Text>
+            )}
+            {post.content?.length ? <Markdown source={post.content} /> : <EmptyState icon="file-lines" title="No content yet" />}
+          </Stack>
         </Tabs.Panel>
-        <Tabs.Panel value="content" pt="sm">
-          <Markdown source={post.content} />
-        </Tabs.Panel>
-        <Tabs.Panel value="attachments" pt="sm">
+        <Tabs.Panel value="attachments">
           <PostAttachments post={post} />
         </Tabs.Panel>
-        <Tabs.Panel value="channel" pt="sm">
-          {me && <ChannelPanel post={post} user={me} />}
-        </Tabs.Panel>
-        <Tabs.Panel value="tasks" pt="sm">
+        <Tabs.Panel value="channel">{me && <ChannelPanel post={post} user={me} />}</Tabs.Panel>
+        <Tabs.Panel value="tasks">
           <ScrumBoard post={post} />
         </Tabs.Panel>
       </Tabs>
-    </Stack>
+    </>
   );
 }

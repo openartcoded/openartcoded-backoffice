@@ -7,6 +7,7 @@ vi.mock('./http', () => ({
   postText: vi.fn().mockResolvedValue(''),
   download: vi.fn().mockResolvedValue(undefined),
   fetchObjectUrl: vi.fn(),
+  fetchBlob: vi.fn(),
   http: { defaults: { baseURL: 'http://backend' }, get: vi.fn() },
 }));
 

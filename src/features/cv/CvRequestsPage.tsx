@@ -1,8 +1,8 @@
-import { Fragment, useEffect } from 'react';
+import { Fragment } from 'react';
 import { ActionIcon, Table } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
-import { PageTitle } from '@/components/common';
+import { PageHeader } from '@/components/ui';
 import { cvApi } from '@/api/misc';
 import { fmtDateTime } from '@/lib/format';
 import { confirm } from '@/lib/ui';
@@ -10,13 +10,10 @@ import { confirm } from '@/lib/ui';
 export function CvRequestsPage() {
   const { data: requests, refetch } = useQuery({ queryKey: ['cv-requests'], queryFn: cvApi.downloadRequests });
 
-  useEffect(() => {
-    document.title = 'CV Requests';
-  }, []);
 
   return (
     <>
-      <PageTitle title="CV Download Requests" />
+      <PageHeader title="CV download requests" back={{ to: '/cv', label: 'Curriculum' }} />
       <Table>
         <Table.Thead>
           <Table.Tr>
@@ -25,7 +22,7 @@ export function CvRequestsPage() {
             <Table.Th>Daily rate</Table.Th>
             <Table.Th>Availability</Table.Th>
             <Table.Th>Date received</Table.Th>
-            <Table.Th w={60}>Action</Table.Th>
+            <Table.Th w={60} />
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -43,7 +40,7 @@ export function CvRequestsPage() {
                     color="red"
                     aria-label="delete"
                     onClick={async () => {
-                      if (await confirm('Are you sure you want to delete this row?')) {
+                      if (await confirm(`Delete the request of ${r.email ?? ''}?`)) {
                         await cvApi.deleteDownloadRequest(r.id!);
                         refetch();
                       }

@@ -33,18 +33,20 @@ describe('TasksPage', () => {
   it('shows all the enabled tasks and the disabled ones on demand', async () => {
     renderWithProviders(<TasksPage />);
     await screen.findByText('Pay taxes');
-    await userEvent.click(screen.getByText('Show all'));
+    await userEvent.click(screen.getByLabelText('Day'));
+    await userEvent.click(await screen.findByRole('option', { name: 'All days' }));
     expect(screen.getByText('Backup')).toBeInTheDocument();
     expect(screen.queryByText('Old one')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByLabelText('Hide Disabled'));
+    await userEvent.click(screen.getByLabelText('Hide disabled'));
     expect(screen.getByText('Old one')).toBeInTheDocument();
   });
 
   it('hides the actions', async () => {
     renderWithProviders(<TasksPage />);
     await screen.findByText('Pay taxes');
-    await userEvent.click(screen.getByText('Show all'));
-    await userEvent.click(screen.getByLabelText('Show Actions'));
+    await userEvent.click(screen.getByLabelText('Day'));
+    await userEvent.click(await screen.findByRole('option', { name: 'All days' }));
+    await userEvent.click(screen.getByLabelText('Show actions'));
     expect(screen.queryByText('Backup')).not.toBeInTheDocument();
   });
 

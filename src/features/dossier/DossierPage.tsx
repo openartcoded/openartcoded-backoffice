@@ -1,17 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ActionIcon, Button, FileInput, Group, Menu, Pagination, Stack, Table, Tabs } from '@mantine/core';
+import { Anchor, Button, FileInput, Group, Loader, Pagination, Paper, SimpleGrid, Stack, Table, Tabs, Text, Tooltip } from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
-import { BookmarkButton, FullscreenSection, ImportedInfo, PageTitle } from '@/components/common';
+import { BookmarkButton, ImportedInfo } from '@/components/common';
+import { downloadUpload } from '@/components/files';
+import { EmptyRow, EmptyState, MoneyCell, PageHeader, RowActions, Stat, StatusBadge } from '@/components/ui';
 import { openMailForm } from '@/components/forms';
 import { openModal } from '@/components/modal';
+import { openDrawer } from '@/components/drawer';
 import { dossiersApi } from '@/api/billing';
 import { filesApi } from '@/api/files';
 import { errorMessage } from '@/api/http';
 import { useDemoMode, useIsAdmin } from '@/auth/session';
-import { fmtCurrency, fmtDateTime } from '@/lib/format';
+import { fmtCurrency, fmtDate, fmtDateTime } from '@/lib/format';
 import { confirm, toast } from '@/lib/ui';
 import type { Dossier, SortCriteria } from '@/types';
 import { DossierForm } from './DossierForm';
@@ -23,9 +26,12 @@ function ImportForm({ onImport }: { onImport: (file: File) => void }) {
   const [file, setFile] = useState<File | null>(null);
   return (
     <Stack>
-      <Button variant="outline" onClick={() => dossiersApi.importExample()}>
-        Download example
-      </Button>
+      <Text size="sm" c="dimmed">
+        Import closed dossiers from a zip.{' '}
+        <Anchor size="sm" onClick={() => dossiersApi.importExample()}>
+          Download an example
+        </Anchor>
+      </Text>
       <FileInput value={file} onChange={setFile} accept=".zip" placeholder="Select a zip" />
       <Button leftSection={<Icon icon="plus" />} disabled={!file} onClick={() => file && onImport(file)}>
         Import
@@ -82,9 +88,9 @@ export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmar
   };
 
   const open = (dossier: Dossier = { name: null, advancePayments: [] }, recallForModification = false) =>
-    openModal({
-      title: `Dossier <${dossier.name || 'New Dossier'}>`,
-      size: 'xl',
+    openDrawer({
+      title: dossier.name ? `Dossier ${dossier.name}` : 'New dossier',
+      size: 1000,
       closeOnClickOutside: false,
       render: () => <DossierEditor initial={dossier} recallForModification={recallForModification} onChanged={reload} />,
     });
@@ -93,19 +99,196 @@ export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmar
     if (!isAdmin || content.length > 0) return;
     open(await dossiersApi.fromPrevious());
   };
-  useHotkeys(!closed && !bookmarked ? [['ctrl+k', fromPrevious]] : []);
+  useHotkeys(!closed && !bookmarked ? [['alt+n', fromPrevious]] : []);
 
   const closeActive = async () => {
-    if (!(await confirm('Are you sure you want to close the dossier?'))) return;
+    if (!(await confirm('Close the dossier? Its archive (zip) will be generated and downloaded.', { danger: false }))) return;
     toast.success('Dossier closed. Generating ZIP');
     const d = await dossiersApi.closeActiveDossier();
     if (d.dossierUploadId) await filesApi.download(d.dossierUploadId);
     reload();
   };
 
+  const sendMail = async (d: Dossier) => {
+    if (!d.dossierUploadId) return;
+    openMailForm({ attachments: [await filesApi.findById(d.dossierUploadId)], context: { Name: d.name } });
+  };
+
+  const modify = async (d: Dossier) => {
+    if (await confirm('Reopen this closed dossier to change it?', { danger: false })) open(d, true);
+  };
+
+  const toggleBookmark = async (d: Dossier) => {
+    await dossiersApi.toggleBookmarked(d.id!);
+    toast.success(d.bookmarked ? 'Bookmark removed' : 'Bookmarked');
+    refetch();
+  };
+
+  const removeActive = async () => {
+    if (!(await confirm('Delete the active dossier? It has no expense nor invoice.'))) return;
+    await dossiersApi.deleteActiveDossier();
+    reload();
+  };
+
+  if (!dossiers) return <Loader />;
+
+  // open tab: the active dossier as a card, or how to start one
+  if (!closed && !bookmarked) {
+    if (!active) {
+      return (
+        <Paper withBorder>
+          <EmptyState
+            icon="folder-open"
+            title="No active dossier"
+            description="Expenses and invoices are processed into the active dossier. Start one for the current period."
+            action={
+              isAdmin && (
+                <Group gap="xs" mt="xs">
+                  <Button variant="default" onClick={() => open()}>
+                    Empty dossier
+                  </Button>
+                  <Tooltip label="Alt+N">
+                    <Button leftSection={<Icon icon="plus" />} onClick={fromPrevious}>
+                      From the previous dossier
+                    </Button>
+                  </Tooltip>
+                </Group>
+              )
+            }
+          />
+        </Paper>
+      );
+    }
+    const empty = !active.feeIds?.length && !active.invoiceIds?.length;
+    return (
+      <Paper withBorder p="lg" className={demoMode ? 'blur' : undefined}>
+        <Group justify="space-between" align="flex-start" mb="md">
+          <div>
+            <Group gap="xs">
+              <Text fw={600} size="lg">
+                {active.name}
+              </Text>
+              <StatusBadge value="ACTIVE" label="Active" color="green" />
+              <ImportedInfo imported={active.imported} date={active.importedDate} />
+            </Group>
+            {active.description && (
+              <Text size="sm" c="dimmed" mt={2}>
+                {active.description}
+              </Text>
+            )}
+          </div>
+          <Group gap="xs">
+            {isAdmin && empty && (
+              <Button variant="subtle" color="red" onClick={removeActive}>
+                Delete
+              </Button>
+            )}
+            {isAdmin && (
+              <Tooltip label="Add expenses or invoices first" disabled={!empty}>
+                <Button variant="default" leftSection={<Icon icon="check" />} disabled={empty} onClick={closeActive}>
+                  Close dossier
+                </Button>
+              </Tooltip>
+            )}
+            <Button leftSection={<Icon icon="folder-open" />} onClick={() => open(active)}>
+              Open
+            </Button>
+          </Group>
+        </Group>
+        <SimpleGrid cols={{ base: 2, sm: 4 }}>
+          <Stat label="Expenses" value={active.feeIds?.length ?? 0} />
+          <Stat label="Invoices" value={active.invoiceIds?.length ?? 0} />
+          <Stat label="VAT to pay (estimate)" value={fmtCurrency(active.tvaToBePaid)} strong />
+          <Stat label="Last update" value={fmtDateTime(active.updatedDate)} />
+        </SimpleGrid>
+      </Paper>
+    );
+  }
+
+  return (
+    <div className="fill-column">
+      <div className="scroll-body">
+        <Table.ScrollContainer minWidth={600}>
+        <Table className="clickable-rows">
+          <Table.Thead>
+            <Table.Tr>
+              {isAdmin && <Table.Th w={40} />}
+              <Table.Th>Name</Table.Th>
+              <Table.Th visibleFrom="md">Description</Table.Th>
+              <Table.Th ta="center">Expenses</Table.Th>
+              <Table.Th ta="center">Invoices</Table.Th>
+              <Table.Th ta="right">VAT due</Table.Th>
+              <Table.Th visibleFrom="md">Updated</Table.Th>
+              <Table.Th w={110} />
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody className={demoMode ? 'blur' : undefined}>
+            {!content.length && (
+              <EmptyRow
+                colSpan={8}
+                icon="folder-open"
+                title={bookmarked ? 'No bookmarked dossier' : 'No closed dossier'}
+                description={bookmarked ? 'Star a dossier to find it here.' : 'Closed dossiers and their archives show up here.'}
+              />
+            )}
+            {content.map((d) => (
+              <Table.Tr key={d.id} onClick={() => open(d)}>
+                {isAdmin && (
+                  <Table.Td>
+                    <BookmarkButton bookmarked={d.bookmarked} onToggle={() => toggleBookmark(d)} />
+                  </Table.Td>
+                )}
+                <Table.Td>
+                  <Group gap={4} wrap="nowrap">
+                    <Text size="sm" fw={500}>
+                      {d.name}
+                    </Text>
+                    <ImportedInfo imported={d.imported} date={d.importedDate} />
+                  </Group>
+                </Table.Td>
+                <Table.Td visibleFrom="md" c="dimmed">
+                  <Text size="sm" lineClamp={1}>
+                    {d.description}
+                  </Text>
+                </Table.Td>
+                <Table.Td ta="center">{d.feeIds?.length ?? 0}</Table.Td>
+                <Table.Td ta="center">{d.invoiceIds?.length ?? 0}</Table.Td>
+                <MoneyCell value={d.closed ? (d.tvaDue ?? 0) : d.tvaToBePaid} />
+                <Table.Td visibleFrom="md">{fmtDate(d.updatedDate)}</Table.Td>
+                <Table.Td>
+                  <RowActions
+                    inline={[{ label: 'Download', icon: 'download', hidden: !d.closed, disabled: !d.dossierUploadId, onClick: () => downloadUpload(d.dossierUploadId!) }]}
+                    groups={[
+                      [
+                        { label: 'Send by email', icon: 'envelope', hidden: !isAdmin || !d.closed, onClick: () => sendMail(d) },
+                        { label: 'Reopen for changes', icon: 'edit', hidden: !isAdmin || !d.closed, onClick: () => modify(d) },
+                      ],
+                    ]}
+                  />
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
+      </div>
+      {dossiers.page.totalPages > 1 && (
+        <Group justify="flex-end" mt="sm">
+          <Pagination value={page} onChange={setPage} total={dossiers.page.totalPages} />
+        </Group>
+      )}
+    </div>
+  );
+}
+
+export function DossierPage() {
+  const { name = 'open' } = useParams();
+  const navigate = useNavigate();
+  const isAdmin = useIsAdmin();
+
   const importDossier = () =>
     openModal({
-      title: 'Import Dossier',
+      title: 'Import dossiers',
       size: 'sm',
       render: (close) => (
         <ImportForm
@@ -118,173 +301,35 @@ export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmar
       ),
     });
 
-  const sendMail = async (d: Dossier) => {
-    if (!d.dossierUploadId) return;
-    openMailForm({ attachments: [await filesApi.findById(d.dossierUploadId)], context: { Name: d.name } });
-  };
-
-  const modify = async (d: Dossier) => {
-    if (await confirm('Are you sure you want to modify the dossier?', { danger: false })) open(d, true);
-  };
-
-  const toggleBookmark = async (d: Dossier) => {
-    await dossiersApi.toggleBookmarked(d.id!);
-    toast.success('Bookmark toggled. Reload...');
-    refetch();
-  };
-
   return (
     <>
-      {!closed && !bookmarked && isAdmin && (
-        <Group justify="flex-end" mb="sm">
-          <Menu position="bottom-end">
-            <Menu.Target>
-              <Button variant="outline" leftSection={<Icon icon="exclamation" />}>
-                Actions
-              </Button>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item leftSection={<Icon icon="plus" />} disabled={content.length > 0} onClick={() => open()}>
-                New
-              </Menu.Item>
-              <Menu.Item leftSection={<Icon icon="plus" />} disabled={content.length > 0} onClick={fromPrevious}>
-                From Previous (ctrl+k)
-              </Menu.Item>
-              <Menu.Item
-                leftSection={<Icon icon="times" />}
-                disabled={!active || !!active.feeIds?.length || !!active.invoiceIds?.length}
-                onClick={async () => {
-                  await dossiersApi.deleteActiveDossier();
-                  reload();
-                }}
-              >
-                Delete
-              </Menu.Item>
-              <Menu.Item leftSection={<Icon icon="check" />} disabled={!active || (!active.feeIds?.length && !active.invoiceIds?.length)} onClick={closeActive}>
-                Close
-              </Menu.Item>
-              <Menu.Item leftSection={<Icon icon="upload" />} onClick={importDossier}>
-                Import
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        </Group>
-      )}
-      {dossiers && (
-        <>
-          <Table.ScrollContainer minWidth={600}>
-            <Table className={demoMode ? 'blur' : undefined}>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Name</Table.Th>
-                  <Table.Th>Date updated</Table.Th>
-                  <Table.Th visibleFrom="md">Nb. Expenses</Table.Th>
-                  <Table.Th visibleFrom="md">Nb. Invoices</Table.Th>
-                  <Table.Th visibleFrom="md">Description</Table.Th>
-                  <Table.Th>{closed ? 'Tva Due' : 'Tva Delta'}</Table.Th>
-                  {isAdmin && <Table.Th w={50} />}
-                  {closed && <Table.Th w={50}>Action</Table.Th>}
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {!content.length && (
-                  <Table.Tr>
-                    <Table.Td colSpan={8}>No entries</Table.Td>
-                  </Table.Tr>
-                )}
-                {content.map((d) => (
-                  <Table.Tr key={d.id} className="clickable" onClick={() => open(d)}>
-                    <Table.Td>
-                      <Group gap={4} wrap="nowrap">
-                        {d.name}
-                        <ImportedInfo imported={d.imported} date={d.importedDate} />
-                      </Group>
-                    </Table.Td>
-                    <Table.Td>{fmtDateTime(d.updatedDate)}</Table.Td>
-                    <Table.Td visibleFrom="md">{d.feeIds?.length}</Table.Td>
-                    <Table.Td visibleFrom="md">{d.invoiceIds?.length}</Table.Td>
-                    <Table.Td visibleFrom="md">{d.description}</Table.Td>
-                    <Table.Td c={closed ? undefined : (d.tvaToBePaid ?? 0) > 0 ? 'red' : 'green'}>
-                      {fmtCurrency(closed ? (d.tvaDue ?? 0) : d.tvaToBePaid)}
-                    </Table.Td>
-                    {isAdmin && (
-                      <Table.Td>
-                        <BookmarkButton bookmarked={d.bookmarked} onToggle={() => toggleBookmark(d)} />
-                      </Table.Td>
-                    )}
-                    {closed && (
-                      <Table.Td onClick={(e) => e.stopPropagation()}>
-                        <Menu position="bottom-end">
-                          <Menu.Target>
-                            <ActionIcon variant="default" aria-label="dossier actions">
-                              <Icon icon="ellipsis-v" />
-                            </ActionIcon>
-                          </Menu.Target>
-                          <Menu.Dropdown>
-                            <Menu.Item leftSection={<Icon icon="download" />} onClick={() => d.dossierUploadId && filesApi.download(d.dossierUploadId)}>
-                              Download
-                            </Menu.Item>
-                            {isAdmin && (
-                              <Menu.Item leftSection={<Icon icon="mail-bulk" />} onClick={() => sendMail(d)}>
-                                Send
-                              </Menu.Item>
-                            )}
-                            {isAdmin && (
-                              <Menu.Item leftSection={<Icon icon="edit" />} onClick={() => modify(d)}>
-                                Edit
-                              </Menu.Item>
-                            )}
-                          </Menu.Dropdown>
-                        </Menu>
-                      </Table.Td>
-                    )}
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
-          {dossiers.page.totalPages > 1 && (
-            <Group justify="flex-end" mt="sm">
-              <Pagination value={page} onChange={setPage} total={dossiers.page.totalPages} />
-            </Group>
-          )}
-        </>
-      )}
-    </>
-  );
-}
-
-export function DossierPage() {
-  const { name = 'open' } = useParams();
-  const navigate = useNavigate();
-  useEffect(() => {
-    document.title = 'Dossiers';
-  }, []);
-  return (
-    <>
-      <PageTitle title="Dossier" />
-      <Tabs value={name} onChange={(v) => v && navigate(`/dossier/${v}`)} keepMounted={false}>
-        <Tabs.List>
-          <Tabs.Tab value="open">Open</Tabs.Tab>
-          <Tabs.Tab value="bookmarks" leftSection={<Icon icon="star" color="orange" />}>
-            Bookmarks
-          </Tabs.Tab>
+      <PageHeader
+        title="Dossiers"
+        description="A dossier groups the expenses and invoices of a VAT period."
+        actions={
+          isAdmin && (
+            <Button variant="default" leftSection={<Icon icon="upload" />} onClick={importDossier}>
+              Import
+            </Button>
+          )
+        }
+      />
+      <Tabs className="page-tabs" value={name} onChange={(v) => v && navigate(`/dossier/${v}`)} keepMounted={false}>
+        <Tabs.List mb="md">
+          <Tabs.Tab value="open">Active</Tabs.Tab>
           <Tabs.Tab value="closed">Closed</Tabs.Tab>
+          <Tabs.Tab value="bookmarks" leftSection={<Icon icon="star" />}>
+            Bookmarked
+          </Tabs.Tab>
         </Tabs.List>
-        <Tabs.Panel value="open" pt="sm">
-          <FullscreenSection>
-            <DossierTable closed={false} />
-          </FullscreenSection>
+        <Tabs.Panel value="open">
+          <DossierTable closed={false} />
         </Tabs.Panel>
-        <Tabs.Panel value="bookmarks" pt="sm">
-          <FullscreenSection>
-            <DossierTable bookmarked />
-          </FullscreenSection>
+        <Tabs.Panel value="closed">
+          <DossierTable closed />
         </Tabs.Panel>
-        <Tabs.Panel value="closed" pt="sm">
-          <FullscreenSection>
-            <DossierTable closed />
-          </FullscreenSection>
+        <Tabs.Panel value="bookmarks">
+          <DossierTable bookmarked />
         </Tabs.Panel>
       </Tabs>
     </>

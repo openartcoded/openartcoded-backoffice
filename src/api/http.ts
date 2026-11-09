@@ -76,20 +76,24 @@ export function saveBlob(blob: Blob, filename: string) {
 }
 
 /** downloads an authenticated resource and triggers the browser "save as" */
-export async function download(url: string, config: AxiosRequestConfig = {}) {
+export async function download(url: string, config: AxiosRequestConfig = {}, fallbackName = 'download') {
   const res = await http.request<Blob>({ url, method: 'GET', ...config, responseType: 'blob' });
   const header = res.headers['content-disposition'] as string | undefined;
-  saveBlob(res.data, filenameFromDisposition(header));
+  saveBlob(res.data, filenameFromDisposition(header, fallbackName));
+}
+
+/**
+ * fetches an authenticated resource as a blob.
+ * the content type known by the frontend wins over the one sent by the server (which can be a generic octet-stream)
+ */
+export async function fetchBlob(url: string, params?: object, contentType?: string): Promise<Blob> {
+  const data = (await http.get<Blob>(url, { params, responseType: 'blob' })).data;
+  return contentType && data.type !== contentType ? new Blob([data], { type: contentType }) : data;
 }
 
 /** fetches an authenticated resource as an object url (images, pdf preview, ...) */
-export async function fetchObjectUrl(url: string, params?: object): Promise<string> {
-  const res = await http.get<Blob>(url, { params, responseType: 'blob' });
-  return URL.createObjectURL(res.data);
-}
-
-export async function fetchBlob(url: string, params?: object): Promise<Blob> {
-  return (await http.get<Blob>(url, { params, responseType: 'blob' })).data;
+export async function fetchObjectUrl(url: string, params?: object, contentType?: string): Promise<string> {
+  return URL.createObjectURL(await fetchBlob(url, params, contentType));
 }
 
 /** human readable error message from an api error */

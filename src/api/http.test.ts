@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { AxiosError, AxiosHeaders } from 'axios';
-import { errorMessage, filenameFromDisposition } from './http';
+import { errorMessage, fetchBlob, filenameFromDisposition, http } from './http';
 
 describe('filenameFromDisposition', () => {
   it('reads quoted and unquoted filenames', () => {
@@ -36,5 +36,20 @@ describe('errorMessage', () => {
   it('handles plain errors', () => {
     expect(errorMessage(new Error('oops'))).toBe('oops');
     expect(errorMessage('raw')).toBe('raw');
+  });
+});
+
+describe('fetchBlob', () => {
+  it('uses the content type of the upload when the server sends a generic one', async () => {
+    vi.spyOn(http, 'get').mockResolvedValue({ data: new Blob(['%PDF'], { type: 'application/octet-stream' }) });
+    const blob = await fetchBlob('/api/resource/download', { id: '1' }, 'application/pdf');
+    expect(blob.type).toBe('application/pdf');
+    expect(http.get).toHaveBeenCalledWith('/api/resource/download', { params: { id: '1' }, responseType: 'blob' });
+  });
+
+  it('keeps the blob as is without content type', async () => {
+    const data = new Blob(['x'], { type: 'image/png' });
+    vi.spyOn(http, 'get').mockResolvedValue({ data });
+    expect(await fetchBlob('/x')).toBe(data);
   });
 });

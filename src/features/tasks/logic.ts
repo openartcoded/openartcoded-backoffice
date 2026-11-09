@@ -87,9 +87,24 @@ export function filterTasks(tasks: ReminderTask[], f: TaskFilter): ReminderTask[
     .filter((t) => !f.date || !t.nextDate || dayjs(t.nextDate).isSame(f.date, 'day'));
 }
 
-/** a copy of the task without its identity, used by "clone" */
-export function cloneTask(task: ReminderTask): ReminderTask {
-  return { ...task, id: undefined, lastExecutionDate: undefined, nextDate: undefined, dateCreation: undefined };
+/**
+ * a copy of the task ready to be scheduled again, used by "clone":
+ * no identity nor execution history, enabled (a one shot task is disabled by the backend once executed),
+ * and a specific date already passed is cleared so a new one must be chosen
+ */
+export function cloneTask(task: ReminderTask, now: Date = new Date()): ReminderTask {
+  const pastDate = !!task.specificDate && new Date(task.specificDate).getTime() <= now.getTime();
+  return {
+    ...task,
+    id: undefined,
+    lastExecutionDate: undefined,
+    nextDate: undefined,
+    dateCreation: undefined,
+    updatedDate: undefined,
+    disabled: false,
+    specificDate: pastDate ? null : task.specificDate,
+    calendarDate: pastDate ? null : task.calendarDate,
+  };
 }
 
 export const emptyTask = (): ReminderTask => ({ title: '', description: '', disabled: false });

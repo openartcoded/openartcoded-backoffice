@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router';
 import { Badge, Button, FileInput, Group, Image, Loader, Select, SimpleGrid, Stack, Tabs, TagsInput, Text, TextInput, Textarea } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
-import { AuthImage, PageTitle } from '@/components/common';
+import { AuthImage } from '@/components/common';
+import { PageHeader } from '@/components/ui';
 import { FilePicker } from '@/components/files';
 import { MarkdownEditor } from '@/components/markdown';
 import { reportApi } from '@/api/misc';
@@ -66,7 +67,6 @@ export function PostEditorPage() {
 }
 
 function PostEditor({ initial }: { initial: Post }) {
-  const navigate = useNavigate();
   const client = useQueryClient();
   const { data: me } = useMe();
   const [post, setPost] = useState(initial);
@@ -148,16 +148,16 @@ function PostEditor({ initial }: { initial: Post }) {
 
   return (
     <>
-      <PageTitle title={titleCase(post.title)} />
-      <Group justify="space-between" mb="sm">
-        <Button variant="outline" leftSection={<Icon icon="arrow-left" />} onClick={() => navigate('/report')}>
-          Back
-        </Button>
-        <Button leftSection={<Icon icon="save" />} onClick={save} disabled={!isValid(state)}>
-          Save
-        </Button>
-      </Group>
-      <Tabs defaultValue="metadata" keepMounted={false}>
+      <PageHeader
+        title={post.id ? titleCase(post.title) : 'New report'}
+        back={post.id ? { to: postUrl(post), label: 'Back to the report' } : { to: '/report', label: 'Reports' }}
+        actions={
+          <Button leftSection={<Icon icon="save" />} onClick={save} disabled={!isValid(state)}>
+            Save
+          </Button>
+        }
+      />
+      <Tabs className="page-tabs" defaultValue="metadata" keepMounted={false}>
         <Tabs.List>
           <Tabs.Tab value="metadata">Metadata</Tabs.Tab>
           <Tabs.Tab value="editor">Editor</Tabs.Tab>

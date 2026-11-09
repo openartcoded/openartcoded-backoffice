@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
-import { ActionIcon, Button, Group, Menu, Table, Text } from '@mantine/core';
+import { Button, Group, Table, Text } from '@mantine/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
-import { ImportedInfo, PageTitle } from '@/components/common';
-import { openModal } from '@/components/modal';
+import { ImportedInfo } from '@/components/common';
+import { EmptyRow, PageHeader, RowActions, StatusBadge } from '@/components/ui';
+import { openDrawer } from '@/components/drawer';
 import { clientsApi } from '@/api/billing';
 import { useDemoMode, useIsAdmin } from '@/auth/session';
 import { useNotificationListener } from '@/hooks/notifications';
@@ -13,9 +13,9 @@ import type { BillableClient, ContractStatus } from '@/types';
 import { ClientDetail } from './ClientForm';
 
 export const CONTRACT_STATUS_DISPLAY: Record<ContractStatus, { label: string; color: string }> = {
-  DONE: { label: 'Ended', color: 'red' },
-  ONGOING: { label: 'In Progress', color: 'green' },
-  NOT_STARTED_YET: { label: 'Not started', color: 'artcoded' },
+  DONE: { label: 'Ended', color: 'gray' },
+  ONGOING: { label: 'Ongoing', color: 'green' },
+  NOT_STARTED_YET: { label: 'Not started', color: 'blue' },
 };
 
 const newClient = (): BillableClient => ({
@@ -38,15 +38,11 @@ export function ClientsPage() {
   const { data: clients } = useQuery({ queryKey: ['clients'], queryFn: clientsApi.findAll });
   const reload = () => queryClient.invalidateQueries({ queryKey: ['clients'] });
 
-  useEffect(() => {
-    document.title = 'Clients';
-  }, []);
-
   useNotificationListener([RegisteredEvent.BILLABLE_CLIENT_ERROR], () => reload());
 
   const open = (client: BillableClient = newClient()) =>
-    openModal({
-      title: `${client.student ? 'Student' : 'Client'} ${client.name ?? ''}`,
+    openDrawer({
+      title: client.id ? client.name : 'New client',
       size: 'xl',
       closeOnClickOutside: false,
       render: (close) => (
@@ -66,7 +62,7 @@ export function ClientsPage() {
 
   const remove = async (client: BillableClient) => {
     if (!isAdmin || !client.id) return;
-    if (await confirm('Are you sure you want to delete this client?')) {
+    if (await confirm(`Delete the client ${client.name ?? ''}?`)) {
       await clientsApi.delete(client.id);
       toast.success('Client deleted');
       reload();
@@ -75,69 +71,62 @@ export function ClientsPage() {
 
   return (
     <>
-      <PageTitle title="Clients">
-        {isAdmin && (
-          <Button variant="outline" leftSection={<Icon icon="plus" />} onClick={() => open()}>
-            Add
-          </Button>
-        )}
-      </PageTitle>
+      <PageHeader
+        title="Clients"
+        description="Billable clients, their rates and contract documents."
+        actions={
+          isAdmin && (
+            <Button leftSection={<Icon icon="plus" />} onClick={() => open()}>
+              New client
+            </Button>
+          )
+        }
+      />
       {clients && (
-        <Table className={demoMode ? 'blur' : undefined}>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Name</Table.Th>
-              <Table.Th visibleFrom="md">Email</Table.Th>
-              <Table.Th visibleFrom="md">VAT N°</Table.Th>
-              <Table.Th>Status</Table.Th>
-              {isAdmin && <Table.Th w={60}>Actions</Table.Th>}
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {!clients.length && (
+        <Table.ScrollContainer minWidth={560}>
+          <Table className={`clickable-rows ${demoMode ? 'blur' : ''}`}>
+            <Table.Thead>
               <Table.Tr>
-                <Table.Td colSpan={5}>No content</Table.Td>
+                <Table.Th>Name</Table.Th>
+                <Table.Th visibleFrom="md">Email</Table.Th>
+                <Table.Th visibleFrom="md">VAT number</Table.Th>
+                <Table.Th>Contract</Table.Th>
+                {isAdmin && <Table.Th w={60} />}
               </Table.Tr>
-            )}
-            {clients.map((c) => {
-              const status = c.contractStatus ? CONTRACT_STATUS_DISPLAY[c.contractStatus] : undefined;
-              return (
-                <Table.Tr key={c.id} className="clickable" onClick={() => open(c)}>
-                  <Table.Td>
-                    <Group justify="space-between" wrap="nowrap">
-                      <Text className="text-break">{c.name}</Text>
-                      <ImportedInfo imported={c.imported} date={c.importedDate} />
-                    </Group>
-                  </Table.Td>
-                  <Table.Td visibleFrom="md" className="text-break">
-                    {c.emailAddress}
-                  </Table.Td>
-                  <Table.Td visibleFrom="md">{c.vatNumber}</Table.Td>
-                  <Table.Td c={status?.color}>{status?.label ?? c.contractStatus}</Table.Td>
-                  {isAdmin && (
-                    <Table.Td onClick={(e) => e.stopPropagation()}>
-                      <Menu position="bottom-end">
-                        <Menu.Target>
-                          <ActionIcon variant="default" aria-label="actions">
-                            <Icon icon="ellipsis-v" />
-                          </ActionIcon>
-                        </Menu.Target>
-                        <Menu.Dropdown>
-                          <Menu.Item leftSection={<Icon icon="edit" />} onClick={() => open(c)}>
-                            Edit
-                          </Menu.Item>
-                          <Menu.Item leftSection={<Icon icon="trash" />} color="red" onClick={() => remove(c)}>
-                            Delete
-                          </Menu.Item>
-                        </Menu.Dropdown>
-                      </Menu>
+            </Table.Thead>
+            <Table.Tbody>
+              {!clients.length && <EmptyRow colSpan={5} icon="user" title="No client" description="Add a client to generate its timesheets and invoices." />}
+              {clients.map((c) => {
+                const status = c.contractStatus ? CONTRACT_STATUS_DISPLAY[c.contractStatus] : undefined;
+                return (
+                  <Table.Tr key={c.id} onClick={() => open(c)}>
+                    <Table.Td>
+                      <Group gap={6} wrap="nowrap">
+                        <Text size="sm" fw={500}>
+                          {c.name}
+                        </Text>
+                        {c.student && <StatusBadge value="STUDENT" label="Student" color="grape" />}
+                        <ImportedInfo imported={c.imported} date={c.importedDate} />
+                      </Group>
                     </Table.Td>
-                  )}
-                </Table.Tr>
-              );
-            })}
-          </Table.Tbody>
-        </Table>
+                    <Table.Td visibleFrom="md" c="dimmed">
+                      {c.emailAddress}
+                    </Table.Td>
+                    <Table.Td visibleFrom="md">{c.vatNumber}</Table.Td>
+                    <Table.Td>
+                      <StatusBadge value={c.contractStatus} label={status?.label} color={status?.color} />
+                    </Table.Td>
+                    {isAdmin && (
+                      <Table.Td>
+                        <RowActions groups={[[{ label: 'Edit', icon: 'edit', onClick: () => open(c) }], [{ label: 'Delete', icon: 'trash', color: 'red', onClick: () => remove(c) }]]} />
+                      </Table.Td>
+                    )}
+                  </Table.Tr>
+                );
+              })}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
       )}
     </>
   );

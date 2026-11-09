@@ -29,18 +29,19 @@ describe('TimesheetsPage', () => {
     renderWithProviders(<TimesheetsPage />);
     const rows = await screen.findAllByText(/January|February/);
     expect(rows.map((r) => r.textContent)).toEqual(['February', 'January']);
-    expect(screen.getByText('38 / 19')).toBeInTheDocument();
-    expect(screen.getByText(/Estimate this month/)).toHaveTextContent('4.800,00');
+    expect(screen.getByText('38')).toBeInTheDocument();
+    expect(screen.getByText('19')).toBeInTheDocument();
+    expect(await screen.findByText(/Estimate this month/)).toHaveTextContent('4.800,00');
   });
 
   it('switches client and year', async () => {
     renderWithProviders(<TimesheetsPage />);
     await screen.findByText('February');
-    await userEvent.click(screen.getByRole('button', { name: 'Other' }));
+    await userEvent.click(screen.getByText('Other'));
     expect(screen.getByText('March other')).toBeInTheDocument();
     await userEvent.click(screen.getByText('2025'));
     expect(screen.getByText('No result for this year.')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'ACME' }));
+    await userEvent.click(screen.getByText('ACME'));
     expect(screen.getByText('December 2025')).toBeInTheDocument();
   });
 });

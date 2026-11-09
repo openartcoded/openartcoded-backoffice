@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
 import { fileLabel } from '@/components/common';
 import { FileMenuItems, FilePicker } from '@/components/files';
-import { openModal } from '@/components/modal';
+import { openDrawer } from '@/components/drawer';
 import { filesApi } from '@/api/files';
 import { useIsAdmin } from '@/auth/session';
 import type { AdministrativeDocument, AdministrativeDocumentForm } from '@/types';
@@ -77,7 +77,7 @@ export function openDocumentEditor(
   document: AdministrativeDocument,
   opts: { readOnly?: boolean; onSubmit?: (form: AdministrativeDocumentForm) => void } = {},
 ) {
-  openModal({
+  openDrawer({
     title: document.title ? `${opts.readOnly ? '' : 'Edit '}${document.title}` : 'New Document',
     size: 'xl',
     closeOnClickOutside: false,

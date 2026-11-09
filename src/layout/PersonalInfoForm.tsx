@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ActionIcon, Button, Checkbox, Group, Loader, NumberInput, Paper, SimpleGrid, Stack, Tabs, Text, TextInput, Textarea } from '@mantine/core';
+import { ActionIcon, Badge, Button, Center, Checkbox, Group, Loader, NumberInput, Paper, SimpleGrid, Stack, Tabs, Text, TextInput, Textarea } from '@mantine/core';
+import { Dropzone } from '@mantine/dropzone';
 import { useForm } from '@mantine/form';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
 import { AuthImage } from '@/components/common';
-import { FilePicker } from '@/components/files';
 import { personalInfoApi } from '@/api/misc';
 import { errorMessage } from '@/api/http';
 import { PERSONAL_INFO_KEY, ME_KEY, useIsAdmin, usePersonalInfo } from '@/auth/session';
@@ -28,15 +28,43 @@ function ImageField({ label, uploadId, file, onFile, disabled }: { label: string
     setPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
+  const hasImage = !!preview || !!uploadId;
   return (
-    <Stack gap={4}>
-      <Text size="sm" fw={500}>
-        {label}
-      </Text>
-      <Group align="center">
-        {preview ? <img src={preview} alt={label} width={100} /> : <AuthImage id={uploadId} width={100} alt={label} />}
-        <FilePicker onFiles={(f) => f[0] && onFile(f[0])} accept={['image/*']} disabled={disabled} label="Drop an image" />
+    <Stack gap={6}>
+      <Group justify="space-between">
+        <Text size="sm" fw={500}>
+          {label}
+        </Text>
+        {file && (
+          <Badge size="xs" variant="light">
+            Not saved
+          </Badge>
+        )}
       </Group>
+      <Dropzone onDrop={(f) => f[0] && onFile(f[0])} accept={['image/*']} multiple={false} disabled={disabled} p={0} radius="md" className="image-field">
+        <Center h={140} p="sm" style={{ pointerEvents: 'none' }}>
+          {preview ? (
+            <img src={preview} alt={label} />
+          ) : uploadId ? (
+            <AuthImage id={uploadId} alt={label} />
+          ) : (
+            <Stack align="center" gap={4}>
+              <Icon icon="image" size="lg" color="var(--mantine-color-gray-5)" />
+              <Text size="xs" c="dimmed">
+                Drop or click to add
+              </Text>
+            </Stack>
+          )}
+        </Center>
+        {hasImage && !disabled && (
+          <div className="image-field-overlay">
+            <Icon icon="upload" />
+            <Text size="xs" fw={500}>
+              Replace
+            </Text>
+          </div>
+        )}
+      </Dropzone>
     </Stack>
   );
 }

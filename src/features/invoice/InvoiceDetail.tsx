@@ -1,17 +1,19 @@
 import { useNavigate } from 'react-router';
-import { Alert, Button, Checkbox, Group, Loader, Menu, NumberInput, Paper, Select, SimpleGrid, Stack, Tabs, TextInput, Textarea } from '@mantine/core';
+import { ActionIcon, Alert, Button, Group, Loader, NumberInput, Paper, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text, TextInput, Textarea } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Icon } from '@/components/Icon';
 import { ImportedInfo } from '@/components/common';
-import { FilePicker, FileViewer, openFileViewer } from '@/components/files';
+import { downloadUpload, FilePicker, FileViewer } from '@/components/files';
+import { FormSection, humanize, Stat, StatusBadge, StickyFooter } from '@/components/ui';
 import { openMailForm } from '@/components/forms';
 import { openModal } from '@/components/modal';
+import { openDrawer } from '@/components/drawer';
 import { clientsApi, invoicesApi } from '@/api/billing';
 import { filesApi } from '@/api/files';
 import { useDemoMode, useIsAdmin } from '@/auth/session';
-import { fmtCurrency, fromInput, toInputDate } from '@/lib/format';
+import { fmtCurrency, fmtDate, fromInput, toInputDate } from '@/lib/format';
 import { RATE_TYPES, type BillableClient, type FreemarkerTemplate, type Invoice } from '@/types';
 import {
   applyRate,
@@ -39,6 +41,8 @@ interface Props {
   onSave?: (result: InvoiceFormResult) => void;
 }
 
+const RATE_TYPE_OPTIONS = RATE_TYPES.map((t) => ({ value: t, label: t === 'DAYS' ? 'Days' : 'Hours' }));
+
 export function PeppolValidation({ valid, results }: { valid: boolean; results: string }) {
   return <Alert color={valid ? 'green' : 'red'}>{valid ? 'Valid' : <span className="pre-wrap">{results}</span>}</Alert>;
 }
@@ -52,6 +56,7 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
   const [rates, setRates] = useState(() => clientRates(savedClient));
   const [file, setFile] = useState<File>();
   const [validating, setValidating] = useState(false);
+  const [view, setView] = useState('details');
   const { data: pdf } = useQuery({
     queryKey: ['upload', invoice.invoiceUploadId],
     queryFn: () => filesApi.findById(invoice.invoiceUploadId!),
@@ -171,186 +176,187 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
       to: [invoice.billTo?.emailAddress],
     });
 
+  const editable = isAdmin && !!onSave && !invoice.locked && !invoice.archived;
+  const views = [
+    { value: 'details', label: 'Details' },
+    ...(pdf ? [{ value: 'pdf', label: 'PDF' }] : []),
+    ...(ubl ? [{ value: 'xml', label: 'Peppol XML' }] : []),
+  ];
+
   return (
     <form onSubmit={submit} className={demoMode ? 'blur' : undefined}>
-      <Tabs defaultValue="info" keepMounted={false}>
-        <Tabs.List>
-          <Tabs.Tab value="info">{label} Info</Tabs.Tab>
-          <Tabs.Tab value="billTo">Bill To</Tabs.Tab>
-          <Tabs.Tab value="table">Invoice Table</Tabs.Tab>
-          {ubl && <Tabs.Tab value="xml">Peppol XML</Tabs.Tab>}
-          {pdf && <Tabs.Tab value="pdf">PDF</Tabs.Tab>}
-        </Tabs.List>
+      <Group justify="space-between" mb="md" gap="xs">
+        <Group gap={6}>
+          {invoice.creditNote && <StatusBadge value="CREDIT_NOTE" label="Credit note" color="orange" />}
+          {invoice.locked && <StatusBadge value="LOCKED" label="Locked" color="gray" />}
+          {invoice.archived && <StatusBadge value="PROCESSED" label="Processed" color="green" />}
+          {invoice.logicalDelete && <StatusBadge value="DELETED" label="Deleted" color="red" />}
+          {invoice.peppolStatus && invoice.peppolStatus !== 'OLD' && <StatusBadge value={invoice.peppolStatus} label={`Peppol: ${humanize(invoice.peppolStatus)}`} />}
+        </Group>
+        {views.length > 1 && <SegmentedControl size="xs" data={views} value={view} onChange={setView} />}
+      </Group>
 
-        <Tabs.Panel value="info" pt="sm">
-          <Stack gap="sm">
-            <SimpleGrid cols={{ base: 1, md: 2 }}>
-              <TextInput label={`${label} number`} value={invoice.newInvoiceNumber ?? ''} disabled />
-              <TextInput label={`${label} reference`} value={invoice.invoiceNumber ?? ''} disabled />
-              {invoice.creditNoteInvoiceReference && <TextInput label="Invoice reference" value={invoice.creditNoteInvoiceReference} disabled />}
-              <TextInput type="date" label={`Date of ${label}`} disabled={readOnly} {...form.getInputProps('dateOfInvoice')} />
-              <NumberInput label="Tax Rate %" disabled={readOnly} {...form.getInputProps('taxRate')} />
-              {!!invoice.subTotal && <TextInput label="Subtotal" value={fmtCurrency(invoice.subTotal)} disabled />}
-              {!!invoice.taxes && <TextInput label="VAT" value={fmtCurrency(invoice.taxes)} disabled c="red" />}
-              {!!invoice.total && <TextInput label="Total" value={fmtCurrency(invoice.total)} disabled c="green" />}
-              {invoice.structuredReference && <TextInput label="Bank Reference" value={invoice.structuredReference} disabled />}
-              {!!templates.length && (
-                <Select
-                  label="Template"
-                  placeholder="Please select"
-                  data={templates.map((t) => ({ value: t.id ?? '', label: t.name ?? '' }))}
-                  disabled={readOnly}
-                  {...form.getInputProps('freemarkerTemplateId')}
-                />
-              )}
+      {view === 'pdf' && pdf && <FileViewer file={pdf} showRotate={false} />}
+      {view === 'xml' && ubl && <FileViewer file={ubl} />}
+
+      <Stack gap="xl" display={view === 'details' ? undefined : 'none'}>
+        {!!invoice.total && (
+          <Paper withBorder p="md" bg="gray.0">
+            <SimpleGrid cols={{ base: 2, sm: 4 }}>
+              <Stat label="Subtotal" value={fmtCurrency(invoice.subTotal)} />
+              <Stat label={`VAT ${invoice.taxRate ?? ''}%`} value={fmtCurrency(invoice.taxes)} />
+              <Stat label="Total" value={fmtCurrency(invoice.total)} strong />
+              <Stat label="Due date" value={fmtDate(invoice.dueDate)} />
             </SimpleGrid>
-            <Textarea label="Special note" placeholder="Put a note here" autosize disabled={readOnly} {...form.getInputProps('specialNote')} />
-            {invoice.peppolStatus && invoice.peppolStatus !== 'OLD' && (
-              <Group align="flex-end">
-                <TextInput style={{ flex: 1 }} label="Peppol Status" value={invoice.peppolStatus} disabled />
-                <Button variant="outline" onClick={validatePeppol} loading={validating}>
-                  Validate
-                </Button>
-              </Group>
-            )}
-            <Group>
-              <Checkbox label="Manual upload" disabled={readOnly} {...form.getInputProps('uploadedManually', { type: 'checkbox' })} />
-              <Checkbox label="Skip Peppol" disabled={readOnly} {...form.getInputProps('skipPeppol', { type: 'checkbox' })} />
-              <Checkbox label="Locked" checked={!!invoice.locked} disabled readOnly />
-              <Checkbox label="Logical delete" checked={!!invoice.logicalDelete} disabled readOnly />
-            </Group>
-            {v.uploadedManually && !invoice.locked && !invoice.logicalDelete && (
-              <FilePicker onFiles={(f) => isAdmin && setFile(f[0])} accept={['application/pdf']} files={file ? [file] : []} label="Drop invoice here" />
-            )}
-          </Stack>
-        </Tabs.Panel>
+          </Paper>
+        )}
 
-        <Tabs.Panel value="billTo" pt="sm">
-          <Stack gap="sm">
-            {!invoice.locked && (
+        <FormSection title="Details">
+          <SimpleGrid cols={{ base: 1, sm: 2 }}>
+            <TextInput label={`${label} number`} value={invoice.newInvoiceNumber ?? ''} readOnly variant="filled" />
+            <TextInput label="Reference" value={invoice.invoiceNumber ?? ''} readOnly variant="filled" />
+            {invoice.creditNoteInvoiceReference && <TextInput label="Credited invoice" value={invoice.creditNoteInvoiceReference} readOnly variant="filled" />}
+            {invoice.structuredReference && <TextInput label="Bank reference" value={invoice.structuredReference} readOnly variant="filled" />}
+            <TextInput type="date" label="Date" disabled={readOnly} {...form.getInputProps('dateOfInvoice')} />
+            <NumberInput label="VAT rate" suffix="%" disabled={readOnly} {...form.getInputProps('taxRate')} />
+            {!!templates.length && (
               <Select
-                label="Saved Clients"
-                placeholder="--Select--"
-                data={clients.map((c) => ({ value: c.id ?? '', label: c.name ?? '' }))}
-                value={v.selectedClient}
-                onChange={selectClient}
+                label="Template"
+                placeholder="Select a template"
+                data={templates.map((t) => ({ value: t.id ?? '', label: t.name ?? '' }))}
                 disabled={readOnly}
-                clearable
+                {...form.getInputProps('freemarkerTemplateId')}
               />
             )}
-            <TextInput label="Client Name" disabled={readOnly} {...form.getInputProps('billToClientName')} />
-            <TextInput label="VatNumber" disabled={readOnly} {...form.getInputProps('billToVatNumber')} />
+          </SimpleGrid>
+          <Textarea label="Note" placeholder="Printed on the invoice" autosize minRows={2} disabled={readOnly} {...form.getInputProps('specialNote')} />
+          <Group gap="lg">
+            <Switch label="Upload the PDF manually" disabled={readOnly} {...form.getInputProps('uploadedManually', { type: 'checkbox' })} />
+            <Switch label="Don't send to Peppol" disabled={readOnly} {...form.getInputProps('skipPeppol', { type: 'checkbox' })} />
+          </Group>
+          {v.uploadedManually && !invoice.locked && !invoice.logicalDelete && (
+            <FilePicker onFiles={(f) => isAdmin && setFile(f[0])} accept={['application/pdf']} files={file ? [file] : []} label="Drop the invoice PDF here" />
+          )}
+        </FormSection>
+
+        <FormSection title="Bill to">
+          {!invoice.locked && !readOnly && (
+            <Select
+              label="Fill from a client"
+              placeholder="Select a client"
+              data={clients.map((c) => ({ value: c.id ?? '', label: c.name ?? '' }))}
+              value={v.selectedClient}
+              onChange={selectClient}
+              clearable
+              searchable
+            />
+          )}
+          <SimpleGrid cols={{ base: 1, sm: 2 }}>
+            <TextInput label="Name" disabled={readOnly} {...form.getInputProps('billToClientName')} />
+            <TextInput label="VAT number" disabled={readOnly} {...form.getInputProps('billToVatNumber')} />
             <TextInput label="Address" disabled={readOnly} {...form.getInputProps('billToAddress')} />
             <TextInput label="City" disabled={readOnly} {...form.getInputProps('billToCity')} />
             <TextInput label="Email" disabled={readOnly} {...form.getInputProps('billToEmailAddress')} />
-            <NumberInput label="Max Days to pay" disabled={!!invoice.locked} {...form.getInputProps('maxDaysToPay')} />
-          </Stack>
-        </Tabs.Panel>
+            <NumberInput label="Days to pay" disabled={!!invoice.locked} {...form.getInputProps('maxDaysToPay')} />
+          </SimpleGrid>
+        </FormSection>
 
-        <Tabs.Panel value="table" pt="sm">
-          <Stack gap="sm">
-            {v.rows.map((row, i) => (
-              <Paper key={i} bg="gray.0" p="sm">
+        <FormSection
+          title="Lines"
+          actions={
+            !readOnly && (
+              <Button size="xs" variant="default" leftSection={<Icon icon="plus" />} onClick={() => form.insertListItem('rows', nextRow(v.rows))}>
+                Add line
+              </Button>
+            )
+          }
+        >
+          {v.rows.map((row, i) => (
+            <Paper key={i} withBorder p="sm">
+              <Group justify="space-between" mb="xs">
+                <Text size="sm" fw={500}>
+                  Line {i + 1}
+                </Text>
                 {!readOnly && v.rows.length > 1 && (
-                  <Group justify="flex-end">
-                    <Button size="xs" variant="outline" color="red" leftSection={<Icon icon="trash" />} onClick={() => form.removeListItem('rows', i)}>
-                      Remove
-                    </Button>
-                  </Group>
+                  <ActionIcon variant="subtle" color="red" onClick={() => form.removeListItem('rows', i)} aria-label="remove line">
+                    <Icon icon="trash" />
+                  </ActionIcon>
                 )}
-                <SimpleGrid cols={{ base: 1, md: 2 }}>
-                  <TextInput label="Project Name" disabled={readOnly} {...form.getInputProps(`rows.${i}.projectName`)} />
-                  <TextInput label="Nature" disabled={readOnly} {...form.getInputProps(`rows.${i}.nature`)} />
-                  <TextInput type="month" label="Period" disabled={readOnly} {...form.getInputProps(`rows.${i}.period`)} />
-                  <NumberInput label="Amount" disabled={readOnly} {...form.getInputProps(`rows.${i}.amount`)} />
-                  <Select label="Amount Type" data={RATE_TYPES} allowDeselect={false} disabled={readOnly} {...form.getInputProps(`rows.${i}.amountType`)} />
-                  {!!rates.length && (
-                    <Select
-                      label="Client rate"
-                      data={[{ value: '', label: 'Custom' }, ...rates.map((r, k) => ({ value: r.id ?? '', label: rateOptionLabel(r, k) }))]}
-                      value={row.rateId ?? ''}
-                      onChange={(id) => selectRowRate(i, id || null)}
-                      disabled={readOnly}
-                      allowDeselect={false}
-                    />
-                  )}
-                  <NumberInput
-                    label="Rate"
-                    decimalScale={2}
-                    disabled={readOnly}
-                    value={row.rate}
-                    error={form.errors[`rows.${i}.rate`]}
-                    onChange={(rate) => setRow(i, { rate })}
-                  />
-                  <Select
-                    label="Rate Type"
-                    data={RATE_TYPES}
-                    allowDeselect={false}
-                    disabled={readOnly}
-                    value={row.rateType}
-                    onChange={(rateType) => rateType && setRow(i, { rateType: rateType as typeof row.rateType })}
-                  />
-                </SimpleGrid>
-              </Paper>
-            ))}
-            {!readOnly && (
-              <Group>
-                <Button size="xs" variant="outline" leftSection={<Icon icon="plus" />} onClick={() => form.insertListItem('rows', nextRow(v.rows))}>
-                  Add row
-                </Button>
               </Group>
-            )}
-          </Stack>
-        </Tabs.Panel>
-        {ubl && (
-          <Tabs.Panel value="xml" pt="sm">
-            <FileViewer file={ubl} />
-          </Tabs.Panel>
-        )}
-        {pdf && (
-          <Tabs.Panel value="pdf" pt="sm">
-            <FileViewer file={pdf} showRotate={false} />
-          </Tabs.Panel>
-        )}
-      </Tabs>
+              <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }}>
+                <TextInput label="Project" disabled={readOnly} {...form.getInputProps(`rows.${i}.projectName`)} />
+                <TextInput label="Nature" disabled={readOnly} {...form.getInputProps(`rows.${i}.nature`)} />
+                <TextInput type="month" label="Period" disabled={readOnly} {...form.getInputProps(`rows.${i}.period`)} />
+                {!!rates.length ? (
+                  <Select
+                    label="Client rate"
+                    data={[{ value: '', label: 'Custom' }, ...rates.map((r, k) => ({ value: r.id ?? '', label: rateOptionLabel(r, k) }))]}
+                    value={row.rateId ?? ''}
+                    onChange={(id) => selectRowRate(i, id || null)}
+                    disabled={readOnly}
+                    allowDeselect={false}
+                  />
+                ) : (
+                  <div />
+                )}
+                <NumberInput label="Quantity" disabled={readOnly} {...form.getInputProps(`rows.${i}.amount`)} />
+                <Select label="Unit" data={RATE_TYPE_OPTIONS} allowDeselect={false} disabled={readOnly} {...form.getInputProps(`rows.${i}.amountType`)} />
+                <NumberInput
+                  label="Rate"
+                  decimalScale={2}
+                  suffix=" €"
+                  disabled={readOnly}
+                  value={row.rate}
+                  error={form.errors[`rows.${i}.rate`]}
+                  onChange={(rate) => setRow(i, { rate })}
+                />
+                <Select
+                  label="Per"
+                  data={RATE_TYPE_OPTIONS}
+                  allowDeselect={false}
+                  disabled={readOnly}
+                  value={row.rateType}
+                  onChange={(rateType) => rateType && setRow(i, { rateType: rateType as typeof row.rateType })}
+                />
+              </SimpleGrid>
+            </Paper>
+          ))}
+        </FormSection>
 
-      {!!invalid.length && (
-        <Alert color="yellow" mt="sm">
-          Invalid field: {JSON.stringify(invalid)}
-        </Alert>
-      )}
-      <Group justify="flex-end" mt="md">
-        <Menu position="top-end">
-          <Menu.Target>
-            <Button variant="outline" disabled={!invoice.invoiceUploadId}>
-              Action
+        {!!invalid.length && (
+          <Alert color="yellow" title="Some fields need your attention">
+            {invalid.map((k) => k.replace(/^rows\.(\d+)\./, (_, n) => `line ${Number(n) + 1} `)).join(', ')}
+          </Alert>
+        )}
+      </Stack>
+
+      <StickyFooter>
+        <Group gap="xs">
+          <Button variant="default" leftSection={<Icon icon="download" />} disabled={!invoice.invoiceUploadId} onClick={() => invoice.invoiceUploadId && downloadUpload(invoice.invoiceUploadId)}>
+            Download
+          </Button>
+          {isAdmin && (
+            <Button variant="default" leftSection={<Icon icon="envelope" />} disabled={!pdf} onClick={sendMail}>
+              Send
             </Button>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item leftSection={<Icon icon="download" />} onClick={() => invoice.invoiceUploadId && filesApi.download(invoice.invoiceUploadId)}>
-              Download
-            </Menu.Item>
-            {isAdmin && (
-              <Menu.Item leftSection={<Icon icon="clock" />} disabled={!invoice.timesheetId} onClick={() => navigate(`/timesheets/timesheet/${invoice.timesheetId}`)}>
-                Timesheet
-              </Menu.Item>
-            )}
-            {isAdmin && (
-              <Menu.Item leftSection={<Icon icon="mail-bulk" />} onClick={sendMail}>
-                Send
-              </Menu.Item>
-            )}
-            <Menu.Item leftSection={<Icon icon="file-pdf" />} onClick={() => pdf && openFileViewer(pdf)}>
-              View as PDF
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
-        {isAdmin && onSave && (
-          <Button type="submit" disabled={!form.isValid() || !!invoice.locked || !!invoice.archived}>
-            Submit
+          )}
+          {isAdmin && invoice.timesheetId && (
+            <Button variant="default" leftSection={<Icon icon="clock" />} onClick={() => navigate(`/timesheets/timesheet/${invoice.timesheetId}`)}>
+              Timesheet
+            </Button>
+          )}
+          {invoice.peppolStatus && invoice.peppolStatus !== 'OLD' && (
+            <Button variant="default" leftSection={<Icon icon="check" />} onClick={validatePeppol} loading={validating}>
+              Validate Peppol
+            </Button>
+          )}
+        </Group>
+        {editable && (
+          <Button type="submit" disabled={!form.isValid()}>
+            Save
           </Button>
         )}
-      </Group>
+      </StickyFooter>
     </form>
   );
 }
@@ -383,9 +389,9 @@ function InvoiceDetailLoader({ invoice, onSave, ongoingOnly }: { invoice: Invoic
 
 /** opens the invoice. Without onSave, the invoice is displayed read only (no template selection) */
 export function openInvoiceDetail(invoice: Invoice, onSave?: (result: InvoiceFormResult) => void) {
-  openModal({
+  openDrawer({
     title: <InvoiceTitle invoice={invoice} />,
-    size: 'xl',
+    size: 1000,
     closeOnClickOutside: false,
     render: (close) => (
       <InvoiceDetailLoader

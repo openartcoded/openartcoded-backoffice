@@ -1,4 +1,4 @@
-import { del, download, fetchObjectUrl, get, http, post } from './http';
+import { del, download, fetchBlob, fetchObjectUrl, get, http, post } from './http';
 import type { FileUpload, FileUploadSearchCriteria, Page } from '@/types';
 
 const base = '/api/resource';
@@ -24,9 +24,11 @@ export const filesApi = {
     fd.append('publicResource', String(publicResource));
     return post<FileUpload>(`${base}/upload`, fd);
   },
-  download: (id: string) => download(downloadUrl(id)),
+  /** the original filename is used when the server doesn't send one */
+  download: (id: string, filename?: string) => download(downloadUrl(id), {}, filename),
   downloadBulk: (ids: string[]) => download(`${base}/download-bulk`, { method: 'POST', data: ids }),
-  objectUrl: (id: string) => fetchObjectUrl(`${base}/download`, { id }),
+  objectUrl: (id: string, contentType?: string) => fetchObjectUrl(`${base}/download`, { id }, contentType),
+  blob: (id: string, contentType?: string) => fetchBlob(`${base}/download`, { id }, contentType),
   text: async (id: string) => (await http.get<string>(`${base}/download`, { params: { id }, responseType: 'text' })).data,
   /** public (unauthenticated) url, used for visible gallery images */
   publicUrl: (id: string) => `${http.defaults.baseURL ?? ''}${base}/public/download/${id}`,

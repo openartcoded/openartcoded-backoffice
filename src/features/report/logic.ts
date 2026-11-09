@@ -18,16 +18,15 @@ export const STATUSES: { value: PostStatus; label: string; emoji: string }[] = [
 export const priorityEmoji = (p?: Priority) => PRIORITIES.find((x) => x.value === p)?.emoji ?? '';
 export const statusEmoji = (s?: PostStatus) => STATUSES.find((x) => x.value === s)?.emoji ?? '';
 
-export const priorityOptions = PRIORITIES.map((p) => ({ value: p.value, label: `${p.emoji} ${p.label}` }));
-export const statusOptions = STATUSES.map((s) => ({ value: s.value, label: `${s.emoji} ${s.label}` }));
+export const priorityOptions = PRIORITIES.map((p) => ({ value: p.value, label: p.label }));
+export const statusOptions = STATUSES.map((s) => ({ value: s.value, label: s.label }));
 
 export function dueDateStatus(status?: PostStatus, due?: DateLike | null, today: Date = new Date()): string {
-  if (!due || status === 'DONE' || status === 'CANCELLED') return '👍 On track';
+  if (!due || status === 'DONE' || status === 'CANCELLED') return 'On track';
   const days = Math.ceil((new Date(due).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  if (days < 0) return `⛔ ${Math.abs(days)} days overdue`;
-  if (days === 0) return '🔶 Last day before due date!';
-  if (days <= 5) return `⚠️ ${days} days left before due date`;
-  return `${days} days left before due date`;
+  if (days < 0) return `${Math.abs(days)} days overdue`;
+  if (days === 0) return 'Due today';
+  return `Due in ${days} days`;
 }
 
 /** sum of the unread messages of the user for the posts of a status */

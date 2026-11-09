@@ -5,12 +5,12 @@ describe('report helpers', () => {
   const today = new Date(2026, 10, 8, 12);
 
   it('describes the due date status', () => {
-    expect(dueDateStatus('IN_PROGRESS', undefined, today)).toBe('👍 On track');
-    expect(dueDateStatus('DONE', new Date(2026, 0, 1), today)).toBe('👍 On track');
-    expect(dueDateStatus('IN_PROGRESS', new Date(2026, 10, 6, 12), today)).toBe('⛔ 2 days overdue');
-    expect(dueDateStatus('IN_PROGRESS', new Date(2026, 10, 8, 12), today)).toBe('🔶 Last day before due date!');
-    expect(dueDateStatus('IN_PROGRESS', new Date(2026, 10, 11, 12), today)).toBe('⚠️ 3 days left before due date');
-    expect(dueDateStatus('IN_PROGRESS', new Date(2026, 10, 28, 12), today)).toBe('20 days left before due date');
+    expect(dueDateStatus('IN_PROGRESS', undefined, today)).toBe('On track');
+    expect(dueDateStatus('DONE', new Date(2026, 0, 1), today)).toBe('On track');
+    expect(dueDateStatus('IN_PROGRESS', new Date(2026, 10, 6, 12), today)).toBe('2 days overdue');
+    expect(dueDateStatus('IN_PROGRESS', new Date(2026, 10, 8, 12), today)).toBe('Due today');
+    expect(dueDateStatus('IN_PROGRESS', new Date(2026, 10, 11, 12), today)).toBe('Due in 3 days');
+    expect(dueDateStatus('IN_PROGRESS', new Date(2026, 10, 28, 12), today)).toBe('Due in 20 days');
   });
 
   it('counts the unread messages of the user', () => {

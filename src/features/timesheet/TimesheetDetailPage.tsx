@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Badge, Button, Grid, Group, Loader, Menu, NavLink, NumberInput, Paper, ScrollArea, Select, Stack, Table, Text } from '@mantine/core';
+import { ActionIcon, Button, ColorSwatch, Group, Loader, Menu, NumberInput, ScrollArea, SegmentedControl, Select, Stack, Table } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
-import { PageTitle } from '@/components/common';
-import { openFileViewer } from '@/components/files';
+import { EmptyRow, PageHeader, StatusBadge } from '@/components/ui';
+import { downloadUpload, openFileViewer } from '@/components/files';
 import { openMailForm } from '@/components/forms';
 import { openModal } from '@/components/modal';
 import { timesheetApi } from '@/api/misc';
@@ -14,7 +14,7 @@ import { filesApi } from '@/api/files';
 import { useDemoMode } from '@/auth/session';
 import { useNotificationListener } from '@/hooks/notifications';
 import { RegisteredEvent } from '@/lib/notificationBus';
-import { fmtDate, fmtNumber } from '@/lib/format';
+import { fmtCurrency, fmtDate, titleCase } from '@/lib/format';
 import { confirm, toast } from '@/lib/ui';
 import { openInvoiceById } from '@/features/invoice/InvoiceDetail';
 import type { BillableClient, PeriodType, TimesheetPeriod, TimesheetSettingsForm } from '@/types';
@@ -70,10 +70,6 @@ export function TimesheetDetailPage() {
     queryFn: () => timesheetApi.estimateTotal(id),
     enabled: billable,
   });
-
-  useEffect(() => {
-    document.title = 'Timesheet';
-  }, []);
 
   const reload = () => {
     refetch();
@@ -153,7 +149,7 @@ export function TimesheetDetailPage() {
     });
 
   const remove = async () => {
-    if (await confirm('Are you sure you want to delete this timesheet?')) {
+    if (await confirm('Delete this timesheet?')) {
       await timesheetApi.delete(ctx.timesheetId);
       client.invalidateQueries({ queryKey: ['timesheets'] });
       navigate('/timesheets');
@@ -164,102 +160,107 @@ export function TimesheetDetailPage() {
 
   return (
     <>
-      <PageTitle title={title} />
-      <Group justify="space-between" mb="sm">
-        <Button variant="outline" leftSection={<Icon icon="arrow-left" />} onClick={() => navigate('/timesheets')}>
-          Back
-        </Button>
-        <Menu position="bottom-end">
-          <Menu.Target>
-            <Button variant="outline" leftSection={<Icon icon="exclamation" />}>
-              Actions
-            </Button>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item leftSection={<Icon icon="dot-circle" />} onClick={openSettings}>
-              Settings
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<Icon icon="door-closed" />}
-              disabled={timesheet.closed}
-              onClick={async () => {
-                toast.success('timesheet will be generated');
-                await timesheetApi.close(ctx.timesheetId);
-              }}
-            >
-              Release
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<Icon icon="file-invoice-dollar" />}
-              disabled={!!timesheet.invoiceId || !timesheet.closed || !timesheet.clientId || timesheet.student}
-              onClick={async () => {
-                toast.success('invoice will be generated');
-                await timesheetApi.generateInvoice(ctx.timesheetId);
-                reload();
-              }}
-            >
-              Generate invoice
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<Icon icon="file-invoice-dollar" />}
-              disabled={!timesheet.invoiceId || !timesheet.closed || !timesheet.clientId}
-              onClick={() => timesheet.invoiceId && openInvoiceById(timesheet.invoiceId)}
-            >
-              Open invoice
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<Icon icon="book-open" />}
-              disabled={!timesheet.closed}
-              onClick={async () => {
-                toast.success('timesheet will be reopened');
-                await timesheetApi.reopen(ctx.timesheetId);
-              }}
-            >
-              Reopen
-            </Menu.Item>
-            <Menu.Item leftSection={<Icon icon="file-pdf" />} disabled={!timesheet.closed} onClick={() => withUpload((u) => openFileViewer(u))}>
-              View as PDF
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<Icon icon="download" />}
-              disabled={!timesheet.closed}
-              onClick={() => timesheet.uploadId && filesApi.download(timesheet.uploadId)}
-            >
-              Download
-            </Menu.Item>
-            <Menu.Item leftSection={<Icon icon="mail-bulk" />} disabled={!timesheet.closed} onClick={send}>
-              Send
-            </Menu.Item>
-            <Menu.Item leftSection={<Icon icon="trash" />} color="red" disabled={timesheet.closed} onClick={remove}>
-              Delete
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
-      </Group>
-      <Group justify="flex-end" mb="sm">
-        <Text fw={700}>
-          {timesheet.numberOfWorkingDays} working days, {timesheet.numberOfHoursWorked}h
-          {billable && total !== undefined && rates.length > 0 && ` (${fmtNumber(total)}€)`}
-        </Text>
-      </Group>
-      <Grid className={demoMode ? 'blur' : undefined}>
-        <Grid.Col span={{ base: 12, lg: 3 }}>
-          <Paper withBorder>
-            {PERIOD_TAGS.map((t) => (
-              <NavLink
-                key={t.periodType}
-                label={t.label}
-                active={filter === t.periodType}
-                leftSection={<Icon icon="circle" color={`var(--mantine-color-${t.color}-6)`} />}
-                onClick={() => setFilter(t.periodType)}
-              />
-            ))}
-            <NavLink label="all" active={filter === null} leftSection={<Icon icon="circle" color="gray" />} onClick={() => setFilter(null)} />
-          </Paper>
-        </Grid.Col>
-        <Grid.Col span={{ base: 12, lg: 9 }}>
-          <ScrollArea h="75vh">
-            <Table>
+      <PageHeader
+        title={title}
+        documentTitle="Timesheet"
+        back={{ to: '/timesheets', label: 'Timesheets' }}
+        description={
+          <>
+            {timesheet.numberOfWorkingDays} working days · {timesheet.numberOfHoursWorked}h
+            {billable && total !== undefined && rates.length > 0 && <> · {fmtCurrency(total)} to invoice</>}
+          </>
+        }
+        actions={
+          <>
+            <StatusBadge value={timesheet.closed ? 'CLOSED' : 'OPEN'} label={timesheet.closed ? 'Released' : 'Open'} color={timesheet.closed ? 'green' : 'blue'} />
+            {!timesheet.closed ? (
+              <Button
+                leftSection={<Icon icon="door-closed" />}
+                onClick={async () => {
+                  if (!(await confirm('Release the timesheet? Its PDF will be generated.', { danger: false }))) return;
+                  toast.success('Timesheet will be generated');
+                  await timesheetApi.close(ctx.timesheetId);
+                }}
+              >
+                Release
+              </Button>
+            ) : timesheet.invoiceId ? (
+              <Button leftSection={<Icon icon="file-invoice-dollar" />} onClick={() => openInvoiceById(timesheet.invoiceId!)}>
+                Open invoice
+              </Button>
+            ) : (
+              <Button
+                leftSection={<Icon icon="file-invoice-dollar" />}
+                disabled={!timesheet.clientId || timesheet.student}
+                onClick={async () => {
+                  toast.success('Invoice will be generated');
+                  await timesheetApi.generateInvoice(ctx.timesheetId);
+                  reload();
+                }}
+              >
+                Generate invoice
+              </Button>
+            )}
+            <Menu position="bottom-end" shadow="md" width={200}>
+              <Menu.Target>
+                <ActionIcon variant="default" size="lg" aria-label="more actions">
+                  <Icon icon="ellipsis-v" />
+                </ActionIcon>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item leftSection={<Icon icon="file-pdf" />} disabled={!timesheet.closed} onClick={() => withUpload((u) => openFileViewer(u))}>
+                  View PDF
+                </Menu.Item>
+                <Menu.Item leftSection={<Icon icon="download" />} disabled={!timesheet.closed} onClick={() => timesheet.uploadId && downloadUpload(timesheet.uploadId)}>
+                  Download
+                </Menu.Item>
+                <Menu.Item leftSection={<Icon icon="envelope" />} disabled={!timesheet.closed} onClick={send}>
+                  Send by email
+                </Menu.Item>
+                <Menu.Divider />
+                <Menu.Item leftSection={<Icon icon="cog" />} onClick={openSettings}>
+                  Settings
+                </Menu.Item>
+                <Menu.Item
+                  leftSection={<Icon icon="book-open" />}
+                  disabled={!timesheet.closed}
+                  onClick={async () => {
+                    toast.success('Timesheet will be reopened');
+                    await timesheetApi.reopen(ctx.timesheetId);
+                  }}
+                >
+                  Reopen
+                </Menu.Item>
+                <Menu.Divider />
+                <Menu.Item leftSection={<Icon icon="trash" />} color="red" disabled={timesheet.closed} onClick={remove}>
+                  Delete
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </>
+        }
+      />
+      <Stack gap="sm" className={`fill-column${demoMode ? ' blur' : ''}`}>
+        <ScrollArea type="auto" offsetScrollbars style={{ flexShrink: 0 }}>
+          <SegmentedControl
+            value={filter ?? 'ALL'}
+            onChange={(v) => setFilter(v === 'ALL' ? null : (v as PeriodType))}
+            data={[
+              ...PERIOD_TAGS.map((t) => ({
+                value: t.periodType,
+                label: (
+                  <Group gap={6} wrap="nowrap">
+                    <ColorSwatch color={`var(--mantine-color-${t.color}-6)`} size={8} withShadow={false} />
+                    {titleCase(t.label)}
+                  </Group>
+                ),
+              })),
+              { value: 'ALL', label: 'All days' },
+            ]}
+          />
+        </ScrollArea>
+          <div className="scroll-body">
+            <Table stickyHeader>
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th>Day</Table.Th>
@@ -274,16 +275,12 @@ export function TimesheetDetailPage() {
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {!periods.length && (
-                  <Table.Tr>
-                    <Table.Td colSpan={9}>No result</Table.Td>
-                  </Table.Tr>
-                )}
+                {!periods.length && <EmptyRow colSpan={9} icon="calendar" title="No day of this type" />}
                 {periods.map((p) => (
                   <Table.Tr
                     key={p.id ?? String(p.date)}
                     className="clickable"
-                    bg={isToday(p) ? 'blue.0' : p.periodType !== 'WORKING_DAY' ? 'gray.0' : undefined}
+                    bg={isToday(p) ? 'artcoded.0' : p.periodType !== 'WORKING_DAY' ? 'gray.0' : undefined}
                     onClick={() => openPeriod(p)}
                   >
                     <Table.Td>
@@ -303,7 +300,7 @@ export function TimesheetDetailPage() {
                       </Table.Td>
                     ) : (
                       <Table.Td>
-                        <Badge color="red">ERROR</Badge>
+                        <StatusBadge value="FAILURE" label="Invalid times" />
                       </Table.Td>
                     )}
                     {rates.length > 1 && (
@@ -328,9 +325,8 @@ export function TimesheetDetailPage() {
                 ))}
               </Table.Tbody>
             </Table>
-          </ScrollArea>
-        </Grid.Col>
-      </Grid>
+          </div>
+      </Stack>
     </>
   );
 }

@@ -1,0 +1,65 @@
+/* global helpers, everything else is styled with mantine props */
+
+.app-header {
+  background-color: var(--mantine-color-artcoded-7);
+  border-bottom: none;
+}
+
+.app-navbar {
+  background-color: var(--mantine-color-dark-7);
+}
+
+.app-navlink {
+  color: var(--mantine-color-gray-2);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.brand {
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 2px #202220;
+}
+
+/* demo mode */
+.blur * {
+  filter: blur(1.4px);
+}
+
+.text-break {
+  word-break: break-all;
+}
+
+.pre-wrap {
+  white-space: pre-wrap;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.border-bottom {
+  border-bottom: 1px solid var(--mantine-color-gray-3);
+}
+
+.bordered-list > * {
+  border: 1px solid var(--mantine-color-gray-3);
+  border-bottom: none;
+}
+
+.bordered-list > *:last-child {
+  border-bottom: 1px solid var(--mantine-color-gray-3);
+}
+
+.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--mantine-color-body);
+  overflow-y: auto;
+}
+
+.postit {
+  min-width: 220px;
+  max-width: 260px;
+  background: var(--mantine-color-yellow-0);
+}

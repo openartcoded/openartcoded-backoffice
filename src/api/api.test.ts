@@ -90,6 +90,17 @@ describe('api modules', () => {
     expect(download).toHaveBeenCalledWith('/api/dossier/generate-summary', { params: { id: 'd1' } });
   });
 
+  it('downloads the dossier report, for a month or the default one', async () => {
+    await dossiersApi.generateReport('d1', '2026-10');
+    expect(download).toHaveBeenCalledWith(
+      '/api/dossier/generate-report',
+      { params: { id: 'd1', month: '2026-10' } },
+      'report.pdf',
+    );
+    await dossiersApi.generateReport('d1');
+    expect(download).toHaveBeenLastCalledWith('/api/dossier/generate-report', { params: { id: 'd1' } }, 'report.pdf');
+  });
+
   it('saves documents as form data with comma separated tags', async () => {
     await documentsApi.save({ id: 'x', title: 't', description: 'd', tags: ['a', 'b'], document: null });
     const fd = vi.mocked(post).mock.calls[0][1] as FormData;

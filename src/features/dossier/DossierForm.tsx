@@ -24,6 +24,8 @@ import { bytesToHuman, fmtCurrency, fmtDateTime, fromInput, toInputDate } from '
 import { openFeeDetail, tagColor } from '@/features/fee/FeeDetail';
 import { openInvoiceDetail } from '@/features/invoice/InvoiceDetail';
 import { openDocumentEditor } from '@/features/documents/DocumentEditor';
+import { errorMessage } from '@/api/http';
+import { toast } from '@/lib/ui';
 import type { AdministrativeDocument, Dossier, Fee, Invoice } from '@/types';
 
 export interface DossierTotals {
@@ -68,6 +70,20 @@ export function DossierForm({
   const isAdmin = useIsAdmin();
   const demoMode = useDemoMode();
   const [search, setSearch] = useState('');
+  /** yyyy-MM, empty: the default month of the backend */
+  const [reportMonth, setReportMonth] = useState('');
+  const [reportLoading, setReportLoading] = useState(false);
+  const downloadReport = async () => {
+    if (!dossier.id) return;
+    setReportLoading(true);
+    try {
+      await dossiersApi.generateReport(dossier.id, reportMonth || undefined);
+    } catch (e) {
+      toast.error(`Could not generate the report: ${errorMessage(e)}`);
+    } finally {
+      setReportLoading(false);
+    }
+  };
   const feeIds = dossier.feeIds ?? [];
   const invoiceIds = dossier.invoiceIds ?? [];
   const documentIds = dossier.documentIds ?? [];
@@ -192,7 +208,25 @@ export function DossierForm({
                 <TextInput label="Recalled Date" value={fmtDateTime(dossier.recalledForModificationDate)} disabled />
               )}
             </SimpleGrid>
-            <Group justify="flex-end">
+            <Group justify="flex-end" align="flex-end">
+              <TextInput
+                type="month"
+                label="Report month"
+                description="empty: previous month"
+                value={reportMonth}
+                onChange={(e) => setReportMonth(e.currentTarget.value)}
+                disabled={!dossier.id}
+                w={170}
+              />
+              <Button
+                variant="outline"
+                leftSection={<Icon icon="file-pdf" />}
+                loading={reportLoading}
+                disabled={!dossier.id}
+                onClick={downloadReport}
+              >
+                Download Report
+              </Button>
               <Button
                 variant="outline"
                 disabled={!dossier.id || (!invoiceIds.length && !feeIds.length)}

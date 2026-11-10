@@ -135,6 +135,12 @@ export const dossiersApi = {
   importExample: () => download(`${dos}/import-example`),
   allSummaries: (closed: boolean) => post<DossierSummary[]>(`${dos}/find-all-summaries`, {}, { closed }),
   generateSummary: (id: string) => download(`${dos}/generate-summary`, { params: { id } }),
+  /**
+   * pdf report of the dossier for a month (yyyy-MM), compared with the previous years.
+   * without month: the previous month for the open dossier, the last month invoiced for a closed one
+   */
+  generateReport: (id: string, month?: string) =>
+    download(`${dos}/generate-report`, { params: month ? { id, month } : { id } }, 'report.pdf'),
   processFees: (feeIds: string[]) => post<void>(`${dos}/process-fees`, feeIds),
   removeFee: (feeId: string) => post<Dossier>(`${dos}/remove-fee`, {}, { feeId }),
   newDossier: (d: Dossier) => post<Dossier>(`${dos}/new-dossier`, d),

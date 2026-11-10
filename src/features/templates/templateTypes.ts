@@ -11,6 +11,7 @@ export const TEMPLATE_TYPES: TemplateType[] = [
   'ACTION',
   'SMS',
   'CALENDAR',
+  'DOSSIER_REPORT',
 ];
 
 export const TEMPLATE_TYPE_DISPLAY: Record<TemplateType, { label: string; description: string }> = {
@@ -23,6 +24,10 @@ export const TEMPLATE_TYPE_DISPLAY: Record<TemplateType, { label: string; descri
   ACTION: { label: 'Action report', description: 'email reporting the result of an action (actionResult)' },
   SMS: { label: 'SMS', description: 'sms reporting the result of an action (actionResult, actionKey)' },
   CALENDAR: { label: 'Calendar invite', description: '.ics attached to a reminder' },
+  DOSSIER_REPORT: {
+    label: 'Dossier report',
+    description: 'monthly pdf report of a dossier, compared with the previous years (report)',
+  },
 };
 
 export const typeLabel = (type?: TemplateType | null) => (type ? TEMPLATE_TYPE_DISPLAY[type].label : '');

@@ -94,10 +94,219 @@ function DossierEditor({
   );
 }
 
-export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmarked?: boolean }) {
+/** opening, mailing, reopening and bookmarking a dossier; reload: after a change */
+function useDossierActions(reload: () => void) {
   const isAdmin = useIsAdmin();
-  const demoMode = useDemoMode();
   const queryClient = useQueryClient();
+  const refresh = () => {
+    reload();
+    queryClient.invalidateQueries({ queryKey: ['active-dossier'] });
+    queryClient.invalidateQueries({ queryKey: ['dossiers'] });
+  };
+  const open = (dossier: Dossier = { name: null, advancePayments: [] }, recallForModification = false) =>
+    openDrawer({
+      title: dossier.name ? `Dossier ${dossier.name}` : 'New dossier',
+      size: 1000,
+      closeOnClickOutside: false,
+      render: () => (
+        <DossierEditor initial={dossier} recallForModification={recallForModification} onChanged={refresh} />
+      ),
+    });
+  const sendMail = async (d: Dossier) => {
+    if (!d.dossierUploadId) return;
+    openMailForm({ attachments: [await filesApi.findById(d.dossierUploadId)], context: { Name: d.name } });
+  };
+  const modify = async (d: Dossier) => {
+    if (await confirm('Reopen this closed dossier to change it?', { danger: false })) open(d, true);
+  };
+  const toggleBookmark = async (d: Dossier) => {
+    await dossiersApi.toggleBookmarked(d.id!);
+    toast.success(d.bookmarked ? 'Bookmark removed' : 'Bookmarked');
+    refresh();
+  };
+  return { isAdmin, open, sendMail, modify, toggleBookmark, refresh };
+}
+
+/** downloads the annual report of a year; loading: the year being generated */
+function useAnnualReport() {
+  const [loading, setLoading] = useState<number | null>(null);
+  const download = async (year: number) => {
+    setLoading(year);
+    try {
+      await dossiersApi.generateAnnualReport(year);
+    } catch (e) {
+      toast.error(`Could not generate the annual report: ${errorMessage(e)}`);
+    } finally {
+      setLoading(null);
+    }
+  };
+  return { loading, download };
+}
+
+/** the table of some dossiers (closed or bookmarked) */
+function DossierRows({
+  dossiers,
+  actions,
+  emptyTitle,
+  emptyDescription,
+}: {
+  dossiers: Dossier[];
+  actions: ReturnType<typeof useDossierActions>;
+  emptyTitle: string;
+  emptyDescription: string;
+}) {
+  const demoMode = useDemoMode();
+  const { isAdmin, open, sendMail, modify, toggleBookmark } = actions;
+  return (
+    <Table.ScrollContainer minWidth={600}>
+      <Table className="clickable-rows">
+        <Table.Thead>
+          <Table.Tr>
+            {isAdmin && <Table.Th w={40} />}
+            <Table.Th>Name</Table.Th>
+            <Table.Th visibleFrom="md">Description</Table.Th>
+            <Table.Th ta="center">Expenses</Table.Th>
+            <Table.Th ta="center">Invoices</Table.Th>
+            <Table.Th ta="right">VAT due</Table.Th>
+            <Table.Th visibleFrom="md">Closed</Table.Th>
+            <Table.Th w={110} />
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody className={demoMode ? 'blur' : undefined}>
+          {!dossiers.length && (
+            <EmptyRow colSpan={8} icon="folder-open" title={emptyTitle} description={emptyDescription} />
+          )}
+          {dossiers.map((d) => (
+            <Table.Tr key={d.id} onClick={() => open(d)}>
+              {isAdmin && (
+                <Table.Td>
+                  <BookmarkButton bookmarked={d.bookmarked} onToggle={() => toggleBookmark(d)} />
+                </Table.Td>
+              )}
+              <Table.Td>
+                <Group gap={4} wrap="nowrap">
+                  <Text size="sm" fw={500}>
+                    {d.name}
+                  </Text>
+                  <ImportedInfo imported={d.imported} date={d.importedDate} />
+                </Group>
+              </Table.Td>
+              <Table.Td visibleFrom="md" c="dimmed">
+                <Text size="sm" lineClamp={1}>
+                  {d.description}
+                </Text>
+              </Table.Td>
+              <Table.Td ta="center">{d.feeIds?.length ?? 0}</Table.Td>
+              <Table.Td ta="center">{d.invoiceIds?.length ?? 0}</Table.Td>
+              <MoneyCell value={d.closed ? (d.tvaDue ?? 0) : d.tvaToBePaid} />
+              <Table.Td visibleFrom="md">{fmtDate(d.closedDate ?? d.updatedDate)}</Table.Td>
+              <Table.Td>
+                <RowActions
+                  inline={[
+                    {
+                      label: 'Download',
+                      icon: 'download',
+                      hidden: !d.closed,
+                      disabled: !d.dossierUploadId,
+                      onClick: () => downloadUpload(d.dossierUploadId!),
+                    },
+                  ]}
+                  groups={[
+                    [
+                      {
+                        label: 'Send by email',
+                        icon: 'envelope',
+                        hidden: !isAdmin || !d.closed,
+                        onClick: () => sendMail(d),
+                      },
+                      {
+                        label: 'Reopen for changes',
+                        icon: 'edit',
+                        hidden: !isAdmin || !d.closed,
+                        onClick: () => modify(d),
+                      },
+                    ],
+                  ]}
+                />
+              </Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+    </Table.ScrollContainer>
+  );
+}
+
+/** the closed dossiers, one tab per year (the most recent first), each with its annual report */
+export function ClosedDossiers() {
+  const {
+    data: years,
+    refetch,
+    isLoading,
+  } = useQuery({
+    queryKey: ['dossiers', 'closed-by-year'],
+    queryFn: dossiersApi.closedByYear,
+  });
+  const actions = useDossierActions(() => refetch());
+  const report = useAnnualReport();
+  const [year, setYear] = useState<string | null>(null);
+
+  if (isLoading || !years) return <Loader />;
+  if (!years.length) {
+    return (
+      <Paper withBorder>
+        <EmptyState
+          icon="folder-open"
+          title="No closed dossier"
+          description="Closed dossiers and their archives show up here, by year."
+        />
+      </Paper>
+    );
+  }
+  const selected = year && years.some((y) => String(y.year) === year) ? year : String(years[0].year);
+  return (
+    <Tabs value={selected} onChange={setYear} variant="pills" keepMounted={false}>
+      <Tabs.List mb="sm">
+        {years.map((y) => (
+          <Tabs.Tab key={y.year} value={String(y.year)}>
+            {y.year}{' '}
+            <Text span size="xs" c="dimmed">
+              ({y.dossiers.length})
+            </Text>
+          </Tabs.Tab>
+        ))}
+      </Tabs.List>
+      {years.map((y) => (
+        <Tabs.Panel key={y.year} value={String(y.year)}>
+          <Group justify="space-between" mb="sm">
+            <Text size="sm" c="dimmed">
+              {y.dossiers.length} closed dossier{y.dossiers.length > 1 ? 's' : ''} in {y.year}
+            </Text>
+            <Tooltip label={`${y.year} compared with the other years, and where the last three years lead`}>
+              <Button
+                variant="default"
+                leftSection={<Icon icon="file-pdf" />}
+                loading={report.loading === y.year}
+                onClick={() => report.download(y.year)}
+              >
+                Annual report {y.year}
+              </Button>
+            </Tooltip>
+          </Group>
+          <DossierRows
+            dossiers={y.dossiers}
+            actions={actions}
+            emptyTitle="No closed dossier"
+            emptyDescription={`No dossier of ${y.year} is closed.`}
+          />
+        </Tabs.Panel>
+      ))}
+    </Tabs>
+  );
+}
+
+export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmarked?: boolean }) {
+  const demoMode = useDemoMode();
   const [page, setPage] = useState(1);
   const { data: dossiers, refetch } = useQuery({
     queryKey: ['dossiers', { closed, bookmarked }, page],
@@ -106,22 +315,11 @@ export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmar
         ? dossiersApi.bookmarked(page - 1, PAGE_SIZE, SORT)
         : dossiersApi.findAllPaged(!!closed, page - 1, PAGE_SIZE, SORT),
   });
+  const actions = useDossierActions(() => refetch());
+  const { isAdmin, open, refresh } = actions;
+  const report = useAnnualReport();
   const content = dossiers?.content ?? [];
   const active = !closed && !bookmarked ? content[0] : undefined;
-  const reload = () => {
-    refetch();
-    queryClient.invalidateQueries({ queryKey: ['active-dossier'] });
-  };
-
-  const open = (dossier: Dossier = { name: null, advancePayments: [] }, recallForModification = false) =>
-    openDrawer({
-      title: dossier.name ? `Dossier ${dossier.name}` : 'New dossier',
-      size: 1000,
-      closeOnClickOutside: false,
-      render: () => (
-        <DossierEditor initial={dossier} recallForModification={recallForModification} onChanged={reload} />
-      ),
-    });
 
   const fromPrevious = async () => {
     if (!isAdmin || content.length > 0) return;
@@ -135,28 +333,13 @@ export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmar
     toast.success('Dossier closed. Generating ZIP');
     const d = await dossiersApi.closeActiveDossier();
     if (d.dossierUploadId) await filesApi.download(d.dossierUploadId);
-    reload();
-  };
-
-  const sendMail = async (d: Dossier) => {
-    if (!d.dossierUploadId) return;
-    openMailForm({ attachments: [await filesApi.findById(d.dossierUploadId)], context: { Name: d.name } });
-  };
-
-  const modify = async (d: Dossier) => {
-    if (await confirm('Reopen this closed dossier to change it?', { danger: false })) open(d, true);
-  };
-
-  const toggleBookmark = async (d: Dossier) => {
-    await dossiersApi.toggleBookmarked(d.id!);
-    toast.success(d.bookmarked ? 'Bookmark removed' : 'Bookmarked');
-    refetch();
+    refresh();
   };
 
   const removeActive = async () => {
     if (!(await confirm('Delete the active dossier? It has no expense nor invoice.'))) return;
     await dossiersApi.deleteActiveDossier();
-    reload();
+    refresh();
   };
 
   if (!dossiers) return <Loader />;
@@ -189,6 +372,7 @@ export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmar
       );
     }
     const empty = !active.feeIds?.length && !active.invoiceIds?.length;
+    const currentYear = new Date().getFullYear();
     return (
       <Paper withBorder p="lg" className={demoMode ? 'blur' : undefined}>
         <Group justify="space-between" align="flex-start" mb="md">
@@ -212,6 +396,16 @@ export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmar
                 Delete
               </Button>
             )}
+            <Tooltip label={`${currentYear} so far, compared with the other years, and where it leads`}>
+              <Button
+                variant="default"
+                leftSection={<Icon icon="file-pdf" />}
+                loading={report.loading === currentYear}
+                onClick={() => report.download(currentYear)}
+              >
+                Year report
+              </Button>
+            </Tooltip>
             {isAdmin && (
               <Tooltip label="Add expenses or invoices first" disabled={!empty}>
                 <Button variant="default" leftSection={<Icon icon="check" />} disabled={empty} onClick={closeActive}>
@@ -237,89 +431,14 @@ export function DossierTable({ closed, bookmarked }: { closed?: boolean; bookmar
   return (
     <div className="fill-column">
       <div className="scroll-body">
-        <Table.ScrollContainer minWidth={600}>
-          <Table className="clickable-rows">
-            <Table.Thead>
-              <Table.Tr>
-                {isAdmin && <Table.Th w={40} />}
-                <Table.Th>Name</Table.Th>
-                <Table.Th visibleFrom="md">Description</Table.Th>
-                <Table.Th ta="center">Expenses</Table.Th>
-                <Table.Th ta="center">Invoices</Table.Th>
-                <Table.Th ta="right">VAT due</Table.Th>
-                <Table.Th visibleFrom="md">Updated</Table.Th>
-                <Table.Th w={110} />
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody className={demoMode ? 'blur' : undefined}>
-              {!content.length && (
-                <EmptyRow
-                  colSpan={8}
-                  icon="folder-open"
-                  title={bookmarked ? 'No bookmarked dossier' : 'No closed dossier'}
-                  description={
-                    bookmarked ? 'Star a dossier to find it here.' : 'Closed dossiers and their archives show up here.'
-                  }
-                />
-              )}
-              {content.map((d) => (
-                <Table.Tr key={d.id} onClick={() => open(d)}>
-                  {isAdmin && (
-                    <Table.Td>
-                      <BookmarkButton bookmarked={d.bookmarked} onToggle={() => toggleBookmark(d)} />
-                    </Table.Td>
-                  )}
-                  <Table.Td>
-                    <Group gap={4} wrap="nowrap">
-                      <Text size="sm" fw={500}>
-                        {d.name}
-                      </Text>
-                      <ImportedInfo imported={d.imported} date={d.importedDate} />
-                    </Group>
-                  </Table.Td>
-                  <Table.Td visibleFrom="md" c="dimmed">
-                    <Text size="sm" lineClamp={1}>
-                      {d.description}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td ta="center">{d.feeIds?.length ?? 0}</Table.Td>
-                  <Table.Td ta="center">{d.invoiceIds?.length ?? 0}</Table.Td>
-                  <MoneyCell value={d.closed ? (d.tvaDue ?? 0) : d.tvaToBePaid} />
-                  <Table.Td visibleFrom="md">{fmtDate(d.updatedDate)}</Table.Td>
-                  <Table.Td>
-                    <RowActions
-                      inline={[
-                        {
-                          label: 'Download',
-                          icon: 'download',
-                          hidden: !d.closed,
-                          disabled: !d.dossierUploadId,
-                          onClick: () => downloadUpload(d.dossierUploadId!),
-                        },
-                      ]}
-                      groups={[
-                        [
-                          {
-                            label: 'Send by email',
-                            icon: 'envelope',
-                            hidden: !isAdmin || !d.closed,
-                            onClick: () => sendMail(d),
-                          },
-                          {
-                            label: 'Reopen for changes',
-                            icon: 'edit',
-                            hidden: !isAdmin || !d.closed,
-                            onClick: () => modify(d),
-                          },
-                        ],
-                      ]}
-                    />
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
+        <DossierRows
+          dossiers={content}
+          actions={actions}
+          emptyTitle={bookmarked ? 'No bookmarked dossier' : 'No closed dossier'}
+          emptyDescription={
+            bookmarked ? 'Star a dossier to find it here.' : 'Closed dossiers and their archives show up here.'
+          }
+        />
       </div>
       {dossiers.page.totalPages > 1 && (
         <Group justify="flex-end" mt="sm">
@@ -375,7 +494,7 @@ export function DossierPage() {
           <DossierTable closed={false} />
         </Tabs.Panel>
         <Tabs.Panel value="closed">
-          <DossierTable closed />
+          <ClosedDossiers />
         </Tabs.Panel>
         <Tabs.Panel value="bookmarks">
           <DossierTable bookmarked />

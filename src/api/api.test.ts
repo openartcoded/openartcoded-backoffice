@@ -101,6 +101,17 @@ describe('api modules', () => {
     expect(download).toHaveBeenLastCalledWith('/api/dossier/generate-report', { params: { id: 'd1' } }, 'report.pdf');
   });
 
+  it('downloads the annual report and lists the closed dossiers by year', async () => {
+    await dossiersApi.generateAnnualReport(2025);
+    expect(download).toHaveBeenCalledWith(
+      '/api/dossier/generate-annual-report',
+      { params: { year: 2025 } },
+      'annual-report-2025.pdf',
+    );
+    await dossiersApi.closedByYear();
+    expect(post).toHaveBeenCalledWith('/api/dossier/closed-by-year');
+  });
+
   it('saves documents as form data with comma separated tags', async () => {
     await documentsApi.save({ id: 'x', title: 't', description: 'd', tags: ['a', 'b'], document: null });
     const fd = vi.mocked(post).mock.calls[0][1] as FormData;

@@ -259,6 +259,12 @@ export interface Dossier {
   comment?: string;
 }
 
+/** the closed dossiers of a year (the year of most of their invoices) */
+export interface DossiersOfYear {
+  year: number;
+  dossiers: Dossier[];
+}
+
 export interface DossierSummary {
   closedDate: DateLike;
   name?: string;

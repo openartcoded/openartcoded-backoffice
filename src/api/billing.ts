@@ -8,6 +8,7 @@ import type {
   ContractStatus,
   Dossier,
   DossierSummary,
+  DossiersOfYear,
   Fee,
   FeeManualForm,
   FeeSearchCriteria,
@@ -141,6 +142,14 @@ export const dossiersApi = {
    */
   generateReport: (id: string, month?: string) =>
     download(`${dos}/generate-report`, { params: month ? { id, month } : { id } }, 'report.pdf'),
+  /**
+   * pdf annual report: every dossier of the year compared with the other years, and the projection of the last
+   * three years (january to now for the current year)
+   */
+  generateAnnualReport: (year: number) =>
+    download(`${dos}/generate-annual-report`, { params: { year } }, `annual-report-${year}.pdf`),
+  /** the closed dossiers by year, the most recent year first */
+  closedByYear: () => post<DossiersOfYear[]>(`${dos}/closed-by-year`),
   processFees: (feeIds: string[]) => post<void>(`${dos}/process-fees`, feeIds),
   removeFee: (feeId: string) => post<Dossier>(`${dos}/remove-fee`, {}, { feeId }),
   newDossier: (d: Dossier) => post<Dossier>(`${dos}/new-dossier`, d),

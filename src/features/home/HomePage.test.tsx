@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithProviders } from '@/test/utils';
 
@@ -15,13 +15,13 @@ vi.mock('@/auth/session', () => ({
 
 vi.mock('@/api/billing', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/billing')>()),
-  invoicesApi: { findAllSummaries: vi.fn().mockResolvedValue([]) },
-  dossiersApi: { activeDossier: vi.fn().mockResolvedValue(null) },
-  feesApi: { search: vi.fn().mockResolvedValue({ content: [], page: { totalElements: 0 } }) },
+  invoicesApi: { findAllSummaries: vi.fn() },
+  dossiersApi: { activeDossier: vi.fn() },
+  feesApi: { search: vi.fn() },
 }));
 vi.mock('@/api/misc', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/misc')>()),
-  timesheetApi: { estimateThisMonth: vi.fn().mockResolvedValue(0) },
+  timesheetApi: { estimateThisMonth: vi.fn() },
 }));
 
 // charts and widgets are tested on their own
@@ -38,9 +38,19 @@ vi.mock('./widgets', () => ({
   MostClickedMenu: () => null,
 }));
 
+import { dossiersApi, feesApi, invoicesApi } from '@/api/billing';
+import { timesheetApi } from '@/api/misc';
 import { HomePage } from './HomePage';
 
 describe('HomePage', () => {
+  // restoreMocks is on (vite.config.ts): the mocked values must be set before each test
+  beforeEach(() => {
+    vi.mocked(invoicesApi.findAllSummaries).mockResolvedValue([]);
+    vi.mocked(dossiersApi.activeDossier).mockResolvedValue(null as never);
+    vi.mocked(feesApi.search).mockResolvedValue({ content: [], page: { totalElements: 0 } } as never);
+    vi.mocked(timesheetApi.estimateThisMonth).mockResolvedValue(0);
+  });
+
   it('shows the key figures, the charts and the company card on a single page', async () => {
     session.authorities = ['ADMIN'];
     renderWithProviders(<HomePage />);

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router';
@@ -27,13 +27,10 @@ vi.mock('@/features/home/console', () => ({
 vi.mock('@/features/toolbox/ToolboxPanel', () => ({ ToolboxPanel: () => <div>toolbox-panel</div> }));
 vi.mock('@/api/misc', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/misc')>()),
-  infoApi: {
-    logs: vi.fn().mockResolvedValue('some log line'),
-    buildInfo: vi.fn().mockResolvedValue({ build: { version: '1.0.0' } }),
-    health: vi.fn().mockResolvedValue({ components: { mongo: { status: 'UP' } } }),
-  },
+  infoApi: { logs: vi.fn(), buildInfo: vi.fn(), health: vi.fn() },
 }));
 
+import { infoApi } from '@/api/misc';
 import { AdministrationPage } from './AdministrationPage';
 
 function renderAt(route: string) {
@@ -46,6 +43,13 @@ function renderAt(route: string) {
 }
 
 describe('AdministrationPage', () => {
+  // restoreMocks is on (vite.config.ts): the mocked values must be set before each test
+  beforeEach(() => {
+    vi.mocked(infoApi.logs).mockResolvedValue('some log line');
+    vi.mocked(infoApi.buildInfo).mockResolvedValue({ build: { version: '1.0.0' } } as never);
+    vi.mocked(infoApi.health).mockResolvedValue({ components: { mongo: { status: 'UP' } } } as never);
+  });
+
   it('shows every tab to an admin and opens the first one by default', async () => {
     session.authorities = ['ADMIN'];
     renderAt('/administration');

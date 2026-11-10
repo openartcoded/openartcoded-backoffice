@@ -66,7 +66,15 @@ export type TimesheetsByYearAndClient = Record<string, Record<string, Timesheet[
 
 // ---------- reminder tasks ----------
 export type ActionParameterType =
-  'INTEGER' | 'LONG' | 'STRING' | 'BIG_STRING' | 'BOOLEAN' | 'DOUBLE' | 'BIGDECIMAL' | 'BIGINTEGER' | 'OPTION';
+  | 'INTEGER'
+  | 'LONG'
+  | 'STRING'
+  | 'BIG_STRING'
+  | 'BOOLEAN'
+  | 'DOUBLE'
+  | 'BIGDECIMAL'
+  | 'BIGINTEGER'
+  | 'OPTION';
 
 export interface ActionParameter {
   key?: string;
@@ -351,13 +359,72 @@ export interface HealthIndicator {
 }
 
 // ---------- file search (rust/tantivy proxy) ----------
-export interface FileSearchHit {
-  file_name?: unknown;
-  sheet_name?: unknown;
-  cell_position?: unknown;
-  cell_value?: unknown;
-  cell_ctx?: unknown;
-  [field: string]: unknown;
+/** pdf, spreadsheet, csv, document, image, text */
+export type FileSearchKind = 'pdf' | 'spreadsheet' | 'csv' | 'document' | 'image' | 'text';
+
+/** how the words are matched (see the file-search README) */
+export type FileSearchMode = 'smart' | 'exact' | 'prefix' | 'fuzzy' | 'phrase' | 'regex' | 'query';
+
+export type FileSearchField = 'content' | 'file_name' | 'sheet' | 'context';
+
+/** query parameters of /api/file-search/v2/search */
+export interface FileSearchParams {
+  q: string;
+  mode: FileSearchMode;
+  fields?: string;
+  kinds?: string;
+  extensions?: string;
+  modified_from?: string;
+  modified_to?: string;
+  fuzziness?: number;
+  page: number;
+  per_page: number;
+  group_by_file: boolean;
+  snippet_chars?: number;
+}
+
+/** the upload of a hit (the archive for a file extracted from it) */
+export interface FileSearchUpload {
+  id: string;
+  originalFilename?: string | null;
+  contentType?: string | null;
+  size?: number;
+  creationDate?: string | null;
+  correlationId?: string | null;
+  /** what the upload belongs to: "Expense 'Hosting'"... */
+  correlationLabel?: string | null;
+}
+
+export interface FileSearchV2Hit {
+  score: number;
+  /** the file indexed: the upload, or a file of an uploaded archive */
+  fileName: string;
+  originFileName: string;
+  extracted: boolean;
+  kind: FileSearchKind | string;
+  extension: string;
+  sheetName?: string | null;
+  /** cells (A2, B2...) or chunk ("chunk 3") */
+  positions: string[];
+  /** column labels */
+  context: string[];
+  content: string;
+  /** html escaped, the matching words in <b> */
+  snippetHtml: string;
+  /** yyyy-mm-dd */
+  modifiedAt?: string | null;
+  /** matching rows / chunks in the file */
+  matches: number;
+  upload?: FileSearchUpload | null;
+}
+
+export interface FileSearchResult {
+  hits: FileSearchV2Hit[];
+  page: number;
+  perPage: number;
+  hasMore: boolean;
+  totalMatches: number;
+  tookMs: number;
 }
 
 export interface FileIngestionEntry {
@@ -370,6 +437,9 @@ export interface FileSearchStats {
   discovered: number;
   indexed: number;
   skipped: number;
+  duplicate?: number;
   pending: number;
+  /** indexed files per kind */
+  kinds?: Partial<Record<FileSearchKind, number>>;
   files: Record<string, FileIngestionEntry>;
 }

@@ -1,45 +1,18 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import {
-  Alert,
-  Anchor,
-  Badge,
-  Button,
-  Group,
-  Loader,
-  Pagination,
-  Paper,
-  Popover,
-  Select,
-  SimpleGrid,
-  Stack,
-  Table,
-  Tabs,
-  Text,
-  TextInput,
-} from '@mantine/core';
+import { Badge, Button, Group, Pagination, Popover, Select, Stack, Table, Tabs, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 import { Icon } from '@/components/Icon';
 import { BookmarkButton, CopyButton, ThumbnailPreview } from '@/components/common';
 import { EmptyRow, PageHeader, RowActions, StatusBadge } from '@/components/ui';
 import { canPreview, downloadUpload, openFileViewer } from '@/components/files';
 import { filesApi } from '@/api/files';
-import { fileSearchApi } from '@/api/misc';
 import { useDemoMode, useIsAdmin } from '@/auth/session';
 import { bytesToHuman, dayjs, fmtDateTime, trim } from '@/lib/format';
 import { toast } from '@/lib/ui';
 import type { FileUpload, FileUploadSearchCriteria } from '@/types';
-import {
-  searchErrorMessage,
-  skippedFiles,
-  snippet,
-  SNIPPET_LENGTH,
-  toDisplayHit,
-  uploadIdFromFileName,
-  type DisplayHit,
-} from './fileSearch';
+import { FileContentSearch } from './FileContentSearch';
 
 const PAGE_SIZE = 10;
 const emptySearch = {
@@ -242,165 +215,6 @@ export function UploadTable({ bookmarked }: { bookmarked: boolean }) {
   );
 }
 
-const FUZZY_PAGE_SIZE = 2;
-
-export function FuzzySearch() {
-  const [query, setQuery] = useState('');
-  const [submitted, setSubmitted] = useState('');
-  const [page, setPage] = useState(0);
-  const [showSkipped, setShowSkipped] = useState(false);
-  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
-  const stats = useQuery({ queryKey: ['file-search-stats'], queryFn: fileSearchApi.stats });
-  const search = useQuery({
-    queryKey: ['file-search', submitted, page],
-    enabled: !!submitted,
-    placeholderData: (prev) => prev,
-    queryFn: async (): Promise<DisplayHit[]> => {
-      const results = await fileSearchApi.search(submitted, page, FUZZY_PAGE_SIZE);
-      if (!Array.isArray(results)) throw new Error('Unexpected response from file-search.');
-      return Promise.all(
-        results.map(toDisplayHit).map(async (hit) => {
-          const id = uploadIdFromFileName(hit.fileName);
-          if (!id) return hit;
-          try {
-            const upload = await filesApi.findById(id);
-            return upload?.id === id ? { ...hit, upload } : hit;
-          } catch {
-            return hit;
-          }
-        }),
-      );
-    },
-  });
-  const hits = search.data ?? [];
-  const error = search.error
-    ? searchErrorMessage(
-        axios.isAxiosError(search.error) ? search.error.response?.status : undefined,
-        search.error.message,
-      )
-    : '';
-  const skipped = skippedFiles(stats.data);
-
-  return (
-    <Stack>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          setPage(0);
-          setExpanded({});
-          setSubmitted(query.trim());
-        }}
-      >
-        <Group wrap="nowrap">
-          <TextInput
-            style={{ flex: 1 }}
-            type="search"
-            maxLength={4096}
-            placeholder="e.g. invioce"
-            autoComplete="off"
-            value={query}
-            onChange={(e) => setQuery(e.currentTarget.value)}
-          />
-          <Button type="submit" disabled={search.isFetching || !query.trim()}>
-            Search
-          </Button>
-        </Group>
-      </form>
-      <Paper withBorder p="sm">
-        {stats.isError && <Text c="red">Unable to load ingestion statistics.</Text>}
-        {stats.isLoading && <Text c="dimmed">Loading indexing statistics…</Text>}
-        {stats.data && (
-          <>
-            <SimpleGrid cols={4}>
-              {(['discovered', 'indexed', 'skipped', 'pending'] as const).map((k) => (
-                <Stack key={k} gap={0} align="center">
-                  <Text size="xs" c="dimmed" tt="capitalize">
-                    {k}
-                  </Text>
-                  <Text fw={700}>{stats.data[k]}</Text>
-                </Stack>
-              ))}
-            </SimpleGrid>
-            {stats.data.skipped > 0 && (
-              <Button
-                variant="subtle"
-                size="xs"
-                mt="xs"
-                onClick={() => setShowSkipped((s) => !s)}
-                aria-expanded={showSkipped}
-              >
-                {showSkipped ? 'Hide skipped files' : `Show skipped files (${stats.data.skipped})`}
-              </Button>
-            )}
-            {showSkipped &&
-              skipped.map((f) => (
-                <Group key={f.name} justify="space-between">
-                  <Text size="sm">{f.name}</Text>
-                  <Text size="xs" c="dimmed">
-                    {f.reason}
-                  </Text>
-                </Group>
-              ))}
-          </>
-        )}
-      </Paper>
-      {error && <Alert color="red">{error}</Alert>}
-      {search.isFetching && <Loader size="sm" />}
-      {!!submitted && search.isSuccess && !hits.length && <Text c="dimmed">No matches found.</Text>}
-      {hits.map((hit, i) => (
-        <Paper key={`${hit.fileName}|${hit.sheet}|${hit.position}|${i}`} withBorder p="sm">
-          <Text fw={700}>
-            {hit.upload ? (
-              <Anchor onClick={() => filesApi.download(hit.upload!.id)}>
-                {hit.upload.originalFilename || hit.fileName}
-              </Anchor>
-            ) : (
-              hit.fileName
-            )}
-          </Text>
-          <Text size="xs" c="dimmed">
-            {[hit.sheet, hit.position, hit.upload ? 'Click title to download' : 'Download unavailable']
-              .filter(Boolean)
-              .join(' · ')}
-          </Text>
-          <Text size="sm" mt={4} className="pre-wrap">
-            {snippet(hit.content, !!expanded[i]) || 'No preview available'}
-          </Text>
-          {hit.content.length > SNIPPET_LENGTH && (
-            <Button
-              variant="subtle"
-              size="compact-xs"
-              onClick={() => setExpanded((e) => ({ ...e, [i]: !e[i] }))}
-              aria-expanded={!!expanded[i]}
-            >
-              {expanded[i] ? 'Read less' : 'Read more'}
-            </Button>
-          )}
-          {hit.context && (
-            <Text size="xs" c="dimmed" mt={4}>
-              {hit.context}
-            </Text>
-          )}
-        </Paper>
-      ))}
-      {!!submitted && !error && (page > 0 || hits.length === FUZZY_PAGE_SIZE) && (
-        <Group justify="space-between">
-          <Button variant="default" disabled={page === 0 || search.isFetching} onClick={() => setPage((p) => p - 1)}>
-            Previous
-          </Button>
-          <Button
-            variant="default"
-            disabled={hits.length < FUZZY_PAGE_SIZE || search.isFetching}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
-        </Group>
-      )}
-    </Stack>
-  );
-}
-
 export function UploadsPage() {
   const { name = 'home' } = useParams();
   const navigate = useNavigate();
@@ -424,7 +238,7 @@ export function UploadsPage() {
           <UploadTable bookmarked={false} />
         </Tabs.Panel>
         <Tabs.Panel value="fuzzy-search">
-          <FuzzySearch />
+          <FileContentSearch />
         </Tabs.Panel>
         <Tabs.Panel value="bookmarks">
           <UploadTable bookmarked />

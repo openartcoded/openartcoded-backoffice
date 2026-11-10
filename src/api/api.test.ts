@@ -14,7 +14,7 @@ vi.mock('./http', () => ({
 import { del, download, get, post } from './http';
 import { dossiersApi, feesApi, invoicesApi, documentsApi } from './billing';
 import { filesApi } from './files';
-import { reportApi, tasksApi, timesheetApi } from './misc';
+import { fileSearchApi, reportApi, tasksApi, timesheetApi } from './misc';
 
 describe('api modules', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -130,5 +130,26 @@ describe('api modules', () => {
 
   it('builds the public download url', () => {
     expect(filesApi.publicUrl('abc')).toBe('http://backend/api/resource/public/download/abc');
+  });
+
+  it('searches the content of the files without the empty filters', async () => {
+    await fileSearchApi.search({
+      q: 'facture',
+      mode: 'smart',
+      kinds: 'pdf',
+      extensions: undefined,
+      modified_from: '',
+      page: 0,
+      per_page: 20,
+      group_by_file: true,
+    });
+    expect(get).toHaveBeenCalledWith('/api/file-search/v2/search', {
+      q: 'facture',
+      mode: 'smart',
+      kinds: 'pdf',
+      page: 0,
+      per_page: 20,
+      group_by_file: true,
+    });
   });
 });

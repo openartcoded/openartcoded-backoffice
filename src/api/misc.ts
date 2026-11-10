@@ -7,7 +7,8 @@ import type {
   Channel,
   Curriculum,
   DownloadCvRequest,
-  FileSearchHit,
+  FileSearchParams,
+  FileSearchResult,
   FileSearchStats,
   FormContact,
   HealthIndicator,
@@ -214,9 +215,12 @@ export const portfolioApi = {
 
 export const fileSearchApi = {
   stats: () => get<FileSearchStats>('/api/file-search/stats'),
-  /** page is zero based (rust offsets) */
-  search: (q: string, page: number, perPage: number) =>
-    get<FileSearchHit[]>('/api/file-search/search', { q, page, per_page: perPage, query_type: 'fuzzySearch' }),
+  /** page is zero based. Empty parameters are not sent */
+  search: (params: FileSearchParams) =>
+    get<FileSearchResult>(
+      '/api/file-search/v2/search',
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')),
+    ),
 };
 
 const rdf = '/api/toolbox/public/rdf';

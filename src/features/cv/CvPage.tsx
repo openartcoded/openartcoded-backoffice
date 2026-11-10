@@ -3,8 +3,6 @@ import { ActionIcon, Button, Group, Loader, Tabs } from '@mantine/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
 import { PageHeader } from '@/components/ui';
-import { openModal } from '@/components/modal';
-import { TemplatesManager } from '@/components/TemplatesManager';
 import { cvApi } from '@/api/misc';
 import type { Curriculum } from '@/types';
 import {
@@ -29,22 +27,8 @@ export function CvPage() {
     client.invalidateQueries({ queryKey: ['cv'] });
   };
 
-  const openTemplates = () =>
-    cv &&
-    openModal({
-      title: 'CV Templates',
-      size: 'lg',
-      render: () => (
-        <TemplatesManager
-          queryKey="cv"
-          load={cvApi.listTemplates}
-          add={cvApi.addTemplate}
-          remove={(t) => cvApi.deleteTemplate(t.id!)}
-          defaultTemplateId={cv.freemarkerTemplateId}
-          setDefault={(t) => update({ freemarkerTemplateId: t.id })}
-        />
-      ),
-    });
+  /** the cv templates are managed with the other templates */
+  const openTemplates = () => navigate('/templates?type=CV');
 
   if (!cv) return <Loader />;
 

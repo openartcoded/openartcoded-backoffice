@@ -48,3 +48,18 @@ export function findActiveLink(links: MenuLink[], pathname: string): MenuLink | 
 }
 
 export const sortByOrder = (links: MenuLink[]) => [...links].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+/**
+ * pages of this frontend not (yet) in the menu configured in the backend, which the old frontend also reads.
+ * Shown until the backend menu has a link with the same path.
+ */
+export const FRONTEND_ONLY_LINKS: MenuLink[] = [link('Templates', 'file-code', 'templates', 13, ADMIN, true)];
+
+/** the visible links, plus the frontend only links the user may see and the backend doesn't have */
+export function withFrontendLinks(links: MenuLink[], authorities: string[] = []): MenuLink[] {
+  const paths = new Set(links.map(menuPath));
+  const extra = FRONTEND_ONLY_LINKS.filter(
+    (l) => !paths.has(menuPath(l)) && l.roles.some((r) => authorities.includes(r)),
+  );
+  return extra.length ? sortByOrder([...links, ...extra]) : links;
+}

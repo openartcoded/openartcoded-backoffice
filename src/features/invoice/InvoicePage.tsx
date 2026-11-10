@@ -8,8 +8,6 @@ import { BookmarkButton, ImportedInfo, ThumbnailPreview, useUploads } from '@/co
 import { EmptyRow, MoneyCell, PageHeader, RowActions, StatusBadge } from '@/components/ui';
 import { downloadUpload, openFileViewer } from '@/components/files';
 import { openMailForm } from '@/components/forms';
-import { openModal } from '@/components/modal';
-import { TemplatesManager } from '@/components/TemplatesManager';
 import { dossiersApi, invoicesApi } from '@/api/billing';
 import { filesApi } from '@/api/files';
 import { errorMessage } from '@/api/http';
@@ -357,22 +355,8 @@ export function InvoicePage() {
   };
   useHotkeys([['alt+n', newInvoice]]);
 
-  const openTemplates = () =>
-    openModal({
-      title: 'Invoice templates',
-      size: 'lg',
-      render: () => (
-        <TemplatesManager
-          queryKey="invoice"
-          load={invoicesApi.listTemplates}
-          add={invoicesApi.addTemplate}
-          remove={(t) => invoicesApi.deleteTemplate(t.id!)}
-          setDefault={(t) => invoicesApi.setDefaultTemplate(t.id!, true)}
-          unsetDefault={(t) => invoicesApi.setDefaultTemplate(t.id!, false)}
-          hint="New invoices (also from a timesheet or an existing invoice) use the default template, or the latest one when there is no default."
-        />
-      ),
-    });
+  /** the invoice templates are managed with the other templates */
+  const openTemplates = () => navigate('/templates?type=INVOICE');
 
   return (
     <>

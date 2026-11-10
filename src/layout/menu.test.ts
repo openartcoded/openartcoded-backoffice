@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FALLBACK_MENU, findActiveLink, menuPath, sortByOrder } from './menu';
+import { FALLBACK_MENU, findActiveLink, menuPath, sortByOrder, withFrontendLinks } from './menu';
 
 describe('menu', () => {
   it('builds the path of a link', () => {
@@ -21,5 +21,15 @@ describe('menu', () => {
       { title: 'a', order: 1, icon: 'x', routerLink: ['a'], roles: [] },
     ]);
     expect(sorted.map((l) => l.title)).toEqual(['a', 'b']);
+  });
+
+  it('adds the frontend only links to admins, unless the backend menu has them', () => {
+    const titles = (authorities: string[], links = FALLBACK_MENU) =>
+      withFrontendLinks(links, authorities).map((l) => l.title);
+    expect(titles(['ADMIN'])).toContain('Templates');
+    expect(titles(['REGULATOR_OR_ACCOUNTANT'])).not.toContain('Templates');
+    expect(titles([])).not.toContain('Templates');
+    const backend = [...FALLBACK_MENU, { title: 'My templates', icon: 'x', routerLink: ['templates'], roles: ['ADMIN'] }];
+    expect(titles(['ADMIN'], backend).filter((t) => t.includes('emplates'))).toEqual(['My templates']);
   });
 });

@@ -119,13 +119,58 @@ export interface PeppolValidationResult {
   results: string;
 }
 
-export interface FreemarkerTemplate {
+// ---------- templates ----------
+/** what a template renders (see the backend OaTemplateType) */
+export type TemplateType =
+  | 'INVOICE'
+  | 'CV'
+  | 'TIMESHEET'
+  | 'PEPPOL_INVOICE'
+  | 'PEPPOL_CREDIT_NOTE'
+  | 'EMAIL'
+  | 'ACTION'
+  | 'SMS'
+  | 'CALENDAR';
+
+/** V1: FreeMarker, rendered by the backend. V2: jinja, stored and rendered by the file service */
+export type TemplateVersion = 'V1' | 'V2';
+
+export type TemplateOutput = 'PDF' | 'XML' | 'TEXT';
+
+export interface TemplateTypeInfo {
+  type: TemplateType;
+  output: TemplateOutput;
+  /** extension of the file of a v2 template of this type */
+  extension: string;
+}
+
+/** a template, whatever its version. One template per type is the default: the one rendered */
+export interface OaTemplate {
   id?: string;
   name?: string;
-  templateUploadId?: string;
+  description?: string | null;
+  type?: TemplateType;
+  version?: TemplateVersion;
+  /** v1 only: the uploaded FreeMarker file */
+  templateUploadId?: string | null;
+  /** v2 only: the template in the file service */
+  fileServiceTemplateId?: string | null;
   dateCreation?: string;
-  /** invoice templates only: used for new invoices when set */
+  updatedDate?: string | null;
   defaultTemplate?: boolean;
+  logicalDelete?: boolean;
+}
+
+/** add (no id) or overwrite (id) a template */
+export interface TemplateForm {
+  id?: string;
+  name: string;
+  description?: string;
+  type: TemplateType;
+  v1: boolean;
+  makeDefault: boolean;
+  /** optional on an overwrite keeping the version (rename only) */
+  file?: File;
 }
 
 // ---------- fees / expenses ----------

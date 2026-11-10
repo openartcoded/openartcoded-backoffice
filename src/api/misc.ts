@@ -10,7 +10,6 @@ import type {
   FileSearchHit,
   FileSearchStats,
   FormContact,
-  FreemarkerTemplate,
   HealthIndicator,
   MailJob,
   MailRequest,
@@ -181,9 +180,6 @@ export const cvApi = {
   downloadRequests: () => post<DownloadCvRequest[]>(`${cv}/download-requests`),
   deleteDownloadRequest: (id: string) => del<void>(`${cv}/download-requests`, { id }),
   downloadAsAdmin: () => download(`${cv}/admin-download`),
-  listTemplates: () => get<FreemarkerTemplate[]>(`${cv}/list-templates`),
-  addTemplate: (fd: FormData) => post<FreemarkerTemplate>(`${cv}/add-template`, fd),
-  deleteTemplate: (id: string) => del<void>(`${cv}/delete-template`, { id }),
 };
 
 export const memzApi = {

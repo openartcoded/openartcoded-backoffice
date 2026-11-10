@@ -102,6 +102,8 @@ export function errorMessage(e: unknown): string {
     const data = e.response?.data;
     if (typeof data === 'string' && data.length) return data;
     if (data && typeof data === 'object' && 'message' in data) return String((data as { message: unknown }).message);
+    // {"error": "..."} (e.g. a refused template operation)
+    if (data && typeof data === 'object' && 'error' in data) return String((data as { error: unknown }).error);
     return e.message;
   }
   return e instanceof Error ? e.message : String(e);

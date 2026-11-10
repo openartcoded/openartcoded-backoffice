@@ -26,7 +26,7 @@ import { settingsApi } from '@/api/misc';
 import { NotificationBell } from './NotificationBell';
 import { UserMenu } from './UserMenu';
 import { openSettings } from './settings';
-import { findActiveLink, menuPath } from './menu';
+import { findActiveLink, menuPath, withFrontendLinks } from './menu';
 import { useMenuLinks } from './useMenuLinks';
 
 const NAV_WIDTH = 232;
@@ -43,8 +43,9 @@ function envType() {
 export function AppLayout() {
   const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure(false);
   const [collapsed, setCollapsed] = useLocalStorage({ key: 'nav-collapsed', defaultValue: false });
-  const { visible } = useMenuLinks();
+  const { visible: backendLinks } = useMenuLinks();
   const { data: user } = useMe();
+  const visible = withFrontendLinks(backendLinks, user?.authorities);
   const isAdmin = useIsAdmin();
   const location = useLocation();
   const navigate = useNavigate();

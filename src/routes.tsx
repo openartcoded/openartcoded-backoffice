@@ -35,6 +35,7 @@ const PostDetailPage = page(() => import('./features/report/PostDetailPage'), 'P
 const CvPage = page(() => import('./features/cv/CvPage'), 'CvPage');
 const CvRequestsPage = page(() => import('./features/cv/CvRequestsPage'), 'CvRequestsPage');
 const CvEditorPage = page(() => import('./features/cv/CvEditorPage'), 'CvEditorPage');
+const TemplatesPage = page(() => import('./features/templates/TemplatesPage'), 'TemplatesPage');
 
 const ADMIN = [ROLE_ADMIN];
 const ALL = [ROLE_ADMIN, ROLE_ACCOUNTANT];
@@ -80,6 +81,7 @@ export function AppRoutes() {
           {r('dossier/:name?', ALL, <DossierPage />)}
           {r('finance/:name?', ADMIN, <FinancePage />)}
           {r('endpoint-sparql', ADMIN, <SparqlPage />)}
+          {r('templates', ADMIN, <TemplatesPage />)}
           <Route path="*" element={<Navigate to="/404" replace />} />
         </Route>
       </Routes>

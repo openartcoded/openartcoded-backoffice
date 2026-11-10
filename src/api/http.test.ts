@@ -41,6 +41,12 @@ describe('errorMessage', () => {
     expect(errorMessage(axiosError({ message: 'boom' }))).toBe('boom');
   });
 
+  it('uses the error of a json body', () => {
+    expect(errorMessage(axiosError({ error: 'make another template the default first' }))).toBe(
+      'make another template the default first',
+    );
+  });
+
   it('handles plain errors', () => {
     expect(errorMessage(new Error('oops'))).toBe('oops');
     expect(errorMessage('raw')).toBe('raw');

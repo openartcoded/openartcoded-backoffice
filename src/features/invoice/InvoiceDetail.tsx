@@ -27,10 +27,11 @@ import { openMailForm } from '@/components/forms';
 import { openModal } from '@/components/modal';
 import { openDrawer } from '@/components/drawer';
 import { clientsApi, invoicesApi } from '@/api/billing';
+import { templatesApi } from '@/api/templates';
 import { filesApi } from '@/api/files';
 import { useDemoMode, useIsAdmin } from '@/auth/session';
 import { fmtCurrency, fmtDate, fromInput, toInputDate } from '@/lib/format';
-import { RATE_TYPES, type BillableClient, type FreemarkerTemplate, type Invoice } from '@/types';
+import { RATE_TYPES, type BillableClient, type OaTemplate, type Invoice } from '@/types';
 import {
   applyRate,
   canMakeCreditNote,
@@ -53,8 +54,14 @@ export interface InvoiceFormResult {
 interface Props {
   invoice: Invoice;
   clients: BillableClient[];
-  templates: FreemarkerTemplate[];
+  templates: OaTemplate[];
   onSave?: (result: InvoiceFormResult) => void;
+}
+
+/** "name (v2, default)" */
+export function templateOptionLabel(t: OaTemplate): string {
+  const tags = [t.version === 'V2' ? 'v2' : 'v1', t.defaultTemplate ? 'default' : undefined].filter(Boolean);
+  return `${t.name ?? ''} (${tags.join(', ')})`;
 }
 
 const RATE_TYPE_OPTIONS = RATE_TYPES.map((t) => ({ value: t, label: t === 'DAYS' ? 'Days' : 'Hours' }));
@@ -252,7 +259,7 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
               <Select
                 label="Template"
                 placeholder="Select a template"
-                data={templates.map((t) => ({ value: t.id ?? '', label: t.name ?? '' }))}
+                data={templates.map((t) => ({ value: t.id ?? '', label: templateOptionLabel(t) }))}
                 disabled={readOnly}
                 {...form.getInputProps('freemarkerTemplateId')}
               />
@@ -466,8 +473,8 @@ function InvoiceDetailLoader({
     queryFn: () => (ongoingOnly ? clientsApi.findByContractStatus('ONGOING') : clientsApi.findAll()),
   });
   const { data: templates } = useQuery({
-    queryKey: ['invoice-templates'],
-    queryFn: invoicesApi.listTemplates,
+    queryKey: ['templates', 'INVOICE'],
+    queryFn: () => templatesApi.list('INVOICE'),
     enabled: !!onSave,
   });
   if (!clients || (onSave && !templates)) return <Loader />;

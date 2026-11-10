@@ -122,15 +122,7 @@ export interface PeppolValidationResult {
 // ---------- templates ----------
 /** what a template renders (see the backend OaTemplateType) */
 export type TemplateType =
-  | 'INVOICE'
-  | 'CV'
-  | 'TIMESHEET'
-  | 'PEPPOL_INVOICE'
-  | 'PEPPOL_CREDIT_NOTE'
-  | 'EMAIL'
-  | 'ACTION'
-  | 'SMS'
-  | 'CALENDAR';
+  'INVOICE' | 'CV' | 'TIMESHEET' | 'PEPPOL_INVOICE' | 'PEPPOL_CREDIT_NOTE' | 'EMAIL' | 'ACTION' | 'SMS' | 'CALENDAR';
 
 /** V1: FreeMarker, rendered by the backend. V2: jinja, stored and rendered by the file service */
 export type TemplateVersion = 'V1' | 'V2';

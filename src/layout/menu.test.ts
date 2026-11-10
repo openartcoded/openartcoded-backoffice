@@ -29,7 +29,10 @@ describe('menu', () => {
     expect(titles(['ADMIN'])).toContain('Templates');
     expect(titles(['REGULATOR_OR_ACCOUNTANT'])).not.toContain('Templates');
     expect(titles([])).not.toContain('Templates');
-    const backend = [...FALLBACK_MENU, { title: 'My templates', icon: 'x', routerLink: ['templates'], roles: ['ADMIN'] }];
+    const backend = [
+      ...FALLBACK_MENU,
+      { title: 'My templates', icon: 'x', routerLink: ['templates'], roles: ['ADMIN'] },
+    ];
     expect(titles(['ADMIN'], backend).filter((t) => t.includes('emplates'))).toEqual(['My templates']);
   });
 });

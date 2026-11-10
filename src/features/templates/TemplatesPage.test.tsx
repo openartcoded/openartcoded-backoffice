@@ -6,7 +6,14 @@ import { renderWithProviders } from '@/test/utils';
 import type { OaTemplate, TemplateTypeInfo } from '@/types';
 
 const TEMPLATES: OaTemplate[] = [
-  { id: 'email', name: 'email bundled', type: 'EMAIL', version: 'V1', defaultTemplate: true, dateCreation: '2026-01-01' },
+  {
+    id: 'email',
+    name: 'email bundled',
+    type: 'EMAIL',
+    version: 'V1',
+    defaultTemplate: true,
+    dateCreation: '2026-01-01',
+  },
   { id: 'inv-old', name: 'invoice 2022', type: 'INVOICE', version: 'V1', dateCreation: '2022-12-01' },
   {
     id: 'inv-v2',
@@ -132,7 +139,13 @@ describe('TemplatesPage', () => {
 
     await waitFor(() =>
       expect(api.save).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'inv-old', name: 'invoice 2022 (old)', type: 'INVOICE', v1: true, file: undefined }),
+        expect.objectContaining({
+          id: 'inv-old',
+          name: 'invoice 2022 (old)',
+          type: 'INVOICE',
+          v1: true,
+          file: undefined,
+        }),
       ),
     );
   });

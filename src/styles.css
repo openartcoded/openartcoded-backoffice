@@ -219,44 +219,36 @@ body {
   opacity: 0.4;
 }
 
-/*
- * home: the page fits the screen, only the content of the tabs and the post-its scroll.
- * On small screens the page scrolls normally and the panels get a fixed height.
- */
+/* home: a single page with the key figures, the charts and the company card */
 .home-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-lg);
+}
+
+/*
+ * administration: the page fits the screen, only the content of the tabs scrolls.
+ * On small screens the page scrolls normally and the panel gets a fixed height.
+ */
+.admin-page {
   display: flex;
   flex-direction: column;
   gap: var(--mantine-spacing-lg);
   height: 100%;
 }
 
-.home-main {
+.admin-panel {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: var(--mantine-spacing-lg);
-}
-
-.home-main-single {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.home-panel {
-  min-height: 0;
-  height: 100%;
 }
 
 @media (max-width: 62em) {
-  .home-page {
+  .admin-page {
     height: auto;
   }
 
-  .home-main {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .home-panel {
+  .admin-panel {
+    flex: none;
     height: 560px;
   }
 }

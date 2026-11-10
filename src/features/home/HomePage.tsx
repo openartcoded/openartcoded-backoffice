@@ -1,26 +1,12 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  Center,
-  Grid,
-  Group,
-  Loader,
-  Paper,
-  ScrollArea,
-  SegmentedControl,
-  SimpleGrid,
-  Stack,
-  Tabs,
-  Text,
-} from '@mantine/core';
+import { Center, Grid, Loader, Paper, SegmentedControl, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
-import { infoApi, timesheetApi } from '@/api/misc';
+import { timesheetApi } from '@/api/misc';
 import { dossiersApi, feesApi, invoicesApi } from '@/api/billing';
 import { useIsAdmin, useMe, usePersonalInfo } from '@/auth/session';
-import { Markdown } from '@/components/markdown';
-import { KpiCard, PageHeader, Panel, StatusBadge } from '@/components/ui';
-import { bytesToHuman, dayjs, fmtCurrency, fmtDateTime, trim } from '@/lib/format';
-import { ToolboxPanel } from '@/features/toolbox/ToolboxPanel';
+import { KpiCard, PageHeader } from '@/components/ui';
+import { dayjs, fmtCurrency, trim } from '@/lib/format';
 import {
   CHART_HEIGHT,
   DossierSummaryChart,
@@ -29,9 +15,8 @@ import {
   InvoicesPerClientChart,
   InvoicesPerMonthChart,
 } from './charts';
-import { LogsPanel, ScriptConsole } from './console';
 import { computeInvoiceStats } from './summary';
-import { CompanyStamp, LoadedScripts, MostClickedMenu, NextTasks, PostitBoard, TodoList } from './widgets';
+import { CompanyStamp, MostClickedMenu } from './widgets';
 
 function greeting(now = new Date()) {
   const h = now.getHours();
@@ -122,132 +107,6 @@ function Charts({ stats }: { stats?: ReturnType<typeof computeInvoiceStats> }) {
   );
 }
 
-function SystemPanel() {
-  const { data: news } = useQuery({
-    queryKey: ['news'],
-    queryFn: async () => {
-      try {
-        return await (await fetch('/assets/news.md')).text();
-      } catch {
-        return '# Error\n\nFailed to load content.';
-      }
-    },
-  });
-  const { data: buildInfo } = useQuery({ queryKey: ['build-info'], queryFn: infoApi.buildInfo });
-  const { data: health } = useQuery({ queryKey: ['health'], queryFn: infoApi.health });
-  const components = health?.components;
-  const services = (['jms', 'mail', 'mongo', 'redis'] as const)
-    .map((k) => ({
-      key: k,
-      label: k === 'jms' ? 'Artemis' : k[0].toUpperCase() + k.slice(1),
-      status: components?.[k]?.status,
-    }))
-    .filter((s) => s.status);
-
-  return (
-    <Grid>
-      <Grid.Col span={{ base: 12, md: 7 }}>
-        <Panel title="What's new">
-          <ScrollArea.Autosize mah={420}>
-            {news ? <Markdown source={news} /> : <Loader size="sm" />}
-          </ScrollArea.Autosize>
-        </Panel>
-      </Grid.Col>
-      <Grid.Col span={{ base: 12, md: 5 }}>
-        <Stack>
-          <Panel title="Backend">
-            <Stack gap={6}>
-              <Row label="Version" value={buildInfo?.build?.version} />
-              <Row label="Build time" value={fmtDateTime(buildInfo?.build?.time)} />
-              <Row label="Uptime" value={String(buildInfo?.['camel.uptime'] ?? '')} />
-              {components?.diskSpace?.details && (
-                <Row
-                  label="Disk space"
-                  value={`${bytesToHuman(components.diskSpace.details.free, true)} free of ${bytesToHuman(components.diskSpace.details.total, true)}`}
-                />
-              )}
-              {services.map((s) => (
-                <Row
-                  key={s.key}
-                  label={s.label}
-                  value={<StatusBadge value={s.status === 'UP' ? 'SUCCESS' : 'FAILURE'} label={s.status} />}
-                />
-              ))}
-            </Stack>
-          </Panel>
-          <Panel title="Scripts">
-            <LoadedScripts />
-          </Panel>
-        </Stack>
-      </Grid.Col>
-    </Grid>
-  );
-}
-
-function Row({ label, value }: { label: string; value?: ReactNode }) {
-  return (
-    <Group justify="space-between" wrap="nowrap">
-      <Text size="sm" c="dimmed">
-        {label}
-      </Text>
-      <Text size="sm" fw={500} ta="right">
-        {value || '—'}
-      </Text>
-    </Group>
-  );
-}
-
-function Workspace({ isAdmin, stats }: { isAdmin: boolean; stats?: ReturnType<typeof computeInvoiceStats> }) {
-  const [tab, setTab] = useState<string | null>(isAdmin ? 'todo' : 'activity');
-  const { data: logs } = useQuery({ queryKey: ['logs'], queryFn: infoApi.logs, enabled: isAdmin && tab === 'logs' });
-  return (
-    <Tabs value={tab} onChange={setTab} keepMounted={false} className="home-tabs" h="100%">
-      <Tabs.List mb="md">
-        {isAdmin && <Tabs.Tab value="todo">To do</Tabs.Tab>}
-        {isAdmin && <Tabs.Tab value="next-tasks">Next tasks</Tabs.Tab>}
-        <Tabs.Tab value="activity">Activity</Tabs.Tab>
-        <Tabs.Tab value="toolbox">Toolbox</Tabs.Tab>
-        {isAdmin && <Tabs.Tab value="console">Console</Tabs.Tab>}
-        {isAdmin && <Tabs.Tab value="company">Company card</Tabs.Tab>}
-        {isAdmin && <Tabs.Tab value="system">System</Tabs.Tab>}
-        {isAdmin && <Tabs.Tab value="logs">Logs</Tabs.Tab>}
-      </Tabs.List>
-      {isAdmin && (
-        <Tabs.Panel value="todo">
-          <TodoList />
-        </Tabs.Panel>
-      )}
-      {isAdmin && (
-        <Tabs.Panel value="next-tasks">
-          <NextTasks />
-        </Tabs.Panel>
-      )}
-      <Tabs.Panel value="activity">
-        <Charts stats={stats} />
-      </Tabs.Panel>
-      <Tabs.Panel value="toolbox">
-        <ToolboxPanel />
-      </Tabs.Panel>
-      {isAdmin && (
-        <Tabs.Panel value="console">
-          <ScriptConsole />
-        </Tabs.Panel>
-      )}
-      {isAdmin && (
-        <Tabs.Panel value="company">
-          <CompanyStamp />
-        </Tabs.Panel>
-      )}
-      {isAdmin && (
-        <Tabs.Panel value="system">
-          <SystemPanel />
-        </Tabs.Panel>
-      )}
-      {isAdmin && <Tabs.Panel value="logs">{logs !== undefined ? <LogsPanel logs={logs} /> : <Loader />}</Tabs.Panel>}
-    </Tabs>
-  );
-}
-
 export function HomePage() {
   const { data: user } = useMe();
   const { data: personalInfo } = usePersonalInfo();
@@ -275,16 +134,23 @@ export function HomePage() {
         revenue={stats ? (thisYear?.totalExclVat ?? 0) : undefined}
         invoices={stats ? (thisYear?.numberOfInvoices ?? 0) : undefined}
       />
-      <div className={isAdmin ? 'home-main' : 'home-main home-main-single'}>
-        <Paper withBorder p="md" className="home-panel">
-          <Workspace isAdmin={isAdmin} stats={stats} />
-        </Paper>
+      <Grid>
+        <Grid.Col span={{ base: 12, lg: isAdmin ? 8 : 12 }}>
+          <Paper withBorder p="md" h="100%">
+            <Charts stats={stats} />
+          </Paper>
+        </Grid.Col>
         {isAdmin && (
-          <ScrollArea className="home-panel" type="auto" offsetScrollbars>
-            <PostitBoard />
-          </ScrollArea>
+          <Grid.Col span={{ base: 12, lg: 4 }}>
+            <Paper withBorder p="md" h="100%">
+              <Text fw={600} mb="xs">
+                Company card
+              </Text>
+              <CompanyStamp />
+            </Paper>
+          </Grid.Col>
         )}
-      </div>
+      </Grid>
     </div>
   );
 }

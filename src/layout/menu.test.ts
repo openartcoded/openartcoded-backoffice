@@ -13,6 +13,8 @@ describe('menu', () => {
     expect(findActiveLink(FALLBACK_MENU, '/tasks')?.title).toBe('Tasks');
     // tasks is exact: a sub path does not match
     expect(findActiveLink(FALLBACK_MENU, '/tasks/whatever')).toBeUndefined();
+    // administration has one url per tab
+    expect(findActiveLink(FALLBACK_MENU, '/administration/logs')?.title).toBe('Administration');
   });
 
   it('sorts links by order', () => {

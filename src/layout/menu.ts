@@ -31,6 +31,7 @@ export const FALLBACK_MENU: MenuLink[] = [
   link('Prospects', 'concierge-bell', 'services', 20, ADMIN, true),
   link('Clients', 'user', 'billable-clients', 21, ALL, true),
   link('Mails', 'mail-bulk', 'mails', 22, ADMIN, true),
+  link('Administration', 'cog', 'administration', 23, ALL),
 ];
 
 /** '/fee', '/' ... */

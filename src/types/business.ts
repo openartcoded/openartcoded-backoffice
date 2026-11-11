@@ -93,6 +93,8 @@ export interface Invoice {
   uploadedManually?: boolean;
   skipPeppol?: boolean;
   invoiceUploadId?: string;
+  /** extra files, embedded in the peppol xml */
+  attachmentIds?: string[];
   invoiceUBLId?: string;
   subTotal?: number;
   taxable?: number;

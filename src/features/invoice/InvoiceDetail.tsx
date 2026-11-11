@@ -20,8 +20,9 @@ import { useForm } from '@mantine/form';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Icon } from '@/components/Icon';
-import { ImportedInfo } from '@/components/common';
-import { downloadUpload, FilePicker, FileViewer } from '@/components/files';
+import { ImportedInfo, useUploads } from '@/components/common';
+import { AttachmentsField, isAccepted, PEPPOL_MIME_TYPES } from '@/components/attachments';
+import { AttachmentList, downloadUpload, FilePicker, FileViewer } from '@/components/files';
 import { FormSection, humanize, Stat, StatusBadge, StickyFooter } from '@/components/ui';
 import { openMailForm } from '@/components/forms';
 import { openModal } from '@/components/modal';
@@ -31,7 +32,7 @@ import { templatesApi } from '@/api/templates';
 import { filesApi } from '@/api/files';
 import { useDemoMode, useIsAdmin } from '@/auth/session';
 import { fmtCurrency, fmtDate, fromInput, toInputDate } from '@/lib/format';
-import { RATE_TYPES, type BillableClient, type OaTemplate, type Invoice } from '@/types';
+import { RATE_TYPES, type BillableClient, type FileUpload, type OaTemplate, type Invoice } from '@/types';
 import {
   applyRate,
   canMakeCreditNote,
@@ -90,6 +91,10 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
     queryFn: () => filesApi.findById(invoice.invoiceUBLId!),
     enabled: !!invoice.invoiceUBLId,
   });
+  const { data: savedAttachments = [] } = useUploads(invoice.attachmentIds ?? []);
+  // null until changed, the saved attachments are shown meanwhile
+  const [changedAttachments, setAttachments] = useState<FileUpload[] | null>(null);
+  const attachments = changedAttachments ?? savedAttachments;
 
   const form = useForm({
     initialValues: {
@@ -132,6 +137,9 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
   const v = form.values;
   const label = invoice.creditNote ? 'Credit Note' : 'Invoice';
   const invalid = Object.keys(form.errors);
+  // peppol only accepts some types, unless the invoice doesn't go through peppol
+  const attachmentTypes = v.skipPeppol || v.uploadedManually ? undefined : PEPPOL_MIME_TYPES;
+  const refused = attachments.filter((f) => !isAccepted(f, attachmentTypes));
 
   const selectClient = (id: string | null) => {
     form.setFieldValue('selectedClient', id);
@@ -156,7 +164,7 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
   };
 
   const submit = form.onSubmit((values) => {
-    if (!isAdmin) return;
+    if (!isAdmin || refused.length) return;
     onSave?.({
       invoice: {
         invoiceNumber: invoice.invoiceNumber,
@@ -176,6 +184,7 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
           emailAddress: values.billToEmailAddress,
         },
         invoiceTable: values.rows.map(fromRowForm),
+        attachmentIds: changedAttachments ? changedAttachments.map((f) => f.id) : (invoice.attachmentIds ?? []),
       },
       manualUploadFile: file,
     });
@@ -195,7 +204,7 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
   const sendMail = () =>
     pdf &&
     openMailForm({
-      attachments: [pdf],
+      attachments: [pdf, ...attachments],
       context: invoiceMailContext(invoice),
       defaultSubject: `Invoice ${invoice.newInvoiceNumber || invoice.invoiceNumber}`,
       to: [invoice.billTo?.emailAddress],
@@ -403,6 +412,34 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
           ))}
         </FormSection>
 
+        <FormSection title="Attachments">
+          {editable ? (
+            <AttachmentsField
+              label="Extra files"
+              value={attachments}
+              onChange={setAttachments}
+              accept={attachmentTypes}
+              description={
+                attachmentTypes
+                  ? 'Embedded in the Peppol XML: only pdf, png, jpeg, csv, xlsx and ods are accepted. Deleted with the invoice.'
+                  : 'Sent with the invoice mail. Deleted with the invoice.'
+              }
+            />
+          ) : attachments.length ? (
+            <AttachmentList files={attachments} />
+          ) : (
+            <Text size="sm" c="dimmed">
+              No attachments.
+            </Text>
+          )}
+          {editable && !!refused.length && (
+            <Alert color="red" title="Not accepted by Peppol">
+              Remove {refused.map((f) => f.originalFilename ?? f.name ?? f.id).join(', ')} or check "Don't send to
+              Peppol".
+            </Alert>
+          )}
+        </FormSection>
+
         {!!invalid.length && (
           <Alert color="yellow" title="Some fields need your attention">
             {invalid.map((k) => k.replace(/^rows\.(\d+)\./, (_, n) => `line ${Number(n) + 1} `)).join(', ')}
@@ -441,7 +478,7 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
           )}
         </Group>
         {editable && (
-          <Button type="submit" disabled={!form.isValid()}>
+          <Button type="submit" disabled={!form.isValid() || !!refused.length}>
             Save
           </Button>
         )}

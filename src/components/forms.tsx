@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { ActionIcon, Button, Checkbox, Group, Stack, TagsInput, Text, TextInput, Textarea } from '@mantine/core';
+import { Button, Checkbox, Group, Stack, TagsInput, TextInput, Textarea } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { Icon } from './Icon';
-import { fileLabel } from './common';
+import { AttachmentsField } from './attachments';
 import { openModal } from './modal';
 import { mailApi, smsApi } from '@/api/misc';
 import { errorMessage } from '@/api/http';
@@ -79,25 +78,7 @@ export function MailForm({
           </Group>
         )}
         <Textarea label="Body" autosize minRows={4} {...form.getInputProps('body')} />
-        {!!attachments.length && (
-          <Stack gap={4}>
-            {attachments.map((a) => (
-              <Group key={a.id} justify="space-between">
-                <Text size="sm" c="red" className="text-break">
-                  {fileLabel(a)}
-                </Text>
-                <ActionIcon
-                  variant="subtle"
-                  color="red"
-                  aria-label="remove attachment"
-                  onClick={() => setAttachments((list) => list.filter((x) => x.id !== a.id))}
-                >
-                  <Icon icon="times" />
-                </ActionIcon>
-              </Group>
-            ))}
-          </Stack>
-        )}
+        <AttachmentsField value={attachments} onChange={setAttachments} />
         <TextInput type="datetime-local" label="Sending date" {...form.getInputProps('sendingDate')} />
         <Checkbox label="Bcc" {...form.getInputProps('bcc', { type: 'checkbox' })} />
         <Group justify="flex-end">

@@ -148,6 +148,21 @@ body {
   border-bottom: 1px solid var(--mantine-color-gray-3);
 }
 
+.upload-row {
+  display: block;
+  width: 100%;
+  cursor: pointer;
+}
+
+.upload-row:hover:not([data-disabled]) {
+  background: var(--mantine-color-gray-0);
+}
+
+.upload-row[data-disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .fullscreen {
   position: fixed;
   inset: 0;

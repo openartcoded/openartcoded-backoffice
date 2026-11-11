@@ -72,8 +72,11 @@ export function InvoiceTable({ mode, onSave }: { mode: Mode; onSave: (r: Invoice
 
   const open = (invoice: Invoice) => openInvoiceDetail(invoice, isAdmin ? onSave : undefined);
 
-  const withUpload = async (id: string | undefined, fn: (u: Awaited<ReturnType<typeof filesApi.findById>>) => void) => {
-    if (id) fn(await filesApi.findById(id));
+  const withUpload = async (
+    id: string | undefined,
+    fn: (u: Awaited<ReturnType<typeof filesApi.findById>>) => void | Promise<void>,
+  ) => {
+    if (id) await fn(await filesApi.findById(id));
   };
 
   const toggleBookmark = async (invoice: Invoice) => {
@@ -128,9 +131,9 @@ export function InvoiceTable({ mode, onSave }: { mode: Mode; onSave: (r: Invoice
   const number = (i: Invoice) => i.newInvoiceNumber || i.invoiceNumber;
 
   const sendMail = (invoice: Invoice) =>
-    withUpload(invoice.invoiceUploadId, (u) =>
+    withUpload(invoice.invoiceUploadId, async (u) =>
       openMailForm({
-        attachments: [u],
+        attachments: [u, ...(await filesApi.findByIds(invoice.attachmentIds ?? []))],
         context: invoiceMailContext(invoice),
         defaultSubject: `Invoice ${number(invoice)}`,
         to: [invoice.billTo?.emailAddress],

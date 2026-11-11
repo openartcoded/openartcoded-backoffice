@@ -5,12 +5,13 @@ import { Icon } from '@/components/Icon';
 import { useUploads } from '@/components/common';
 import { EmptyRow, FormSection, PageHeader, RowActions, StatusBadge, StickyFooter } from '@/components/ui';
 import { AttachmentList } from '@/components/files';
+import { AttachmentsField } from '@/components/attachments';
 import { openDrawer } from '@/components/drawer';
 import { mailApi } from '@/api/misc';
 import { useDemoMode } from '@/auth/session';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { confirm, toast } from '@/lib/ui';
-import type { MailJob } from '@/types';
+import type { FileUpload, MailJob } from '@/types';
 
 const PAGE_SIZE = 10;
 
@@ -28,6 +29,9 @@ export function MailDetail({
   const [body, setBody] = useState(mail.body);
   const [to, setTo] = useState(mail.to ?? []);
   const { data: uploads = [] } = useUploads(mail.uploadIds ?? []);
+  // null until the attachments are changed, the saved ones are shown meanwhile
+  const [attached, setAttached] = useState<FileUpload[] | null>(null);
+  const files = attached ?? uploads;
   return (
     <Stack gap="xl" className={demoMode ? 'blur' : undefined}>
       <Stack gap={6}>
@@ -69,8 +73,12 @@ export function MailDetail({
           disabled={mail.sent}
         />
       </FormSection>
-      <FormSection title={`Attachments (${mail.uploadIds?.length ?? 0})`}>
-        <AttachmentList files={uploads} />
+      <FormSection title="Attachments">
+        {mail.sent ? (
+          <AttachmentList files={uploads} />
+        ) : (
+          <AttachmentsField label="Files" value={files} onChange={setAttached} />
+        )}
       </FormSection>
       {!mail.sent && (
         <StickyFooter>
@@ -82,7 +90,19 @@ export function MailDetail({
           >
             Retry
           </Button>
-          <Button onClick={() => onUpdate({ ...mail, subject, body, to })}>Save</Button>
+          <Button
+            onClick={() =>
+              onUpdate({
+                ...mail,
+                subject,
+                body,
+                to,
+                uploadIds: attached ? attached.map((f) => f.id) : (mail.uploadIds ?? []),
+              })
+            }
+          >
+            Save
+          </Button>
         </StickyFooter>
       )}
     </Stack>

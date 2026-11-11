@@ -43,7 +43,7 @@ describe('MailForm', () => {
         onSubmit={onSubmit}
       />,
     );
-    await userEvent.click(screen.getByLabelText('remove attachment'));
+    await userEvent.click(screen.getByRole('button', { name: 'remove' }));
     expect(screen.queryByText('a.pdf')).not.toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Body'), 'hi');
     await userEvent.click(screen.getByRole('button', { name: 'Submit' }));

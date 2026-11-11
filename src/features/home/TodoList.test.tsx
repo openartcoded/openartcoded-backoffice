@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/test/utils';
 
@@ -10,7 +10,7 @@ vi.mock('@/api/misc', async (importOriginal) => ({
 }));
 
 import { postItApi, todoApi } from '@/api/misc';
-import { PostitBoard, TodoList } from './widgets';
+import { NotesPanel, TodoList } from './widgets';
 
 describe('TodoList', () => {
   beforeEach(() => {
@@ -49,19 +49,60 @@ describe('TodoList', () => {
   });
 });
 
-describe('PostitBoard', () => {
-  it('always shows an empty post-it to add a note', async () => {
-    vi.mocked(postItApi.findAll).mockResolvedValue([{ id: 'p1', note: 'remember' }]);
-    vi.mocked(postItApi.save).mockResolvedValue({ id: 'p2', note: 'second', updatedDate: '2026-11-08T10:00:00' });
-    renderWithProviders(<PostitBoard />);
-    expect(await screen.findByDisplayValue('remember')).toBeInTheDocument();
-    const empty = screen.getAllByPlaceholderText('New note...').find((el) => (el as HTMLTextAreaElement).value === '')!;
-    await userEvent.type(empty, 'second');
-    const saveButtons = screen.getAllByLabelText('save postit');
-    await userEvent.click(saveButtons[saveButtons.length - 1]);
-    expect(postItApi.save).toHaveBeenCalledWith({ id: undefined, note: 'second' });
-    // a new empty post-it is added after saving the last one
-    await waitFor(() => expect(screen.getAllByPlaceholderText('New note...')).toHaveLength(3));
-    expect(within(document.body).getAllByLabelText('delete postit')).toHaveLength(2);
+describe('NotesPanel', () => {
+  beforeEach(() => {
+    vi.mocked(postItApi.findAll).mockResolvedValue([
+      { id: 'p1', note: 'older', updatedDate: '2026-11-01T10:00:00' },
+      { id: 'p2', note: 'recent', updatedDate: '2026-11-08T10:00:00' },
+    ]);
+  });
+
+  it('lists the most recent notes first', async () => {
+    renderWithProviders(<NotesPanel />);
+    await screen.findByDisplayValue('recent');
+    const notes = screen.getAllByLabelText('note').map((el) => (el as HTMLTextAreaElement).value);
+    expect(notes).toEqual(['recent', 'older']);
+  });
+
+  it('adds a note with the button or ctrl+enter', async () => {
+    vi.mocked(postItApi.save)
+      .mockResolvedValueOnce({ id: 'p3', note: 'first new', updatedDate: '2026-11-11T10:00:00' })
+      .mockResolvedValueOnce({ id: 'p4', note: 'second new', updatedDate: '2026-11-11T11:00:00' });
+    renderWithProviders(<NotesPanel />);
+    await screen.findByDisplayValue('recent');
+    const input = screen.getByPlaceholderText('New note...');
+
+    await userEvent.type(input, 'first new');
+    await userEvent.click(screen.getByLabelText('save postit'));
+    expect(postItApi.save).toHaveBeenCalledWith({ note: 'first new' });
+    expect(await screen.findByDisplayValue('first new')).toBeInTheDocument();
+    expect(input).toHaveValue('');
+
+    await userEvent.type(input, 'second new{Control>}{Enter}{/Control}');
+    expect(postItApi.save).toHaveBeenCalledWith({ note: 'second new' });
+    expect(await screen.findByDisplayValue('second new')).toBeInTheDocument();
+  });
+
+  it('saves an edited note when leaving it, not when nothing changed', async () => {
+    vi.mocked(postItApi.save).mockResolvedValue({ id: 'p2', note: 'recent!', updatedDate: '2026-11-11T10:00:00' });
+    renderWithProviders(<NotesPanel />);
+    const note = await screen.findByDisplayValue('recent');
+
+    await userEvent.click(note);
+    await userEvent.tab();
+    expect(postItApi.save).not.toHaveBeenCalled();
+
+    await userEvent.type(note, '!');
+    await userEvent.tab();
+    expect(postItApi.save).toHaveBeenCalledWith({ id: 'p2', note: 'recent!' });
+  });
+
+  it('deletes a note', async () => {
+    vi.mocked(postItApi.delete).mockResolvedValue(undefined);
+    renderWithProviders(<NotesPanel />);
+    await screen.findByDisplayValue('older');
+    await userEvent.click(screen.getAllByLabelText('delete postit')[1]);
+    expect(postItApi.delete).toHaveBeenCalledWith('p1');
+    await waitFor(() => expect(screen.queryByDisplayValue('older')).not.toBeInTheDocument());
   });
 });

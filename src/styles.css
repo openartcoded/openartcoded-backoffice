@@ -157,22 +157,6 @@ body {
   overflow-x: hidden;
 }
 
-/* post-its: soft paper notes, the empty one invites to add a note */
-.postit {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  background: #fff8db;
-  border: 1px solid #f5e6a8;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-.postit-new {
-  background: transparent;
-  border: 1px dashed var(--mantine-color-gray-4);
-  box-shadow: none;
-}
-
 /* actions of a form in a drawer stay visible */
 .sticky-footer {
   position: sticky;
@@ -219,16 +203,42 @@ body {
   opacity: 0.4;
 }
 
-/* home: a single page with the key figures, the charts and the company card */
+/*
+ * home: the page body scrolls (inside the main area, never the window) when the widgets don't fit.
+ * Its blocks keep their size: without flex-shrink 0 they would be squeezed to fit the screen and cut
+ * (the mantine Grid / Paper hide their overflow).
+ */
 .home-page {
   display: flex;
   flex-direction: column;
   gap: var(--mantine-spacing-lg);
 }
 
+.home-page > * {
+  flex-shrink: 0;
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--mantine-spacing-lg);
+  align-items: stretch;
+}
+
+/* desktop: main column + side column wide enough for the 340px company card */
+@media (min-width: 75em) {
+  .home-grid {
+    grid-template-columns: minmax(0, 1fr) 380px;
+  }
+
+  .home-grid-single {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /*
- * administration: the page fits the screen, only the content of the tabs scrolls.
- * On small screens the page scrolls normally and the panel gets a fixed height.
+ * administration, desktop: the page fits the screen, the side column and the workbench scroll on their own.
+ * Smaller screens: one column, the page scrolls and the workbench gets a fixed height.
  */
 .admin-page {
   display: flex;
@@ -237,19 +247,171 @@ body {
   height: 100%;
 }
 
-.admin-panel {
+.admin-page > * {
+  flex-shrink: 0;
+}
+
+.admin-page > .admin-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: var(--mantine-spacing-lg);
+}
+
+.admin-layout-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-side {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-md);
+  scrollbar-gutter: stable;
+}
+
+.admin-side > * {
+  flex-shrink: 0;
+}
+
+.admin-workbench {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-workbench > .home-tabs {
   flex: 1;
   min-height: 0;
 }
 
-@media (max-width: 62em) {
+@media (max-width: 75em) {
   .admin-page {
     height: auto;
   }
 
-  .admin-panel {
+  .admin-page > .admin-layout {
     flex: none;
-    height: 560px;
+  }
+
+  .admin-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-side {
+    overflow: visible;
+  }
+
+  .admin-workbench {
+    height: 70vh;
+  }
+}
+
+/* notes (home): neutral cards, the left border tells it's a note, delete on hover */
+.note-card {
+  padding: 6px 10px;
+  border: 1px solid var(--mantine-color-gray-3);
+  border-left: 3px solid var(--mantine-color-yellow-5);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-body);
+  transition: border-color 120ms ease;
+}
+
+.note-card:focus-within {
+  border-color: var(--mantine-color-artcoded-3);
+  border-left-color: var(--mantine-color-yellow-5);
+}
+
+.note-card .note-delete {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.note-card:hover .note-delete,
+.note-card .note-delete:focus-visible {
+  opacity: 1;
+}
+
+/* report board: kanban columns, light cards, the column under the dragged card is highlighted */
+.board-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+  padding: var(--mantine-spacing-xs);
+  border: 1px solid var(--mantine-color-gray-3);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-gray-0);
+  min-width: 0;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.board-column-over {
+  background: var(--mantine-color-artcoded-0);
+  border-color: var(--mantine-color-artcoded-3);
+  border-style: dashed;
+}
+
+.board-column-header {
+  padding: 4px 4px 6px;
+}
+
+.board-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.board-card {
+  padding: 6px 10px;
+  background: var(--mantine-color-body);
+  border: 1px solid var(--mantine-color-gray-3);
+  border-radius: var(--mantine-radius-sm);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.03);
+  cursor: grab;
+}
+
+.board-card:hover {
+  border-color: var(--mantine-color-gray-4);
+}
+
+.board-card:focus-within {
+  border-color: var(--mantine-color-artcoded-3);
+}
+
+.board-card-dragged {
+  opacity: 0.4;
+}
+
+.board-card-done textarea {
+  color: var(--mantine-color-dimmed);
+}
+
+.board-card .board-card-delete {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.board-card:hover .board-card-delete,
+.board-card .board-card-delete:focus-visible {
+  opacity: 1;
+}
+
+/* touch screens have no hover: the delete buttons are always visible */
+@media (hover: none) {
+  .note-card .note-delete,
+  .board-card .board-card-delete,
+  .todo-row .todo-delete {
+    opacity: 1;
   }
 }
 
@@ -335,6 +497,14 @@ body {
   color: #1f2937;
   font-size: 11px;
   line-height: 1.35;
+}
+
+@media (max-width: 25em) {
+  .company-card {
+    transform: scale(0.88);
+    transform-origin: top center;
+    margin-bottom: -26px;
+  }
 }
 
 .company-card-top {

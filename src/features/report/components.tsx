@@ -22,16 +22,16 @@ import { ThumbnailPreview, useUploads } from '@/components/common';
 import { FileMenuItems } from '@/components/files';
 import { reportApi } from '@/api/misc';
 import { filesApi, isImage, isPdf } from '@/api/files';
-import { fmtDate, trim } from '@/lib/format';
+import { trim } from '@/lib/format';
 import { confirm, toast } from '@/lib/ui';
 import type { FileUpload, Post, PostIt, PostItType, User } from '@/types';
 import { boardPayload, movePostIt, relativeTime, type Board } from './logic';
 
 const EMOJIS = ['👍', '👏', '😂', '🙂', '🤔', '✅', '❌', '🎉'];
-const COLUMNS: { type: PostItType; label: string }[] = [
-  { type: 'TODOS', label: 'Todos' },
-  { type: 'IN_PROGRESS', label: 'In Progress' },
-  { type: 'DONE', label: 'Done' },
+const COLUMNS: { type: PostItType; label: string; color: string }[] = [
+  { type: 'TODOS', label: 'To do', color: 'gray' },
+  { type: 'IN_PROGRESS', label: 'In progress', color: 'artcoded' },
+  { type: 'DONE', label: 'Done', color: 'green' },
 ];
 
 /** post attachments: preview thumbnail, download, open, optionally processed flag / delete */
@@ -108,7 +108,10 @@ export function PostAttachments({
   );
 }
 
-/** drag & drop board of post-its (todo / in progress / done), saved on change and every minute */
+/**
+ * kanban of post-its (to do / in progress / done): drag & drop between columns,
+ * saved when a card is left or moved, and every minute
+ */
 export function ScrumBoard({ post, height = '57vh' }: { post: Post; height?: string }) {
   const toBoard = (p: Post): Board => ({ TODOS: p.todos ?? [], IN_PROGRESS: p.inProgress ?? [], DONE: p.done ?? [] });
   const [board, setBoard] = useState<Board>(() => {
@@ -143,14 +146,19 @@ export function ScrumBoard({ post, height = '57vh' }: { post: Post; height?: str
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const [over, setOver] = useState<PostItType | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [focusId, setFocusId] = useState<string | null>(null);
+
   const update = (col: PostItType, id: string, note: string) =>
     setBoard((b) => ({ ...b, [col]: b[col].map((p) => (p.id === id ? { ...p, note } : p)) }));
 
-  const add = (col: PostItType) =>
-    setBoard((b) => ({
-      ...b,
-      [col]: [...b[col], { id: crypto.randomUUID(), note: '', creationDate: new Date() } as PostIt],
-    }));
+  /** a new empty card at the bottom of the column, focused */
+  const add = (col: PostItType) => {
+    const id = crypto.randomUUID();
+    setBoard((b) => ({ ...b, [col]: [...b[col], { id, note: '', creationDate: new Date() } as PostIt] }));
+    setFocusId(id);
+  };
 
   const remove = (col: PostItType, id: string) => {
     const next = { ...board, [col]: board[col].filter((p) => p.id !== id) };
@@ -158,7 +166,15 @@ export function ScrumBoard({ post, height = '57vh' }: { post: Post; height?: str
     save(next);
   };
 
+  /** leaving a card saves the board; a card left empty is removed */
+  const blur = (col: PostItType, p: PostIt) => {
+    if (!p.note.trim()) remove(col, p.id!);
+    else save();
+  };
+
   const drop = (col: PostItType) => {
+    setOver(null);
+    setDraggedId(null);
     if (!dragged.current) return;
     const next = movePostIt(board, dragged.current, col);
     dragged.current = null;
@@ -169,65 +185,104 @@ export function ScrumBoard({ post, height = '57vh' }: { post: Post; height?: str
   };
 
   return (
-    <SimpleGrid cols={{ base: 1, md: 3 }}>
+    <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
       {COLUMNS.map((c) => (
-        <Paper
+        <div
           key={c.type}
-          withBorder
-          bg="gray.0"
-          p="xs"
-          onDragOver={(e) => e.preventDefault()}
+          className={over === c.type ? 'board-column board-column-over' : 'board-column'}
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (over !== c.type) setOver(c.type);
+          }}
+          onDragLeave={(e) => {
+            // only when leaving the column itself, not when moving over one of its cards
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(null);
+          }}
           onDrop={() => drop(c.type)}
         >
-          <Group justify="space-between" mb="xs">
-            <Text fw={700}>{c.label}</Text>
-            <ActionIcon variant="subtle" onClick={() => add(c.type)} aria-label={`add to ${c.label}`}>
-              <Icon icon="plus" />
-            </ActionIcon>
+          <Group justify="space-between" wrap="nowrap" className="board-column-header">
+            <Group gap="xs" wrap="nowrap">
+              <span className="board-dot" style={{ background: `var(--mantine-color-${c.color}-6)` }} />
+              <Text fw={600} size="sm">
+                {c.label}
+              </Text>
+              <Badge size="sm" variant="light" color={c.color} circle>
+                {board[c.type].length}
+              </Badge>
+            </Group>
+            <Tooltip label="Add a card" withArrow>
+              <ActionIcon variant="subtle" color="gray" onClick={() => add(c.type)} aria-label={`add to ${c.label}`}>
+                <Icon icon="plus" />
+              </ActionIcon>
+            </Tooltip>
           </Group>
-          <ScrollArea h={height}>
+          <ScrollArea.Autosize mah={height} type="auto" offsetScrollbars>
             <Stack gap="xs">
               {board[c.type].map((p) => (
-                <Paper
+                <div
                   key={p.id}
-                  withBorder
-                  p="xs"
-                  className="postit"
-                  maw="100%"
+                  className={[
+                    'board-card',
+                    c.type === 'DONE' ? 'board-card-done' : '',
+                    draggedId === p.id ? 'board-card-dragged' : '',
+                  ].join(' ')}
                   draggable
-                  onDragStart={() => (dragged.current = p.id ?? null)}
+                  onDragStart={() => {
+                    dragged.current = p.id ?? null;
+                    setDraggedId(p.id ?? null);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedId(null);
+                    setOver(null);
+                  }}
                 >
                   <Textarea
                     variant="unstyled"
-                    placeholder="New postIt..."
+                    placeholder="Write something..."
+                    aria-label="card"
                     autosize
-                    minRows={4}
+                    minRows={1}
+                    size="sm"
+                    autoFocus={focusId === p.id}
                     value={p.note}
                     onChange={(e) => update(c.type, p.id!, e.currentTarget.value)}
+                    onBlur={() => blur(c.type, p)}
                   />
-                  <Group justify="space-between">
+                  <Group justify="space-between" wrap="nowrap" gap="xs">
                     <Text size="xs" c="dimmed">
-                      {fmtDate(p.creationDate, 'DD/MM/YYYY HH:mm:ss')}
+                      {relativeTime(p.creationDate)}
                     </Text>
-                    <Group gap={0}>
-                      <ActionIcon variant="subtle" color="gray" onClick={() => save()} aria-label="save">
-                        <Icon icon="save" />
-                      </ActionIcon>
-                      <ActionIcon
-                        variant="subtle"
-                        color="red"
-                        onClick={() => remove(c.type, p.id!)}
-                        aria-label="delete"
-                      >
-                        <Icon icon="trash" />
-                      </ActionIcon>
-                    </Group>
+                    <ActionIcon
+                      variant="subtle"
+                      color="gray"
+                      size="sm"
+                      className="board-card-delete"
+                      onClick={() => remove(c.type, p.id!)}
+                      aria-label="delete"
+                    >
+                      <Icon icon="trash" />
+                    </ActionIcon>
                   </Group>
-                </Paper>
+                </div>
               ))}
+              {!board[c.type].length && (
+                <Text size="xs" c="dimmed" ta="center" py="lg">
+                  {over === c.type ? 'Drop here' : 'No cards'}
+                </Text>
+              )}
             </Stack>
-          </ScrollArea>
-        </Paper>
+          </ScrollArea.Autosize>
+          <Button
+            variant="subtle"
+            color="gray"
+            size="xs"
+            justify="flex-start"
+            leftSection={<Icon icon="plus" />}
+            onClick={() => add(c.type)}
+          >
+            Add a card
+          </Button>
+        </div>
       ))}
     </SimpleGrid>
   );

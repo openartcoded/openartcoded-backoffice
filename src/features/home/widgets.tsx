@@ -2,11 +2,13 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   ActionIcon,
+  Badge,
   Button,
   Checkbox,
   Group,
   Kbd,
   Paper,
+  ScrollArea,
   Stack,
   Text,
   Textarea,
@@ -29,7 +31,6 @@ import { toast } from '@/lib/ui';
 import { openTaskForm } from '@/features/tasks/TaskForm';
 import type { PostIt, ReminderTask, Todo } from '@/types';
 
-/** company card (logo + contact) that can be downloaded as a png */
 /** a business card (85 x 55 mm) with the company info, downloadable as a png (print quality) */
 export function CompanyStamp() {
   const { data: info } = usePersonalInfo();
@@ -287,93 +288,149 @@ export function TodoList() {
   );
 }
 
-interface PostItRow {
-  key: string;
-  id?: string;
-  note: string;
-  updatedOn?: string | number | Date;
+/** the notes panel: same height as the chart next to it, only the list scrolls */
+export const NOTES_LIST_MAX_HEIGHT = 250;
+
+const noteDate = (p: PostIt) => p.updatedDate ?? p.creationDate;
+const byMostRecent = (a: PostIt, b: PostIt) =>
+  new Date(noteDate(b) ?? 0).getTime() - new Date(noteDate(a) ?? 0).getTime();
+
+/** a note: edited in place, saved when leaving the field, delete on hover */
+function NoteCard({
+  note,
+  onSave,
+  onDelete,
+}: {
+  note: PostIt;
+  onSave: (note: PostIt, value: string) => void;
+  onDelete: (note: PostIt) => void;
+}) {
+  const [value, setValue] = useState(note.note);
+  return (
+    <div className="note-card">
+      <Textarea
+        variant="unstyled"
+        autosize
+        minRows={1}
+        size="sm"
+        aria-label="note"
+        value={value}
+        onChange={(e) => setValue(e.currentTarget.value)}
+        onBlur={() => onSave(note, value)}
+      />
+      <Group justify="space-between" wrap="nowrap" gap="xs">
+        <Text size="xs" c="dimmed">
+          {fmtDate(noteDate(note), 'DD/MM/YY HH:mm')}
+        </Text>
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          size="sm"
+          className="note-delete"
+          onClick={() => onDelete(note)}
+          aria-label="delete postit"
+        >
+          <Icon icon="trash" />
+        </ActionIcon>
+      </Group>
+    </div>
+  );
 }
 
-const toRow = (p?: PostIt): PostItRow => ({
-  key: p?.id ?? Math.random().toString(36).slice(2),
-  id: p?.id,
-  note: p?.note ?? '',
-  updatedOn: p?.updatedDate ?? p?.creationDate,
-});
-
-/** horizontal board of post-its, there is always an empty one to add a new note */
-export function PostitBoard() {
+/** quick notes (post-its): add on top (ctrl+enter), most recent first */
+export function NotesPanel() {
+  const client = useQueryClient();
   const { data } = useQuery({ queryKey: ['post-its'], queryFn: postItApi.findAll });
-  if (!data) return null;
-  return <PostitBoardContent initial={data} />;
-}
+  const [draft, setDraft] = useState('');
+  const notes = [...(data ?? [])].sort(byMostRecent);
 
-function PostitBoardContent({ initial }: { initial: PostIt[] }) {
-  const [rows, setRows] = useState<PostItRow[]>(() => [...initial.map(toRow), toRow()]);
+  const setNotes = (updater: (list: PostIt[]) => PostIt[]) =>
+    client.setQueryData<PostIt[]>(['post-its'], (list) => updater(list ?? []));
 
-  const update = (key: string, patch: Partial<PostItRow>) =>
-    setRows((list) => list.map((r) => (r.key === key ? { ...r, ...patch } : r)));
-
-  const save = async (row: PostItRow, index: number) => {
-    if (!row.note.trim()) return;
-    const saved = await postItApi.save({ id: row.id, note: row.note });
-    update(row.key, { id: saved.id, updatedOn: saved.updatedDate ?? saved.creationDate });
-    if (index === rows.length - 1) setRows((list) => [...list, toRow()]);
-    toast.success('postit saved or updated');
+  const add = async () => {
+    const note = draft.trim();
+    if (!note) return;
+    const saved = await postItApi.save({ note });
+    setNotes((list) => [{ ...saved, note: saved.note ?? note }, ...list]);
+    setDraft('');
+    toast.success('note added');
   };
 
-  const remove = async (row: PostItRow) => {
-    if (!row.id) return;
-    await postItApi.delete(row.id);
-    setRows((list) => list.filter((r) => r.key !== row.key));
-    toast.success('postit removed');
+  const save = async (p: PostIt, value: string) => {
+    // nothing changed, or emptied by mistake: keep the note as it is (delete is explicit)
+    if (!value.trim() || value === p.note) return;
+    const saved = await postItApi.save({ id: p.id, note: value });
+    setNotes((list) => list.map((n) => (n.id === p.id ? { ...n, ...saved, note: value } : n)));
+  };
+
+  const remove = async (p: PostIt) => {
+    if (!p.id) return;
+    await postItApi.delete(p.id);
+    setNotes((list) => list.filter((n) => n.id !== p.id));
+    toast.success('note deleted');
   };
 
   return (
-    <Stack gap="sm">
-      {rows.map((row, i) => (
-        <Paper key={row.key} p="sm" className={row.id ? 'postit' : 'postit postit-new'}>
+    <Paper withBorder h="100%">
+      <Group justify="space-between" px="md" py="sm" className="border-bottom" gap="xs">
+        <Group gap="xs">
+          <Text fw={600} size="sm">
+            Notes
+          </Text>
+          {!!notes.length && (
+            <Badge size="sm" variant="light" color="gray">
+              {notes.length}
+            </Badge>
+          )}
+        </Group>
+      </Group>
+      <Stack gap="sm" p="md">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            add();
+          }}
+        >
           <Textarea
-            variant="unstyled"
             placeholder="New note..."
+            aria-label="new note"
             autosize
-            minRows={4}
-            value={row.note}
-            onChange={(e) => update(row.key, { note: e.currentTarget.value })}
+            minRows={2}
+            maxRows={6}
+            value={draft}
+            onChange={(e) => setDraft(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                add();
+              }
+            }}
           />
-          <Group justify={row.updatedOn ? 'space-between' : 'flex-end'}>
-            {row.updatedOn && (
-              <Text size="xs" c="dimmed">
-                {fmtDate(row.updatedOn, 'DD/MM/YY HH:mm')}
-              </Text>
-            )}
-            <Group gap={2}>
-              <ActionIcon
-                variant="subtle"
-                color="dark"
-                size="sm"
-                disabled={!row.note.trim()}
-                onClick={() => save(row, i)}
-                aria-label="save postit"
-              >
-                <Icon icon="save" />
-              </ActionIcon>
-              {row.id && (
-                <ActionIcon
-                  variant="subtle"
-                  color="dark"
-                  size="sm"
-                  onClick={() => remove(row)}
-                  aria-label="delete postit"
-                >
-                  <Icon icon="trash" />
-                </ActionIcon>
-              )}
-            </Group>
+          <Group justify="space-between" mt={6}>
+            <Text size="xs" c="dimmed">
+              <Kbd size="xs">Ctrl</Kbd> + <Kbd size="xs">Enter</Kbd>
+            </Text>
+            <Button type="submit" size="compact-xs" variant="light" disabled={!draft.trim()} aria-label="save postit">
+              Add
+            </Button>
           </Group>
-        </Paper>
-      ))}
-    </Stack>
+        </form>
+        {data && !notes.length && (
+          <Text size="sm" c="dimmed" ta="center" py="md">
+            No notes yet.
+          </Text>
+        )}
+        {!!notes.length && (
+          <ScrollArea.Autosize mah={NOTES_LIST_MAX_HEIGHT} type="auto" offsetScrollbars>
+            <Stack gap="xs">
+              {notes.map((n) => (
+                <NoteCard key={n.id} note={n} onSave={save} onDelete={remove} />
+              ))}
+            </Stack>
+          </ScrollArea.Autosize>
+        )}
+      </Stack>
+    </Paper>
   );
 }
 

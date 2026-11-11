@@ -1,13 +1,25 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { BarChart, CompositeChart, DonutChart } from '@mantine/charts';
-import { Center, ColorSwatch, Group, Loader, Paper, ScrollArea, Select, SimpleGrid, Stack, Text } from '@mantine/core';
+import {
+  Center,
+  ColorSwatch,
+  Group,
+  Loader,
+  Paper,
+  Progress,
+  ScrollArea,
+  SimpleGrid,
+  Stack,
+  Table,
+  Text,
+} from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { dossiersApi, feesApi } from '@/api/billing';
 import { fmtCurrency, fmtNumber } from '@/lib/format';
-import { defaultYear, dossierChartData, feeChartData, type InvoiceStats } from './summary';
+import { dossierChartData, feeChartData, type InvoiceStats } from './summary';
 
 /** all the charts have the same height, so switching view doesn't move the page */
-export const CHART_HEIGHT = 340;
+export const CHART_HEIGHT = 300;
 
 /** axis ticks: 12.345 € -> 12k €, the tooltips keep the full amount */
 const compactNumber = new Intl.NumberFormat('de-DE', { notation: 'compact', maximumFractionDigits: 1 });
@@ -169,46 +181,104 @@ export function FeeSummaryChart() {
   );
 }
 
-function StatRow({ label, value }: { label: string; value: string | number }) {
-  return (
-    <Group justify="space-between" py={6} className="border-bottom">
-      <Text size="sm" c="dimmed">
-        {label}
+/**
+ * revenue and days worked per year, most recent first, with the average daily rate and a bar to compare the years.
+ * The current year is the one still running ("so far").
+ */
+export function YearlyStats({ stats, now = new Date() }: { stats?: InvoiceStats; now?: Date }) {
+  const header = (
+    <Group justify="space-between" px="md" py="sm" className="border-bottom" gap="xs">
+      <Text fw={600} size="sm">
+        Per year
       </Text>
-      <Text fw={600} style={{ fontVariantNumeric: 'tabular-nums' }}>
-        {value}
-      </Text>
+      {stats && stats.totalInvoices > 0 && (
+        <Text size="xs" c="dimmed" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          All time: {fmtCurrency(stats.totalExclVat)} · {fmtNumber(stats.totalAmountOfWork)} days
+        </Text>
+      )}
     </Group>
   );
-}
+  if (!stats) {
+    return (
+      <Paper withBorder h="100%">
+        {header}
+        <Center py="xl">
+          <Loader size="sm" />
+        </Center>
+      </Paper>
+    );
+  }
+  const years = Object.keys(stats.perYear)
+    .map(Number)
+    .sort((a, b) => b - a);
+  const max = Math.max(1, ...years.map((y) => stats.perYear[y].totalExclVat));
+  const current = now.getFullYear();
+  const num = { fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' } as const;
 
-export function InvoiceStatsPanel({ stats }: { stats: InvoiceStats }) {
-  const years = Object.keys(stats.perYear).map(Number).sort();
-  const [year, setYear] = useState<number>(() => defaultYear(stats.perYear));
-  const selected = stats.perYear[year];
   return (
-    <SimpleGrid cols={{ base: 1, md: 2 }}>
-      <Paper withBorder p="md">
-        <Select
-          mb="sm"
-          label="Year"
-          data={years.map(String)}
-          value={String(year)}
-          onChange={(v) => v && setYear(Number(v))}
-          allowDeselect={false}
-        />
-        <StatRow label="Number of Invoices" value={selected?.numberOfInvoices ?? 0} />
-        <StatRow label="Total worked (days)" value={fmtNumber(selected?.totalAmountOfWork ?? 0)} />
-        <StatRow label="Total excl. VAT" value={fmtCurrency(selected?.totalExclVat ?? 0)} />
-      </Paper>
-      <Paper withBorder p="md">
-        <Text fw={600} mb="sm">
-          All time
+    <Paper withBorder h="100%">
+      {header}
+      {!years.length ? (
+        <Text size="sm" c="dimmed" ta="center" py="xl">
+          No invoices yet.
         </Text>
-        <StatRow label="Number of Invoices" value={stats.totalInvoices} />
-        <StatRow label="Total worked" value={`${fmtNumber(stats.totalAmountOfWork)} days`} />
-        <StatRow label="Total excl. VAT" value={fmtCurrency(stats.totalExclVat)} />
-      </Paper>
-    </SimpleGrid>
+      ) : (
+        <Table withTableBorder={false} highlightOnHover={false} verticalSpacing={8} horizontalSpacing="md">
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Year</Table.Th>
+              <Table.Th ta="right">Revenue (excl. VAT)</Table.Th>
+              <Table.Th visibleFrom="sm" w="30%" />
+              <Table.Th ta="right">Days</Table.Th>
+              <Table.Th ta="right" visibleFrom="xs">
+                Per day
+              </Table.Th>
+              <Table.Th ta="right" visibleFrom="sm">
+                Invoices
+              </Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {years.map((y) => {
+              const row = stats.perYear[y];
+              const isCurrent = y === current;
+              return (
+                <Table.Tr key={y} style={isCurrent ? { fontWeight: 600 } : undefined}>
+                  <Table.Td style={num}>
+                    {y}
+                    {isCurrent && (
+                      <Text span size="xs" c="dimmed" fw={400}>
+                        {' '}
+                        so far
+                      </Text>
+                    )}
+                  </Table.Td>
+                  <Table.Td ta="right" style={num}>
+                    {fmtCurrency(row.totalExclVat)}
+                  </Table.Td>
+                  <Table.Td visibleFrom="sm">
+                    <Progress
+                      value={(row.totalExclVat / max) * 100}
+                      size="sm"
+                      color={isCurrent ? 'artcoded.7' : 'artcoded.3'}
+                      aria-label={`revenue ${y}`}
+                    />
+                  </Table.Td>
+                  <Table.Td ta="right" style={num}>
+                    {fmtNumber(row.totalAmountOfWork)}
+                  </Table.Td>
+                  <Table.Td ta="right" style={num} visibleFrom="xs">
+                    {row.totalAmountOfWork ? fmtCurrency(row.totalExclVat / row.totalAmountOfWork) : '—'}
+                  </Table.Td>
+                  <Table.Td ta="right" style={num} visibleFrom="sm">
+                    {row.numberOfInvoices}
+                  </Table.Td>
+                </Table.Tr>
+              );
+            })}
+          </Table.Tbody>
+        </Table>
+      )}
+    </Paper>
   );
 }

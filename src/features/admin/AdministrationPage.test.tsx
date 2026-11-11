@@ -13,11 +13,10 @@ vi.mock('@/auth/session', () => ({
   useDemoMode: () => false,
 }));
 
-// the panels are tested on their own, here we only check the tabs / routing
+// the panels are tested on their own, here we only check the layout / tabs / routing
 vi.mock('@/features/home/widgets', () => ({
   TodoList: () => <div>todo-panel</div>,
   NextTasks: () => <div>next-tasks-panel</div>,
-  PostitBoard: () => <div>postits-panel</div>,
   LoadedScripts: () => <div>scripts-panel</div>,
 }));
 vi.mock('@/features/home/console', () => ({
@@ -47,42 +46,53 @@ describe('AdministrationPage', () => {
   beforeEach(() => {
     vi.mocked(infoApi.logs).mockResolvedValue('some log line');
     vi.mocked(infoApi.buildInfo).mockResolvedValue({ build: { version: '1.0.0' } } as never);
-    vi.mocked(infoApi.health).mockResolvedValue({ components: { mongo: { status: 'UP' } } } as never);
+    vi.mocked(infoApi.health).mockResolvedValue({
+      status: 'UP',
+      components: { mongo: { status: 'UP' }, diskSpace: { status: 'UP', details: { total: 100e9, free: 40e9 } } },
+    } as never);
   });
 
-  it('shows every tab to an admin and opens the first one by default', async () => {
+  it('always shows the system, the to do and the next tasks to an admin, next to the console', async () => {
     session.authorities = ['ADMIN'];
     renderAt('/administration');
-    expect(await screen.findByText('todo-panel')).toBeInTheDocument();
+    expect(await screen.findByText('console-panel')).toBeInTheDocument();
+    expect(screen.getByText('todo-panel')).toBeInTheDocument();
+    expect(screen.getByText('next-tasks-panel')).toBeInTheDocument();
+    expect(await screen.findByText('1.0.0')).toBeInTheDocument();
+    expect(screen.getByText('Mongo')).toBeInTheDocument();
+    expect(screen.getByLabelText('disk used')).toBeInTheDocument();
     const tabs = screen.getAllByRole('tab').map((t) => t.textContent);
-    expect(tabs).toEqual(['To do', 'Next tasks', 'Post-its', 'Toolbox', 'Console', 'System', 'Logs']);
+    expect(tabs).toEqual(['Console', 'Logs', 'Scripts', 'Toolbox', "What's new"]);
   });
 
   it('opens the tab from the url', async () => {
     session.authorities = ['ADMIN'];
     renderAt('/administration/logs');
     expect(await screen.findByText('logs-panel: some log line')).toBeInTheDocument();
+    // the side column stays
+    expect(screen.getByText('todo-panel')).toBeInTheDocument();
   });
 
   it('navigates between tabs', async () => {
     session.authorities = ['ADMIN'];
+    renderAt('/administration/logs');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Scripts' }));
+    expect(await screen.findByText('scripts-panel')).toBeInTheDocument();
+  });
+
+  it('redirects the old tabs (to do, next tasks...) to the console', async () => {
+    session.authorities = ['ADMIN'];
     renderAt('/administration/todo');
-    await userEvent.click(await screen.findByRole('tab', { name: 'Console' }));
     expect(await screen.findByText('console-panel')).toBeInTheDocument();
   });
 
-  it('shows the system info', async () => {
-    session.authorities = ['ADMIN'];
-    renderAt('/administration/system');
-    expect(await screen.findByText('1.0.0')).toBeInTheDocument();
-    expect(screen.getByText('scripts-panel')).toBeInTheDocument();
-  });
-
-  it('only shows the toolbox to an accountant', async () => {
+  it('only shows the toolbox to an accountant, without the side column', async () => {
     session.authorities = ['REGULATOR_OR_ACCOUNTANT'];
     renderAt('/administration');
     expect(await screen.findByText('toolbox-panel')).toBeInTheDocument();
     expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Toolbox']);
+    expect(screen.queryByText('todo-panel')).not.toBeInTheDocument();
+    expect(screen.queryByText('System')).not.toBeInTheDocument();
   });
 
   it('redirects an accountant away from an admin only tab', async () => {

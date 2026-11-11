@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Center, Grid, Loader, Paper, SegmentedControl, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Center, Loader, Paper, SegmentedControl, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { timesheetApi } from '@/api/misc';
 import { dossiersApi, feesApi, invoicesApi } from '@/api/billing';
@@ -11,12 +11,12 @@ import {
   CHART_HEIGHT,
   DossierSummaryChart,
   FeeSummaryChart,
-  InvoiceStatsPanel,
   InvoicesPerClientChart,
   InvoicesPerMonthChart,
+  YearlyStats,
 } from './charts';
 import { computeInvoiceStats } from './summary';
-import { CompanyStamp, MostClickedMenu } from './widgets';
+import { CompanyStamp, MostClickedMenu, NotesPanel } from './widgets';
 
 function greeting(now = new Date()) {
   const h = now.getHours();
@@ -74,7 +74,7 @@ function Kpis({ isAdmin, revenue, invoices }: { isAdmin: boolean; revenue?: numb
   );
 }
 
-type ChartView = 'month' | 'client' | 'dossiers' | 'expenses' | 'stats';
+type ChartView = 'month' | 'client' | 'dossiers' | 'expenses';
 
 function Charts({ stats }: { stats?: ReturnType<typeof computeInvoiceStats> }) {
   const [view, setView] = useState<ChartView>('month');
@@ -95,14 +95,12 @@ function Charts({ stats }: { stats?: ReturnType<typeof computeInvoiceStats> }) {
           { value: 'client', label: 'Per client' },
           { value: 'dossiers', label: 'Dossiers' },
           { value: 'expenses', label: 'Expenses' },
-          { value: 'stats', label: 'Totals' },
         ]}
       />
       {view === 'month' && (stats ? <InvoicesPerMonthChart stats={stats} /> : loading)}
       {view === 'client' && (stats ? <InvoicesPerClientChart stats={stats} /> : loading)}
       {view === 'dossiers' && <DossierSummaryChart />}
       {view === 'expenses' && <FeeSummaryChart />}
-      {view === 'stats' && (stats ? <InvoiceStatsPanel stats={stats} /> : loading)}
     </Stack>
   );
 }
@@ -134,23 +132,25 @@ export function HomePage() {
         revenue={stats ? (thisYear?.totalExclVat ?? 0) : undefined}
         invoices={stats ? (thisYear?.numberOfInvoices ?? 0) : undefined}
       />
-      <Grid>
-        <Grid.Col span={{ base: 12, lg: isAdmin ? 8 : 12 }}>
-          <Paper withBorder p="md" h="100%">
-            <Charts stats={stats} />
-          </Paper>
-        </Grid.Col>
+      {/*
+        what is checked every day first (key figures, activity, notes), then the yearly figures and the card.
+        Desktop: a main column and a 380px side column (the company card is 340px wide). Smaller: one column.
+      */}
+      <div className={isAdmin ? 'home-grid' : 'home-grid home-grid-single'}>
+        <Paper withBorder p="md">
+          <Charts stats={stats} />
+        </Paper>
+        {isAdmin && <NotesPanel />}
+        <YearlyStats stats={stats} />
         {isAdmin && (
-          <Grid.Col span={{ base: 12, lg: 4 }}>
-            <Paper withBorder p="md" h="100%">
-              <Text fw={600} mb="xs">
-                Company card
-              </Text>
-              <CompanyStamp />
-            </Paper>
-          </Grid.Col>
+          <Paper withBorder>
+            <Text fw={600} size="sm" px="md" py="sm" className="border-bottom">
+              Company card
+            </Text>
+            <CompanyStamp />
+          </Paper>
         )}
-      </Grid>
+      </div>
     </div>
   );
 }

@@ -1,3 +1,10 @@
+#### 2027.8.1
+
+- Templates: sort on every column (name, type, version, updated, the default templates on top by default), search in the name, description and type, filter on the version or show only the default templates. Kept in the url
+- Templates: new "CV RDF" template type (Jinja), the sparql update publishing the CV to the triplestore. Fixed: special characters, empty fields and personal projects
+- The application starts even when the pdf of the CV cannot be generated
+- Pdf generation recovers by itself when its browser crashes, no restart needed anymore
+
 #### 2027.8.0
 
 - Home, per year: new "Relative" column, the revenue of the year per calendar day worked (from the timesheets, a day counts once however many hours are invoiced that day). Only for the years with a timesheet every month, and the current year

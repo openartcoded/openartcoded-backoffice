@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Center, Loader, Paper, SegmentedControl, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Button, Center, Group, Loader, Paper, SegmentedControl, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { timesheetApi } from '@/api/misc';
 import { dossiersApi, feesApi, invoicesApi } from '@/api/billing';
 import { useIsAdmin, useMe, usePersonalInfo } from '@/auth/session';
+import { Icon } from '@/components/Icon';
 import { KpiCard, PageHeader } from '@/components/ui';
 import { dayjs, fmtCurrency, trim } from '@/lib/format';
 import {
@@ -13,8 +14,10 @@ import {
   FeeSummaryChart,
   InvoicesPerClientChart,
   InvoicesPerMonthChart,
+  TimesheetHoursChart,
   YearlyStats,
 } from './charts';
+import { openBusinessPlan } from './BusinessPlan';
 import { computeInvoiceStats } from './summary';
 import { CompanyStamp, MostClickedMenu, NotesPanel } from './widgets';
 
@@ -74,9 +77,9 @@ function Kpis({ isAdmin, revenue, invoices }: { isAdmin: boolean; revenue?: numb
   );
 }
 
-type ChartView = 'month' | 'client' | 'dossiers' | 'expenses';
+type ChartView = 'month' | 'client' | 'hours' | 'dossiers' | 'expenses';
 
-function Charts({ stats }: { stats?: ReturnType<typeof computeInvoiceStats> }) {
+function Charts({ stats, isAdmin }: { stats?: ReturnType<typeof computeInvoiceStats>; isAdmin: boolean }) {
   const [view, setView] = useState<ChartView>('month');
   const loading = (
     <Center h={CHART_HEIGHT}>
@@ -93,12 +96,15 @@ function Charts({ stats }: { stats?: ReturnType<typeof computeInvoiceStats> }) {
         data={[
           { value: 'month', label: 'Per month' },
           { value: 'client', label: 'Per client' },
+          // the timesheets are for the admin only
+          ...(isAdmin ? [{ value: 'hours', label: 'Hours' }] : []),
           { value: 'dossiers', label: 'Dossiers' },
           { value: 'expenses', label: 'Expenses' },
         ]}
       />
       {view === 'month' && (stats ? <InvoicesPerMonthChart stats={stats} /> : loading)}
       {view === 'client' && (stats ? <InvoicesPerClientChart stats={stats} /> : loading)}
+      {view === 'hours' && <TimesheetHoursChart />}
       {view === 'dossiers' && <DossierSummaryChart />}
       {view === 'expenses' && <FeeSummaryChart />}
     </Stack>
@@ -114,6 +120,12 @@ export function HomePage() {
     queryFn: invoicesApi.findAllSummaries,
   });
   const stats = invoiceSummaries ? computeInvoiceStats(invoiceSummaries) : undefined;
+  // the days worked come from the timesheets (admin only), shared with the "Hours" chart
+  const { data: timesheetStats } = useQuery({
+    queryKey: ['timesheet-stats'],
+    queryFn: timesheetApi.stats,
+    enabled: isAdmin,
+  });
   const thisYear = stats?.perYear[new Date().getFullYear()];
 
   if (!user || !personalInfo) return <Loader />;
@@ -124,7 +136,16 @@ export function HomePage() {
         title={`${greeting()}${user.username ? `, ${user.username}` : ''}`}
         documentTitle="Artcoded BackOffice"
         description={dayjs().format('dddd D MMMM YYYY')}
-        actions={isAdmin && <MostClickedMenu />}
+        actions={
+          isAdmin && (
+            <Group gap="xs">
+              <Button variant="default" leftSection={<Icon icon="chart-line" />} onClick={openBusinessPlan}>
+                Business plan
+              </Button>
+              <MostClickedMenu />
+            </Group>
+          )
+        }
         mb={0}
       />
       <Kpis
@@ -138,10 +159,10 @@ export function HomePage() {
       */}
       <div className={isAdmin ? 'home-grid' : 'home-grid home-grid-single'}>
         <Paper withBorder p="md">
-          <Charts stats={stats} />
+          <Charts stats={stats} isAdmin={isAdmin} />
         </Paper>
         {isAdmin && <NotesPanel />}
-        <YearlyStats stats={stats} />
+        <YearlyStats stats={stats} workedDays={isAdmin ? timesheetStats?.workedDays : undefined} />
         {isAdmin && (
           <Paper withBorder>
             <Text fw={600} size="sm" px="md" py="sm" className="border-bottom">

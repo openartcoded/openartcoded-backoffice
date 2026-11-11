@@ -12,6 +12,7 @@ export const TEMPLATE_TYPES: TemplateType[] = [
   'SMS',
   'CALENDAR',
   'DOSSIER_REPORT',
+  'BUSINESS_PLAN',
 ];
 
 export const TEMPLATE_TYPE_DISPLAY: Record<TemplateType, { label: string; description: string }> = {
@@ -27,6 +28,10 @@ export const TEMPLATE_TYPE_DISPLAY: Record<TemplateType, { label: string; descri
   DOSSIER_REPORT: {
     label: 'Dossier report',
     description: 'monthly pdf report of a dossier, compared with the previous years (report)',
+  },
+  BUSINESS_PLAN: {
+    label: 'Business plan',
+    description: 'pdf business plan / plan financier for the banks, in EN, FR or NL (plan)',
   },
 };
 

@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { BarChart, CompositeChart, DonutChart } from '@mantine/charts';
+import { useState, type ReactNode } from 'react';
+import { BarChart, CompositeChart, DonutChart, LineChart } from '@mantine/charts';
 import {
   Center,
   ColorSwatch,
@@ -8,15 +8,20 @@ import {
   Paper,
   Progress,
   ScrollArea,
+  SegmentedControl,
+  Select,
   SimpleGrid,
   Stack,
   Table,
   Text,
+  Tooltip,
 } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { dossiersApi, feesApi } from '@/api/billing';
+import { timesheetApi } from '@/api/misc';
 import { fmtCurrency, fmtNumber } from '@/lib/format';
-import { dossierChartData, feeChartData, type InvoiceStats } from './summary';
+import { cumulativeHours, hoursPerClient, hoursPerYear } from './hours';
+import { dossierChartData, feeChartData, perWorkedDay, type InvoiceStats } from './summary';
 
 /** all the charts have the same height, so switching view doesn't move the page */
 export const CHART_HEIGHT = 300;
@@ -181,11 +186,161 @@ export function FeeSummaryChart() {
   );
 }
 
+type HoursView = 'year' | 'progress' | 'clients';
+
+/** hours worked from the timesheets: per year and client, cumulated month by month, per client */
+export function TimesheetHoursChart({ now = new Date() }: { now?: Date }) {
+  const [view, setView] = useState<HoursView>('year');
+  const [client, setClient] = useState<string | null>(null);
+  const { data, isLoading } = useQuery({ queryKey: ['timesheet-stats'], queryFn: timesheetApi.stats });
+  if (isLoading) return <ChartLoader />;
+  if (!data?.rows.length) {
+    return (
+      <Center h={CHART_HEIGHT}>
+        <Text size="sm" c="dimmed">
+          No timesheet yet.
+        </Text>
+      </Center>
+    );
+  }
+  const num = { fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' } as const;
+  const fmtHours = (v: number) => `${fmtNumber(v)} h`;
+  return (
+    <Stack gap="xs">
+      <Group justify="space-between" gap="xs">
+        <SegmentedControl
+          size="xs"
+          value={view}
+          onChange={(v) => setView(v as HoursView)}
+          data={[
+            { value: 'year', label: 'Per year' },
+            { value: 'progress', label: 'Progress' },
+            { value: 'clients', label: 'Per client' },
+          ]}
+        />
+        {view === 'progress' && (
+          <Select
+            size="xs"
+            w={200}
+            placeholder="All clients"
+            aria-label="client"
+            data={data.clients}
+            value={client}
+            onChange={setClient}
+            clearable
+            searchable
+          />
+        )}
+      </Group>
+      {view === 'year' &&
+        (() => {
+          const { data: rows, series } = hoursPerYear(data);
+          return (
+            <BarChart
+              {...common}
+              data={rows}
+              dataKey="year"
+              type="stacked"
+              yAxisProps={{ width: 56, tickFormatter: (v: number) => compactNumber.format(v) }}
+              valueFormatter={fmtHours}
+              series={series.map((name, i) => ({
+                name,
+                color: name === 'Other' ? 'gray.4' : CLIENT_COLORS[i % CLIENT_COLORS.length],
+              }))}
+            />
+          );
+        })()}
+      {view === 'progress' &&
+        (() => {
+          const { data: rows, series } = cumulativeHours(data, client, now);
+          const current = String(now.getFullYear());
+          return (
+            <LineChart
+              {...common}
+              data={rows}
+              dataKey="month"
+              connectNulls={false}
+              withDots={false}
+              yAxisProps={{ width: 56, tickFormatter: (v: number) => compactNumber.format(v) }}
+              valueFormatter={fmtHours}
+              series={series.map((name, i) => ({
+                name,
+                color: name === current ? 'artcoded.7' : CLIENT_COLORS[(series.length - i) % CLIENT_COLORS.length],
+                strokeDasharray: name === current ? undefined : '4 3',
+              }))}
+            />
+          );
+        })()}
+      {view === 'clients' &&
+        (() => {
+          const { rows, total } = hoursPerClient(data, now);
+          const years = [...data.years].reverse();
+          const progress = (p?: number) =>
+            p === undefined ? (
+              '—'
+            ) : (
+              <Text span size="sm" c={p >= 0 ? 'teal.7' : 'red.7'} style={num}>
+                {p >= 0 ? '+' : ''}
+                {Math.round(p * 100)}%
+              </Text>
+            );
+          return (
+            <ScrollArea h={CHART_HEIGHT} type="auto">
+              <Table stickyHeader verticalSpacing={6} highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Client</Table.Th>
+                    {years.map((y) => (
+                      <Table.Th key={y} ta="right">
+                        {y}
+                      </Table.Th>
+                    ))}
+                    <Table.Th ta="right">
+                      <Tooltip label="This year so far vs the same months last year" withArrow>
+                        <span>Progress</span>
+                      </Tooltip>
+                    </Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {[...rows, total].map((r) => (
+                    <Table.Tr key={r.client} style={r === total ? { fontWeight: 600 } : undefined}>
+                      <Table.Td>
+                        <Text size="sm" truncate maw={180} fw={r === total ? 600 : undefined}>
+                          {r.client}
+                        </Text>
+                      </Table.Td>
+                      {years.map((y) => (
+                        <Table.Td key={y} ta="right" style={num}>
+                          {r.perYear[y] ? fmtNumber(r.perYear[y]) : '—'}
+                        </Table.Td>
+                      ))}
+                      <Table.Td ta="right">{progress(r.progress)}</Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </ScrollArea>
+          );
+        })()}
+    </Stack>
+  );
+}
+
 /**
  * revenue and days worked per year, most recent first, with the average daily rate and a bar to compare the years.
  * The current year is the one still running ("so far").
  */
-export function YearlyStats({ stats, now = new Date() }: { stats?: InvoiceStats; now?: Date }) {
+export function YearlyStats({
+  stats,
+  workedDays,
+  now = new Date(),
+}: {
+  stats?: InvoiceStats;
+  /** per year, the calendar days worked from the timesheets (absent: the column is not shown) */
+  workedDays?: Record<number, number>;
+  now?: Date;
+}) {
   const header = (
     <Group justify="space-between" px="md" py="sm" className="border-bottom" gap="xs">
       <Text fw={600} size="sm">
@@ -233,6 +388,18 @@ export function YearlyStats({ stats, now = new Date() }: { stats?: InvoiceStats;
               <Table.Th ta="right" visibleFrom="xs">
                 Per day
               </Table.Th>
+              {workedDays && (
+                <Table.Th ta="right">
+                  <Tooltip
+                    label="Revenue of the year / calendar days worked (timesheets): a day counts once, however many hours are invoiced that day. Only the years with a timesheet every month, and the current one"
+                    multiline
+                    w={280}
+                    withArrow
+                  >
+                    <span>Relative</span>
+                  </Tooltip>
+                </Table.Th>
+              )}
               <Table.Th ta="right" visibleFrom="sm">
                 Invoices
               </Table.Th>
@@ -270,6 +437,17 @@ export function YearlyStats({ stats, now = new Date() }: { stats?: InvoiceStats;
                   <Table.Td ta="right" style={num} visibleFrom="xs">
                     {row.totalAmountOfWork ? fmtCurrency(row.totalExclVat / row.totalAmountOfWork) : '—'}
                   </Table.Td>
+                  {workedDays && (
+                    <Table.Td
+                      ta="right"
+                      style={num}
+                      title={workedDays[y] ? `${workedDays[y]} days worked` : 'not a timesheet every month'}
+                    >
+                      {perWorkedDay(row, workedDays[y]) !== undefined
+                        ? fmtCurrency(perWorkedDay(row, workedDays[y]))
+                        : '—'}
+                    </Table.Td>
+                  )}
                   <Table.Td ta="right" style={num} visibleFrom="sm">
                     {row.numberOfInvoices}
                   </Table.Td>

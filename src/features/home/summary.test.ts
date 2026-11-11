@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { amountInDays, computeInvoiceStats, defaultYear, dossierChartData, feeChartData } from './summary';
+import {
+  amountInDays,
+  computeInvoiceStats,
+  defaultYear,
+  dossierChartData,
+  feeChartData,
+  perWorkedDay,
+} from './summary';
 
 describe('invoice summary', () => {
   const invoices = [
@@ -40,11 +47,26 @@ describe('invoice summary', () => {
         { client: 'B', total: 2000 },
       ]),
     );
-    expect(stats.perYear[2026]).toEqual({ totalAmountOfWork: 24, totalExclVat: 12000, numberOfInvoices: 3 });
+    expect(stats.perYear[2026]).toEqual({
+      totalAmountOfWork: 24,
+      totalExclVat: 12000,
+      numberOfInvoices: 3,
+    });
     expect(stats.perYear[2025].numberOfInvoices).toBe(1);
     expect(stats.totalInvoices).toBe(4);
     expect(stats.totalAmountOfWork).toBe(42);
     expect(stats.totalExclVat).toBe(21000);
+  });
+
+  it('per day worked: the revenue of the year on the calendar days worked', () => {
+    // 16 hours invoiced on one long day: 2 days invoiced, 1 day worked
+    const stats = computeInvoiceStats([
+      { amount: 16, hoursPerDay: 8, amountType: 'HOURS', subTotal: 1600, client: 'A', dateOfInvoice: '2027-01-31' },
+    ]);
+    expect(stats.perYear[2027].totalAmountOfWork).toBe(2);
+    expect(perWorkedDay(stats.perYear[2027], 1)).toBe(1600);
+    expect(perWorkedDay(stats.perYear[2027], 0)).toBeUndefined();
+    expect(perWorkedDay(stats.perYear[2027], undefined)).toBeUndefined();
   });
 
   it('defaults to the previous year when the current one has no invoice', () => {

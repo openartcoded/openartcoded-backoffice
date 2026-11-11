@@ -1,3 +1,57 @@
+#### 2027.8.0
+
+- Home, per year: new "Relative" column, the revenue of the year per calendar day worked (from the timesheets, a day counts once however many hours are invoiced that day). Only for the years with a timesheet every month, and the current year
+- Home charts: new "Hours" tab (timesheets): hours per year and client, progress month by month compared with the previous years, hours per client with the progress against the same months last year. Student jobs are left out
+- Expenses: new "Exceptional" tab, the expenses far above the usual ones (x times the median, minimum amount, both adjustable). Select several and mark them as exceptional (taxes, one-off purchases) or normal, or reset
+- Home: "Business plan" button, a business plan / plan financier / financieel plan (pdf) in English, French or Dutch, from the invoices and the expenses: key figures, progress over the years and during the year, expenses, exceptional expenses apart, projected results for the next 3 years (prudent / realistic / optimistic), optional loan with its monthly payment and coverage
+- Templates: new "Business plan" template type, the layout of the business plan can be changed there
+
+#### 2027.7.0
+
+- Mails: pick the attachments among the uploads (search, bookmarked, several at once) or upload new files, in the send mail popup and in the scheduled mails not sent yet
+- Invoices: extra files attached to an invoice, embedded in the Peppol XML (pdf, png, jpeg, csv, xlsx, ods), sent with the invoice mail and deleted with the invoice. Also on generated (locked) invoices: the Peppol XML not sent yet is generated again
+
+#### 2027.6.0
+
+- Home redesigned: key figures, activity chart and post-its, yearly figures (revenue, days, per day) and the company card on one page, scrolling only where needed
+- Administration: system status, to do and next tasks on the side, the rest in tabs using the whole width
+- Reports: new kanban board, fixed scrolling
+
+#### 2027.5.0
+
+- New "Administration" menu: to do, post-its, toolbox, script console, system info and logs (moved from the home page)
+
+#### 2027.4.0
+
+- Dossiers: the closed dossiers grouped by year, with the annual report of each year (pdf: every dossier of the year compared with the other years, and a projection). Mailed every 20th of january for the previous year
+
+#### 2027.3.0
+
+- Uploads: new search in the content of the files (pdf, spreadsheets, csv, documents, images, text) with several modes (smart, exact words, word beginnings, typos, exact phrase, regular expression, query syntax), filters on the type, the extensions and the dates, and a preview of the matching parts
+
+#### 2027.2.1
+
+- Dossier report: every month of the dossier in one pdf
+
+#### 2027.2.0
+
+- Dossiers: monthly pdf report of a dossier, compared with the previous years. Mailed every month (open dossier, previous month) and every quarter
+
+#### 2027.1.0
+
+- New "Templates" page: every type (invoice, CV, timesheet, Peppol, emails, SMS, calendar invites, dossier report) has one default template, v1 (FreeMarker) or v2 (Jinja), with the variables it reads
+
+#### 2027.0.2
+
+- Fix the scripts widget (enabled / disabled status)
+
+#### 2027.0.1
+
+- Invoices: choose the default template of new invoices
+- Personal info: second phone number, shown on the company card
+- Settings: the modal keeps its size when switching tabs
+- Nothing scrolls horizontally anymore, long words (urls, file names) wrap
+
 #### 2027.0.0
 
 - Switch from Angular to React (React 19, TypeScript, Vite, Mantine)

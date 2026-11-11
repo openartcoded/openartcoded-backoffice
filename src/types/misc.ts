@@ -66,7 +66,15 @@ export type TimesheetsByYearAndClient = Record<string, Record<string, Timesheet[
 
 // ---------- reminder tasks ----------
 export type ActionParameterType =
-  'INTEGER' | 'LONG' | 'STRING' | 'BIG_STRING' | 'BOOLEAN' | 'DOUBLE' | 'BIGDECIMAL' | 'BIGINTEGER' | 'OPTION';
+  | 'INTEGER'
+  | 'LONG'
+  | 'STRING'
+  | 'BIG_STRING'
+  | 'BOOLEAN'
+  | 'DOUBLE'
+  | 'BIGDECIMAL'
+  | 'BIGINTEGER'
+  | 'OPTION';
 
 export interface ActionParameter {
   key?: string;
@@ -434,4 +442,17 @@ export interface FileSearchStats {
   /** indexed files per kind */
   kinds?: Partial<Record<FileSearchKind, number>>;
   files: Record<string, FileIngestionEntry>;
+}
+
+/** hours worked, from the timesheets: one row per year, month and client */
+export interface TimesheetStats {
+  years: number[];
+  /** most worked first */
+  clients: string[];
+  rows: { year: number; month: number; client: string; minutes: number; days: number }[];
+  /**
+   * per year, the calendar days with hours worked (a day counts once, however many hours).
+   * Only the years with a timesheet every month, and the current year
+   */
+  workedDays: Record<number, number>;
 }

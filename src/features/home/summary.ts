@@ -6,6 +6,14 @@ export interface YearSummary {
   numberOfInvoices: number;
 }
 
+/**
+ * revenue per calendar day worked (from the timesheets): a day counts once, however many hours are invoiced that day.
+ * undefined when the days worked are not known.
+ */
+export function perWorkedDay(year: YearSummary, workedDays?: number): number | undefined {
+  return workedDays && workedDays > 0 ? year.totalExclVat / workedDays : undefined;
+}
+
 export interface InvoiceStats {
   /** earnings / working days per period (MM/yyyy), ordered by date */
   perPeriod: { period: string; earnings: number; workingDays: number }[];

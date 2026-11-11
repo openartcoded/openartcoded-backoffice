@@ -31,6 +31,7 @@ import type {
   TimesheetPeriod,
   TimesheetSettings,
   TimesheetSettingsForm,
+  TimesheetStats,
   TimesheetsByYearAndClient,
   Todo,
   UnreadMessagesCounter,
@@ -132,6 +133,8 @@ export const timesheetApi = {
   reopen: (id: string) => post<void>(`${ts}/reopen`, {}, { id }),
   generateInvoice: (id: string) => post<Timesheet>(`${ts}/generate-invoice`, {}, { id }),
   updateSettings: (s: TimesheetSettingsForm) => post<TimesheetSettings>(`${ts}/settings`, s),
+  /** hours worked per year, month and client (cached by the backend) */
+  stats: () => get<TimesheetStats>(`${ts}/stats`),
   delete: (id: string) => del<void>(ts, { id }),
 };
 

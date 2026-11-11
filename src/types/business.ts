@@ -133,7 +133,8 @@ export type TemplateType =
   | 'ACTION'
   | 'SMS'
   | 'CALENDAR'
-  | 'DOSSIER_REPORT';
+  | 'DOSSIER_REPORT'
+  | 'BUSINESS_PLAN';
 
 /** V1: FreeMarker, rendered by the backend. V2: jinja, stored and rendered by the file service */
 export type TemplateVersion = 'V1' | 'V2';
@@ -195,6 +196,35 @@ export interface Fee {
   imported?: boolean;
   bookmarked?: boolean;
   importedDate?: DateLike;
+  /** a big expense reviewed: exceptional (taxes, one-off) or normal. Absent: not reviewed */
+  exceptional?: ExceptionalStatus | null;
+  exceptionalDate?: DateLike;
+}
+
+export type ExceptionalStatus = 'CONFIRMED' | 'DENIED';
+
+/** the expenses far above the usual ones, and the reviewed ones (see the backend ExceptionalExpenses) */
+export interface ExceptionalExpensesReport {
+  /** median price (VAT included) of the expenses */
+  median: number;
+  /** from this price an expense is suspect */
+  threshold: number;
+  factor: number;
+  minAmount: number;
+  /** most expensive first */
+  expenses: Fee[];
+}
+
+export type BusinessPlanLanguage = 'EN' | 'FR' | 'NL';
+
+export interface BusinessPlanRequest {
+  language: BusinessPlanLanguage;
+  activity?: string;
+  loanAmount?: number | null;
+  loanMonths?: number | null;
+  /** yearly, in percent */
+  loanRate?: number | null;
+  loanPurpose?: string;
 }
 
 export interface Label {

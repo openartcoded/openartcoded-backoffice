@@ -22,7 +22,7 @@ vi.mock('@/api/billing', async (importOriginal) => ({
 }));
 vi.mock('@/api/misc', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/misc')>()),
-  timesheetApi: { estimateThisMonth: vi.fn() },
+  timesheetApi: { estimateThisMonth: vi.fn(), stats: vi.fn() },
 }));
 
 // charts and widgets are tested on their own
@@ -32,6 +32,7 @@ vi.mock('./charts', () => ({
   InvoicesPerClientChart: () => <div>per-client-chart</div>,
   DossierSummaryChart: () => <div>dossier-chart</div>,
   FeeSummaryChart: () => <div>fee-chart</div>,
+  TimesheetHoursChart: () => <div>hours-chart</div>,
   YearlyStats: () => <div>yearly-stats</div>,
 }));
 vi.mock('./widgets', () => ({
@@ -51,6 +52,7 @@ describe('HomePage', () => {
     vi.mocked(dossiersApi.activeDossier).mockResolvedValue(null as never);
     vi.mocked(feesApi.search).mockResolvedValue({ content: [], page: { totalElements: 0 } } as never);
     vi.mocked(timesheetApi.estimateThisMonth).mockResolvedValue(0);
+    vi.mocked(timesheetApi.stats).mockResolvedValue({ years: [], clients: [], rows: [], workedDays: {} });
   });
 
   it('shows the key figures, the activity, the notes, the yearly stats and the company card', async () => {
@@ -73,6 +75,8 @@ describe('HomePage', () => {
     expect(await screen.findByText('per-client-chart')).toBeInTheDocument();
     // the totals moved to the yearly stats, always visible
     expect(screen.queryByText('Totals')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText('Hours'));
+    expect(await screen.findByText('hours-chart')).toBeInTheDocument();
   });
 
   it('does not show the company card to an accountant', async () => {
@@ -82,6 +86,8 @@ describe('HomePage', () => {
     expect(screen.queryByText('company-stamp')).not.toBeInTheDocument();
     expect(screen.queryByText('notes-panel')).not.toBeInTheDocument();
     expect(screen.queryByText('To invoice this month')).not.toBeInTheDocument();
+    // the timesheet hours are for the admin
+    expect(screen.queryByText('Hours')).not.toBeInTheDocument();
     // the yearly figures are for everyone, like the charts
     expect(screen.getByText('yearly-stats')).toBeInTheDocument();
   });

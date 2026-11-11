@@ -38,6 +38,7 @@ import { RegisteredEvent } from '@/lib/notificationBus';
 import { dayjs, fmtDate, titleCase } from '@/lib/format';
 import { confirm, toast } from '@/lib/ui';
 import type { Dossier, Fee, FeeManualForm, FeeSearchCriteria, Label } from '@/types';
+import { ExceptionalExpenses } from './ExceptionalExpenses';
 import { openFeeDetail, TagForm, tagColor } from './FeeDetail';
 
 const PAGE_SIZE = 10;
@@ -652,6 +653,11 @@ export function FeePage() {
           <Tabs.Tab value="bookmarks" leftSection={<Icon icon="star" />}>
             Bookmarked
           </Tabs.Tab>
+          {isAdmin && (
+            <Tabs.Tab value="exceptional" leftSection={<Icon icon="exclamation-triangle" />}>
+              Exceptional
+            </Tabs.Tab>
+          )}
           <Tabs.Tab value="labels" ml="auto" leftSection={<Icon icon="tag" />}>
             Labels
           </Tabs.Tab>
@@ -665,6 +671,11 @@ export function FeePage() {
         <Tabs.Panel value="bookmarks">
           <FeeTable bookmarked />
         </Tabs.Panel>
+        {isAdmin && (
+          <Tabs.Panel value="exceptional">
+            <ExceptionalExpenses />
+          </Tabs.Panel>
+        )}
         <Tabs.Panel value="labels">
           <LabelsEditor />
         </Tabs.Panel>

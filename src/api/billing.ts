@@ -5,10 +5,13 @@ import type {
   AdministrativeDocumentSearchCriteria,
   BackendInvoiceSummary,
   BillableClient,
+  BusinessPlanRequest,
   ContractStatus,
   Dossier,
   DossierSummary,
   DossiersOfYear,
+  ExceptionalExpensesReport,
+  ExceptionalStatus,
   Fee,
   FeeManualForm,
   FeeSearchCriteria,
@@ -114,6 +117,26 @@ export const feesApi = {
   },
   delete: (id: string) => del<void>(fee, { id }),
   summaries: () => post<FeeSummary[]>(`${fee}/summaries`),
+  /** the expenses far above the usual ones (price VAT included >= factor x median and >= minAmount), and the reviewed ones */
+  exceptional: (factor?: number, minAmount?: number) =>
+    post<ExceptionalExpensesReport>(`${fee}/exceptional`, {}, { factor, minAmount }),
+  /** CONFIRMED: exceptional, DENIED: a normal expense, NONE: not reviewed */
+  updateExceptional: (ids: string[], status: ExceptionalStatus | 'NONE') =>
+    post<Fee[]>(`${fee}/update-exceptional`, ids, { status }),
+};
+
+export const businessPlanApi = {
+  /** the business plan pdf (cached by the backend, refresh: generated again) */
+  generate: (request: BusinessPlanRequest, refresh = false) =>
+    download(
+      '/api/business-plan/generate',
+      { method: 'POST', data: request, params: { refresh } },
+      request.language === 'FR'
+        ? 'plan-financier.pdf'
+        : request.language === 'NL'
+          ? 'financieel-plan.pdf'
+          : 'business-plan.pdf',
+    ),
 };
 
 export const labelsApi = {

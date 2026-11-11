@@ -17,7 +17,7 @@ import {
   Textarea,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Icon } from '@/components/Icon';
 import { ImportedInfo, useUploads } from '@/components/common';
@@ -30,6 +30,8 @@ import { openDrawer } from '@/components/drawer';
 import { clientsApi, invoicesApi } from '@/api/billing';
 import { templatesApi } from '@/api/templates';
 import { filesApi } from '@/api/files';
+import { errorMessage } from '@/api/http';
+import { toast } from '@/lib/ui';
 import { useDemoMode, useIsAdmin } from '@/auth/session';
 import { fmtCurrency, fmtDate, fromInput, toInputDate } from '@/lib/format';
 import { RATE_TYPES, type BillableClient, type FileUpload, type OaTemplate, type Invoice } from '@/types';
@@ -86,15 +88,19 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
     queryFn: () => filesApi.findById(invoice.invoiceUploadId!),
     enabled: !!invoice.invoiceUploadId,
   });
+  // the peppol xml is generated again when the files of a generated invoice change
+  const [ublId, setUblId] = useState(invoice.invoiceUBLId);
   const { data: ubl } = useQuery({
-    queryKey: ['upload', invoice.invoiceUBLId],
-    queryFn: () => filesApi.findById(invoice.invoiceUBLId!),
-    enabled: !!invoice.invoiceUBLId,
+    queryKey: ['upload', ublId],
+    queryFn: () => filesApi.findById(ublId!),
+    enabled: !!ublId,
   });
   const { data: savedAttachments = [] } = useUploads(invoice.attachmentIds ?? []);
   // null until changed, the saved attachments are shown meanwhile
   const [changedAttachments, setAttachments] = useState<FileUpload[] | null>(null);
   const attachments = changedAttachments ?? savedAttachments;
+  const queryClient = useQueryClient();
+  const [savingAttachments, setSavingAttachments] = useState(false);
 
   const form = useForm({
     initialValues: {
@@ -189,6 +195,31 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
       manualUploadFile: file,
     });
   });
+
+  // a generated invoice: the files are saved right away
+  const canUpdateAttachments = isAdmin && !!invoice.id && !!invoice.locked && !invoice.logicalDelete;
+  const peppolPending = invoice.peppolStatus === 'NOT_SENT' && !!ublId;
+  const updateAttachments = async (files: FileUpload[]) => {
+    setSavingAttachments(true);
+    try {
+      const saved = await invoicesApi.updateAttachments(
+        invoice.id!,
+        files.map((f) => f.id),
+      );
+      setAttachments(files);
+      if (saved.invoiceUBLId && saved.invoiceUBLId !== ublId) {
+        setUblId(saved.invoiceUBLId);
+        toast.success('Attachments saved, Peppol XML updated');
+      } else {
+        toast.success('Attachments saved');
+      }
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setSavingAttachments(false);
+    }
+  };
 
   const validatePeppol = async () => {
     if (!invoice.id) return;
@@ -423,6 +454,21 @@ export function InvoiceDetail({ invoice, clients, templates, onSave }: Props) {
                 attachmentTypes
                   ? 'Embedded in the Peppol XML: only pdf, png, jpeg, csv, xlsx and ods are accepted. Deleted with the invoice.'
                   : 'Sent with the invoice mail. Deleted with the invoice.'
+              }
+            />
+          ) : canUpdateAttachments ? (
+            <AttachmentsField
+              label="Extra files"
+              value={attachments}
+              onChange={updateAttachments}
+              busy={savingAttachments}
+              accept={peppolPending ? PEPPOL_MIME_TYPES : undefined}
+              description={
+                peppolPending
+                  ? 'Saved right away. The Peppol XML (not sent yet) is generated again with them: only pdf, png, jpeg, csv, xlsx and ods are accepted.'
+                  : invoice.peppolStatus === 'PROCESSING' || invoice.peppolStatus === 'SUCCESS'
+                    ? 'Saved right away. The Peppol XML is already sent: they only go with the invoice mail.'
+                    : 'Saved right away. Sent with the invoice mail, deleted with the invoice.'
               }
             />
           ) : attachments.length ? (

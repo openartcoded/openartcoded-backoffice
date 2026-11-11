@@ -8,6 +8,7 @@ import {
   FileButton,
   Group,
   Loader,
+  Modal,
   Pagination,
   Stack,
   Text,
@@ -19,7 +20,6 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Icon } from './Icon';
 import { fileLabel, ThumbnailPreview } from './common';
 import { AttachmentList } from './files';
-import { openModal } from './modal';
 import { filesApi } from '@/api/files';
 import { errorMessage } from '@/api/http';
 import { bytesToHuman, fmtDate } from '@/lib/format';
@@ -162,19 +162,6 @@ function UploadsBrowser({
   );
 }
 
-/** a modal to pick files among the uploads (search, bookmarked, paginated, several at once) */
-export function openUploadsBrowser(opts: {
-  accept?: string[];
-  exclude?: string[];
-  onSelect: (files: FileUpload[]) => void;
-}) {
-  openModal({
-    title: 'Choose from uploads',
-    size: 'lg',
-    render: (close) => <UploadsBrowser {...opts} close={close} />,
-  });
-}
-
 /**
  * The attached files: choose some among the uploads, or upload new ones (they go to the uploads too).
  * accept: the allowed content types (all when absent), the files of another type are flagged.
@@ -186,6 +173,7 @@ export function AttachmentsField({
   label = 'Attachments',
   description,
   disabled,
+  busy,
 }: {
   value: FileUpload[];
   onChange: (files: FileUpload[]) => void;
@@ -193,8 +181,11 @@ export function AttachmentsField({
   label?: string;
   description?: ReactNode;
   disabled?: boolean;
+  /** the change is being saved */
+  busy?: boolean;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
 
   const add = (files: FileUpload[]) => {
     const ids = new Set(value.map((f) => f.id));
@@ -221,6 +212,7 @@ export function AttachmentsField({
         <Text size="sm" fw={500}>
           {label}
           {!!value.length && ` (${value.length})`}
+          {busy && <Loader size={12} ml="xs" />}
         </Text>
         {!disabled && (
           <Group gap="xs">
@@ -228,13 +220,21 @@ export function AttachmentsField({
               size="xs"
               variant="default"
               leftSection={<Icon icon="folder-open" />}
-              onClick={() => openUploadsBrowser({ accept, exclude: value.map((f) => f.id), onSelect: add })}
+              disabled={busy}
+              onClick={() => setBrowsing(true)}
             >
               From uploads
             </Button>
             <FileButton onChange={(files) => uploadNew(files)} multiple accept={accept?.join(',')}>
               {(props) => (
-                <Button {...props} size="xs" variant="default" leftSection={<Icon icon="upload" />} loading={uploading}>
+                <Button
+                  {...props}
+                  size="xs"
+                  variant="default"
+                  leftSection={<Icon icon="upload" />}
+                  loading={uploading}
+                  disabled={busy}
+                >
                   Upload new
                 </Button>
               )}
@@ -250,7 +250,7 @@ export function AttachmentsField({
       {value.length ? (
         <AttachmentList
           files={value}
-          onRemove={disabled ? undefined : (f) => onChange(value.filter((x) => x.id !== f.id))}
+          onRemove={disabled || busy ? undefined : (f) => onChange(value.filter((x) => x.id !== f.id))}
           badge={(f) =>
             !isAccepted(f, accept) && (
               <Badge color="red" variant="light" size="xs">
@@ -264,6 +264,17 @@ export function AttachmentsField({
           No attachments.
         </Text>
       )}
+      {/* a modal of its own, above the one of the mail form: the modals manager would replace (and reset) it */}
+      <Modal opened={browsing} onClose={() => setBrowsing(false)} title="Choose from uploads" size="lg" zIndex={400}>
+        {browsing && (
+          <UploadsBrowser
+            accept={accept}
+            exclude={value.map((f) => f.id)}
+            onSelect={add}
+            close={() => setBrowsing(false)}
+          />
+        )}
+      </Modal>
     </Stack>
   );
 }

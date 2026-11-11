@@ -69,6 +69,9 @@ export const invoicesApi = {
   fromTemplate: (id: string) => post<Invoice>(`${inv}/from-template`, {}, { id }),
   save: (invoice: Invoice) => post<Invoice>(`${inv}/save`, invoice),
   makeCreditNote: (id: string) => post<Invoice>(`${inv}/make-credit-note`, {}, { id }),
+  /** extra files of a generated invoice (its peppol xml is generated again when not sent yet) */
+  updateAttachments: (id: string, attachmentIds: string[]) =>
+    post<Invoice>(`${inv}/update-attachments`, attachmentIds, { id }),
   manualUpload: (id: string, file: File) => {
     const fd = new FormData();
     fd.append('id', id);

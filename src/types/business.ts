@@ -134,7 +134,8 @@ export type TemplateType =
   | 'SMS'
   | 'CALENDAR'
   | 'DOSSIER_REPORT'
-  | 'BUSINESS_PLAN';
+  | 'BUSINESS_PLAN'
+  | 'CV_RDF';
 
 /** V1: FreeMarker, rendered by the backend. V2: jinja, stored and rendered by the file service */
 export type TemplateVersion = 'V1' | 'V2';

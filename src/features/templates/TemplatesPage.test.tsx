@@ -44,13 +44,53 @@ const api = vi.hoisted(() => ({
 }));
 vi.mock('@/api/templates', () => ({ templatesApi: api }));
 
-import { TemplatesPage, sortTemplates } from './TemplatesPage';
+import { DEFAULT_SORT, TemplatesPage, filterTemplates, nextSort, sortTemplates } from './TemplatesPage';
 
 const renderPage = (route = '/templates') => renderWithProviders(<TemplatesPage />, { route, path: '/templates' });
 
+const ids = (templates: OaTemplate[]) => templates.map((t) => t.id);
+/** template names, in the order of the table */
+const rowNames = () =>
+  screen
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => within(row).getAllByRole('cell')[0].querySelector('p')?.textContent);
+
 describe('sortTemplates', () => {
-  it('groups by type (display order), default first, then latest', () => {
-    expect(sortTemplates(TEMPLATES).map((t) => t.id)).toEqual(['inv-v2', 'inv-old', 'email']);
+  it('puts the default templates on top by default, then by type (display order), then the latest', () => {
+    expect(ids(sortTemplates(TEMPLATES))).toEqual(['inv-v2', 'email', 'inv-old']);
+  });
+
+  it('sorts on a column, ties by type then latest', () => {
+    expect(ids(sortTemplates(TEMPLATES, { key: 'name', desc: false }))).toEqual(['email', 'inv-old', 'inv-v2']);
+    expect(ids(sortTemplates(TEMPLATES, { key: 'name', desc: true }))).toEqual(['inv-v2', 'inv-old', 'email']);
+    expect(ids(sortTemplates(TEMPLATES, { key: 'updated', desc: true }))).toEqual(['inv-v2', 'email', 'inv-old']);
+    expect(ids(sortTemplates(TEMPLATES, { key: 'version', desc: false }))).toEqual(['inv-old', 'email', 'inv-v2']);
+    expect(ids(sortTemplates(TEMPLATES, { key: 'type', desc: true }))).toEqual(['email', 'inv-v2', 'inv-old']);
+  });
+
+  it('cycles ascending, descending, then back to the default order', () => {
+    const asc = nextSort(DEFAULT_SORT, 'name');
+    expect(asc).toEqual({ key: 'name', desc: false });
+    const desc = nextSort(asc, 'name');
+    expect(desc).toEqual({ key: 'name', desc: true });
+    expect(nextSort(desc, 'name')).toEqual(DEFAULT_SORT);
+    expect(nextSort(desc, 'type')).toEqual({ key: 'type', desc: false });
+  });
+});
+
+describe('filterTemplates', () => {
+  it('searches the name, the description and the type', () => {
+    expect(ids(filterTemplates(TEMPLATES, { search: 'JINJA' }))).toEqual(['inv-v2']);
+    expect(ids(filterTemplates(TEMPLATES, { search: 'new one' }))).toEqual(['inv-v2']);
+    expect(ids(filterTemplates(TEMPLATES, { search: 'email' }))).toEqual(['email']);
+    expect(ids(filterTemplates(TEMPLATES, { search: '  ' }))).toEqual(ids(TEMPLATES));
+  });
+
+  it('filters on the version and the default', () => {
+    expect(ids(filterTemplates(TEMPLATES, { version: 'V1' }))).toEqual(['email', 'inv-old']);
+    expect(ids(filterTemplates(TEMPLATES, { defaultOnly: true }))).toEqual(['email', 'inv-v2']);
+    expect(ids(filterTemplates(TEMPLATES, { version: 'V1', defaultOnly: true }))).toEqual(['email']);
   });
 });
 
@@ -76,6 +116,47 @@ describe('TemplatesPage', () => {
     expect(within(old).getByText('v1 · FreeMarker')).toBeInTheDocument();
     expect(within(old).queryByText('Default')).not.toBeInTheDocument();
     expect(api.list).toHaveBeenCalledWith(undefined);
+  });
+
+  it('shows the default templates on top, and sorts when clicking a column', async () => {
+    renderPage();
+    await screen.findByText('invoice jinja');
+    expect(rowNames()).toEqual(['invoice jinja', 'email bundled', 'invoice 2022']);
+
+    await userEvent.click(screen.getByRole('button', { name: 'sort by name' }));
+    expect(rowNames()).toEqual(['email bundled', 'invoice 2022', 'invoice jinja']);
+    await userEvent.click(screen.getByRole('button', { name: 'sort by name' }));
+    expect(rowNames()).toEqual(['invoice jinja', 'invoice 2022', 'email bundled']);
+    // third click: back to the default order
+    await userEvent.click(screen.getByRole('button', { name: 'sort by name' }));
+    expect(rowNames()).toEqual(['invoice jinja', 'email bundled', 'invoice 2022']);
+  });
+
+  it('filters the rows on a search, without calling the backend again', async () => {
+    renderPage();
+    await screen.findByText('invoice jinja');
+    await userEvent.type(screen.getByLabelText('search'), '2022');
+    expect(rowNames()).toEqual(['invoice 2022']);
+    expect(screen.getByText('1 of 3 templates')).toBeInTheDocument();
+    expect(api.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows only the default templates', async () => {
+    renderPage();
+    await screen.findByText('invoice jinja');
+    await userEvent.click(screen.getByLabelText('Default only'));
+    expect(rowNames()).toEqual(['invoice jinja', 'email bundled']);
+  });
+
+  it('filters and sorts from the url', async () => {
+    renderPage('/templates?version=V1&sort=updated&desc=true');
+    await screen.findByText('invoice 2022');
+    expect(rowNames()).toEqual(['email bundled', 'invoice 2022']);
+  });
+
+  it('says when no template matches the filters', async () => {
+    renderPage('/templates?q=nothing');
+    expect(await screen.findByText('No template matches the filters')).toBeInTheDocument();
   });
 
   it('filters on the type of the url', async () => {

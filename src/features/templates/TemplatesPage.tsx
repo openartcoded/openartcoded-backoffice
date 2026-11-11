@@ -1,5 +1,20 @@
 import { useSearchParams } from 'react-router';
-import { Badge, Button, Code, Group, List, Loader, Select, Table, Text } from '@mantine/core';
+import {
+  Badge,
+  Button,
+  Code,
+  Group,
+  List,
+  Loader,
+  SegmentedControl,
+  Select,
+  Switch,
+  Table,
+  Text,
+  TextInput,
+  UnstyledButton,
+  type TableThProps,
+} from '@mantine/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/Icon';
 import { NoContent } from '@/components/common';
@@ -9,20 +24,96 @@ import { errorMessage } from '@/api/http';
 import { templatesApi } from '@/api/templates';
 import { fmtDateTime } from '@/lib/format';
 import { confirm, toast } from '@/lib/ui';
-import type { OaTemplate, TemplateType } from '@/types';
+import type { OaTemplate, TemplateType, TemplateVersion } from '@/types';
 import { TemplateForm } from './TemplateForm';
 import { TEMPLATE_TYPE_DISPLAY, TEMPLATE_TYPES, VERSION_DISPLAY, typeLabel } from './templateTypes';
 
 export const TEMPLATES_KEY = ['templates'];
 
-/** templates of a type together (display order), the default first, then the latest */
-export function sortTemplates(templates: OaTemplate[]): OaTemplate[] {
-  const typeIndex = (t: OaTemplate) => (t.type ? TEMPLATE_TYPES.indexOf(t.type) : TEMPLATE_TYPES.length);
-  return [...templates].sort(
-    (a, b) =>
-      typeIndex(a) - typeIndex(b) ||
-      Number(!!b.defaultTemplate) - Number(!!a.defaultTemplate) ||
-      (b.dateCreation ?? '').localeCompare(a.dateCreation ?? ''),
+export type SortKey = 'default' | 'name' | 'type' | 'version' | 'updated';
+export interface TemplateSort {
+  key: SortKey;
+  desc: boolean;
+}
+/** default templates on top, then by type (display order), then the latest */
+export const DEFAULT_SORT: TemplateSort = { key: 'default', desc: false };
+const SORT_KEYS: SortKey[] = ['default', 'name', 'type', 'version', 'updated'];
+
+const typeIndex = (t: OaTemplate) => {
+  const index = t.type ? TEMPLATE_TYPES.indexOf(t.type) : -1;
+  return index < 0 ? TEMPLATE_TYPES.length : index;
+};
+const updated = (t: OaTemplate) => t.updatedDate ?? t.dateCreation ?? '';
+const byTypeThenLatest = (a: OaTemplate, b: OaTemplate) =>
+  typeIndex(a) - typeIndex(b) || updated(b).localeCompare(updated(a));
+
+const COMPARATORS: Record<Exclude<SortKey, 'default'>, (a: OaTemplate, b: OaTemplate) => number> = {
+  name: (a, b) => (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base', numeric: true }),
+  type: (a, b) => typeIndex(a) - typeIndex(b),
+  version: (a, b) => (a.version ?? '').localeCompare(b.version ?? ''),
+  updated: (a, b) => updated(a).localeCompare(updated(b)),
+};
+
+/** sorted on a column (ties: by type, then the latest), or the default order: default templates on top */
+export function sortTemplates(templates: OaTemplate[], sort: TemplateSort = DEFAULT_SORT): OaTemplate[] {
+  return [...templates].sort((a, b) => {
+    if (sort.key === 'default') {
+      return Number(!!b.defaultTemplate) - Number(!!a.defaultTemplate) || byTypeThenLatest(a, b);
+    }
+    const compared = COMPARATORS[sort.key](a, b);
+    return (sort.desc ? -compared : compared) || byTypeThenLatest(a, b);
+  });
+}
+
+/** clicking a column: ascending, then descending, then back to the default order */
+export function nextSort(sort: TemplateSort, key: Exclude<SortKey, 'default'>): TemplateSort {
+  if (sort.key !== key) return { key, desc: false };
+  return sort.desc ? DEFAULT_SORT : { key, desc: true };
+}
+
+export interface TemplateFilter {
+  /** in the name, the description or the type */
+  search?: string;
+  version?: TemplateVersion | null;
+  defaultOnly?: boolean;
+}
+
+export function filterTemplates(templates: OaTemplate[], { search, version, defaultOnly }: TemplateFilter) {
+  const q = search?.trim().toLowerCase();
+  return templates.filter(
+    (t) =>
+      (!version || t.version === version) &&
+      (!defaultOnly || !!t.defaultTemplate) &&
+      (!q || [t.name, t.description, t.type, typeLabel(t.type)].some((v) => v?.toLowerCase().includes(q))),
+  );
+}
+
+function SortTh({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  ...props
+}: {
+  label: string;
+  sortKey: Exclude<SortKey, 'default'>;
+  sort: TemplateSort;
+  onSort: (key: Exclude<SortKey, 'default'>) => void;
+} & TableThProps) {
+  const active = sort.key === sortKey;
+  return (
+    <Table.Th {...props} aria-sort={active ? (sort.desc ? 'descending' : 'ascending') : 'none'}>
+      <UnstyledButton onClick={() => onSort(sortKey)} fw={600} fz="sm" aria-label={`sort by ${label.toLowerCase()}`}>
+        <Group gap={4} wrap="nowrap">
+          {label}
+          <Icon
+            icon={active ? (sort.desc ? 'arrow-down' : 'arrow-up') : 'arrows-up-down'}
+            size="xs"
+            style={{ opacity: active ? 1 : 0.35 }}
+          />
+        </Group>
+      </UnstyledButton>
+    </Table.Th>
   );
 }
 
@@ -48,6 +139,28 @@ function TemplateVariables({ id }: { id: string }) {
 export function TemplatesPage() {
   const [params, setParams] = useSearchParams();
   const type = (params.get('type') as TemplateType | null) ?? undefined;
+  // filters and sort in the url: kept on reload / back
+  const search = params.get('q') ?? '';
+  const versionParam = params.get('version');
+  const version: TemplateVersion | null = versionParam === 'V1' || versionParam === 'V2' ? versionParam : null;
+  const defaultOnly = params.get('default') === 'true';
+  const sortParam = params.get('sort') as SortKey | null;
+  const sort: TemplateSort =
+    sortParam && SORT_KEYS.includes(sortParam) ? { key: sortParam, desc: params.get('desc') === 'true' } : DEFAULT_SORT;
+  const setParam = (values: Record<string, string | null | undefined>) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        Object.entries(values).forEach(([key, value]) => (value ? next.set(key, value) : next.delete(key)));
+        return next;
+      },
+      { replace: true },
+    );
+  const onSort = (key: Exclude<SortKey, 'default'>) => {
+    const next = nextSort(sort, key);
+    setParam(next.key === 'default' ? { sort: null, desc: null } : { sort: next.key, desc: next.desc ? 'true' : null });
+  };
+  const filtered = !!search.trim() || !!version || defaultOnly;
   const queryClient = useQueryClient();
   const { data: types = [] } = useQuery({ queryKey: ['template-types'], queryFn: templatesApi.types });
   const { data: templates } = useQuery({
@@ -103,7 +216,7 @@ export function TemplatesPage() {
       render: () => <TemplateVariables id={t.id!} />,
     });
 
-  const rows = sortTemplates(templates ?? []);
+  const rows = sortTemplates(filterTemplates(templates ?? [], { search, version, defaultOnly }), sort);
 
   return (
     <>
@@ -116,31 +229,70 @@ export function TemplatesPage() {
           </Button>
         }
       />
-      <Group mb="md">
+      <Group mb="md" gap="sm" align="center">
+        <TextInput
+          w={240}
+          aria-label="search"
+          placeholder="Search name, description, type"
+          leftSection={<Icon icon="search" />}
+          value={search}
+          onChange={(e) => setParam({ q: e.currentTarget.value })}
+        />
         <Select
           aria-label="type"
           placeholder="All types"
           clearable
-          w={260}
+          w={220}
           value={type ?? null}
-          onChange={(v) => setParams(v ? { type: v } : {})}
+          onChange={(v) => setParam({ type: v })}
           data={TEMPLATE_TYPES.map((t) => ({ value: t, label: typeLabel(t) }))}
         />
-        {type && (
-          <Text size="sm" c="dimmed">
-            {TEMPLATE_TYPE_DISPLAY[type].description}
+        <SegmentedControl
+          aria-label="version"
+          size="xs"
+          value={version ?? 'ALL'}
+          onChange={(v) => setParam({ version: v === 'ALL' ? null : v })}
+          data={[
+            { value: 'ALL', label: 'All' },
+            { value: 'V1', label: VERSION_DISPLAY.V1.label },
+            { value: 'V2', label: VERSION_DISPLAY.V2.label },
+          ]}
+        />
+        <Switch
+          label="Default only"
+          checked={defaultOnly}
+          onChange={(e) => setParam({ default: e.currentTarget.checked ? 'true' : null })}
+        />
+        {sort.key !== 'default' && (
+          <Button
+            variant="subtle"
+            size="xs"
+            leftSection={<Icon icon="arrow-rotate-backward" />}
+            onClick={() => setParam({ sort: null, desc: null })}
+          >
+            Default order
+          </Button>
+        )}
+        {templates && (
+          <Text size="sm" c="dimmed" ml="auto">
+            {rows.length === templates.length ? `${rows.length}` : `${rows.length} of ${templates.length}`} templates
           </Text>
         )}
       </Group>
+      {type && TEMPLATE_TYPE_DISPLAY[type] && (
+        <Text size="sm" c="dimmed" mb="md">
+          {TEMPLATE_TYPE_DISPLAY[type].description}
+        </Text>
+      )}
       {templates && (
         <Table.ScrollContainer minWidth={640}>
           <Table className="clickable-rows">
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Name</Table.Th>
-                <Table.Th>Type</Table.Th>
-                <Table.Th>Version</Table.Th>
-                <Table.Th visibleFrom="md">Updated</Table.Th>
+                <SortTh label="Name" sortKey="name" sort={sort} onSort={onSort} />
+                <SortTh label="Type" sortKey="type" sort={sort} onSort={onSort} />
+                <SortTh label="Version" sortKey="version" sort={sort} onSort={onSort} />
+                <SortTh label="Updated" sortKey="updated" sort={sort} onSort={onSort} visibleFrom="md" />
                 <Table.Th w={110} />
               </Table.Tr>
             </Table.Thead>
@@ -149,8 +301,10 @@ export function TemplatesPage() {
                 <EmptyRow
                   colSpan={5}
                   icon="file-code"
-                  title="No template"
-                  description="The bundled templates are added at startup."
+                  title={filtered ? 'No template matches the filters' : 'No template'}
+                  description={
+                    filtered ? 'Change the search or the filters.' : 'The bundled templates are added at startup.'
+                  }
                 />
               )}
               {rows.map((t) => {

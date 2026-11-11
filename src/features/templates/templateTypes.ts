@@ -13,6 +13,7 @@ export const TEMPLATE_TYPES: TemplateType[] = [
   'CALENDAR',
   'DOSSIER_REPORT',
   'BUSINESS_PLAN',
+  'CV_RDF',
 ];
 
 export const TEMPLATE_TYPE_DISPLAY: Record<TemplateType, { label: string; description: string }> = {
@@ -33,9 +34,14 @@ export const TEMPLATE_TYPE_DISPLAY: Record<TemplateType, { label: string; descri
     label: 'Business plan',
     description: 'pdf business plan / plan financier for the banks, in EN, FR or NL (plan)',
   },
+  CV_RDF: {
+    label: 'CV RDF',
+    description: 'sparql update pushing the cv to the triplestore (graph, cv)',
+  },
 };
 
-export const typeLabel = (type?: TemplateType | null) => (type ? TEMPLATE_TYPE_DISPLAY[type].label : '');
+/** the type itself when unknown (a type added in the backend before the backoffice knows it) */
+export const typeLabel = (type?: TemplateType | null) => (type ? (TEMPLATE_TYPE_DISPLAY[type]?.label ?? type) : '');
 
 export const VERSION_DISPLAY: Record<TemplateVersion, { label: string; color: string }> = {
   V1: { label: 'v1 · FreeMarker', color: 'gray' },

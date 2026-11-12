@@ -1,6 +1,6 @@
 {
   "name": "openartcoded-backoffice",
-  "version": "2027.8.1",
+  "version": "2027.8.2",
   "private": true,
   "type": "module",
   "scripts": {

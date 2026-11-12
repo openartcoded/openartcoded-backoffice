@@ -25,6 +25,7 @@ import { templatesApi } from '@/api/templates';
 import { fmtDateTime } from '@/lib/format';
 import { confirm, toast } from '@/lib/ui';
 import type { OaTemplate, TemplateType, TemplateVersion } from '@/types';
+import { TemplateEditor } from './TemplateEditor';
 import { TemplateForm } from './TemplateForm';
 import { TEMPLATE_TYPE_DISPLAY, TEMPLATE_TYPES, VERSION_DISPLAY, typeLabel } from './templateTypes';
 
@@ -181,6 +182,17 @@ export function TemplatesPage() {
     }
   };
 
+  /** only jinja (v2) templates are edited in the backoffice: a FreeMarker one is replaced by a file */
+  const editSource = (t: OaTemplate) =>
+    t.id &&
+    t.version === 'V2' &&
+    openModal({
+      title: `Edit ${t.name}`,
+      fullScreen: true,
+      closeOnClickOutside: false,
+      render: (close) => <TemplateEditor template={t} types={types} onSaved={reload} onClose={close} />,
+    });
+
   const open = (template?: OaTemplate) =>
     openModal({
       title: template?.id ? `Template ${template.name}` : 'New template',
@@ -191,6 +203,14 @@ export function TemplatesPage() {
           template={template}
           types={types}
           initialType={type}
+          onEditSource={
+            template?.version === 'V2'
+              ? () => {
+                  close();
+                  editSource(template);
+                }
+              : undefined
+          }
           onSubmit={async (form) => {
             if (await run(() => templatesApi.save(form), 'Template saved')) close();
           }}
@@ -339,6 +359,12 @@ export function TemplatesPage() {
                       <RowActions
                         inline={[
                           {
+                            label: 'Edit the template',
+                            icon: 'pen',
+                            hidden: t.version !== 'V2',
+                            onClick: () => editSource(t),
+                          },
+                          {
                             label: 'Set as default',
                             icon: 'star',
                             color: 'yellow',
@@ -349,7 +375,7 @@ export function TemplatesPage() {
                         ]}
                         groups={[
                           [
-                            { label: 'Edit / replace the file', icon: 'edit', onClick: () => open(t) },
+                            { label: 'Rename / replace the file', icon: 'edit', onClick: () => open(t) },
                             {
                               label: 'Variables',
                               icon: 'file-code',

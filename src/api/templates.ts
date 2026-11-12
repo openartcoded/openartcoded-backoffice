@@ -1,4 +1,5 @@
-import { del, download, get, post } from './http';
+import axios from 'axios';
+import { del, download, get, http, post } from './http';
 import type { OaTemplate, TemplateForm, TemplateType, TemplateTypeInfo } from '@/types';
 
 const tpl = '/api/template';
@@ -31,4 +32,56 @@ export const templatesApi = {
   download: (t: OaTemplate) => download(`${tpl}/download`, { params: { id: t.id } }, t.name ?? 'template'),
   /** the variables a v2 template reads (e.g. invoice.total). Empty for a v1 template */
   variables: (id: string) => get<string[]>(`${tpl}/variables`, { id }),
+  /** the source of a template, as text (to edit it) */
+  source: async (id: string) =>
+    (await http.get<string>(`${tpl}/download`, { params: { id }, responseType: 'text' })).data,
+  /** mock data for a preview: the variables the source reads, with values of a plausible type */
+  mockContext: (opts: { id?: string; source?: string; extension?: string }) =>
+    post<Record<string, unknown>>(`${tpl}/mock-context`, previewForm(opts)),
+  /**
+   * renders a template without saving it: the given source (the one being edited) or the saved template, with the
+   * given data (a mock built by the backend when omitted)
+   */
+  preview: async (opts: {
+    id?: string;
+    type: TemplateType;
+    v1?: boolean;
+    source?: string;
+    extension?: string;
+    context?: Record<string, unknown>;
+  }): Promise<{ blob: Blob; contentType: string }> => {
+    const fd = previewForm(opts);
+    fd.append('type', opts.type);
+    if (opts.v1 !== undefined) fd.append('v1', String(opts.v1));
+    if (opts.context) fd.append('context', JSON.stringify(opts.context));
+    try {
+      const res = await http.post<Blob>(`${tpl}/preview`, fd, { responseType: 'blob' });
+      const contentType = String(res.headers['content-type'] ?? res.data.type ?? '');
+      return { blob: res.data, contentType };
+    } catch (e) {
+      throw await withBlobMessage(e);
+    }
+  },
 };
+
+function previewForm({ id, source, extension }: { id?: string; source?: string; extension?: string }) {
+  const fd = new FormData();
+  if (id) fd.append('id', id);
+  if (source !== undefined) {
+    fd.append('template', new File([source], `template${extension ?? '.html'}`, { type: 'text/plain' }));
+  }
+  return fd;
+}
+
+/** a blob error body ({"error": "..."}) read as json, so errorMessage shows the message of the backend */
+async function withBlobMessage(e: unknown) {
+  if (axios.isAxiosError(e) && e.response?.data instanceof Blob) {
+    const text = await e.response.data.text();
+    try {
+      e.response.data = JSON.parse(text);
+    } catch {
+      e.response.data = text;
+    }
+  }
+  return e;
+}

@@ -14,11 +14,14 @@ export function TemplateForm({
   types,
   initialType,
   onSubmit,
+  onEditSource,
 }: {
   template?: OaTemplate;
   types: TemplateTypeInfo[];
   initialType?: TemplateType;
   onSubmit: (form: TemplateFormValues) => Promise<void>;
+  /** a jinja template: opens the source editor (with preview) */
+  onEditSource?: () => void;
 }) {
   const editing = !!template?.id;
   const [name, setName] = useState(template?.name ?? '');
@@ -107,7 +110,12 @@ export function TemplateForm({
           What uses this template (e.g. an invoice generated again) will render with the new file.
         </Alert>
       )}
-      <Group justify="flex-end">
+      <Group justify={onEditSource ? 'space-between' : 'flex-end'}>
+        {onEditSource && (
+          <Button variant="light" leftSection={<Icon icon="pen" />} onClick={onEditSource}>
+            Edit the template (with preview)
+          </Button>
+        )}
         <Button leftSection={<Icon icon="save" />} disabled={!valid} loading={submitting} onClick={submit}>
           Save
         </Button>
